@@ -18,7 +18,7 @@ $kassenbuch_header = '
 <img src="Images/Cash.png">
 Gerhard Wißt, Augsburger Str. 717, 70329 Stuttgart';
  
-$kassenbuch_empfaenger = 'Firma: Griebdeppen GmbH, Im Neuen Berg 32, 70327 Stuttgart';
+$kassenbuch_empfaenger = 'Firma: Barkasse GmbH, Im Neuen Berg 32, 70327 Stuttgart';
 
 $kassenbuch_empfaenger = "<b>" . htmlspecialchars($kassenbuch_empfaenger, ENT_QUOTES, 'UTF-8') . "</b>";
  
