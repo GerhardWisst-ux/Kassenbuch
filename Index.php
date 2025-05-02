@@ -378,35 +378,35 @@ if ($_SESSION['userid'] == "") {
       </table>
       <?php
 
-      if ($monatNumFilter > 0) {
-        $sql = "SELECT COUNT(*) AS anzahl FROM buchungen WHERE DATE_FORMAT(datum, '%m') = :monat and userid = :userid and barkasse = 1";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute(['monat' => $monatNumFilter, 'userid' => $userid]);
-        $resultCount = $stmt->fetch(PDO::FETCH_ASSOC);
-      } else {
+      // if ($monatNumFilter > 0) {
+      //   $sql = "SELECT COUNT(*) AS anzahl FROM buchungen WHERE DATE_FORMAT(datum, '%m') = :monat and userid = :userid and barkasse = 1";
+      //   $stmt = $pdo->prepare($sql);
+      //   $stmt->execute(['monat' => $monatNumFilter, 'userid' => $userid]);
+      //   $resultCount = $stmt->fetch(PDO::FETCH_ASSOC);
+      // } else {
         $sql = "SELECT COUNT(*) AS anzahl FROM buchungen WHERE userid = :userid and barkasse = 1";
         $stmt = $pdo->prepare($sql);
         $stmt->execute(['userid' => $userid]);
         $resultCount = $stmt->fetch(PDO::FETCH_ASSOC);
-      }
+      //}
 
       // Summen für den ausgewählten Monat
-      if ($monatNumFilter > 0) {
-        $sql = "SELECT SUM(CASE WHEN typ = 'Einnahme' THEN betrag ELSE 0 END) AS einnahmen,
-                     SUM(CASE WHEN typ = 'Ausgabe' THEN betrag ELSE 0 END) AS ausgaben
-              FROM buchungen
-              WHERE DATE_FORMAT(datum, '%m') = :monat and userid = :userid and barkasse =1 ";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute(['monat' => $monatNumFilter, 'userid' => $userid]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-      } else {
+      // if ($monatNumFilter > 0) {
+      //   $sql = "SELECT SUM(CASE WHEN typ = 'Einnahme' THEN betrag ELSE 0 END) AS einnahmen,
+      //                SUM(CASE WHEN typ = 'Ausgabe' THEN betrag ELSE 0 END) AS ausgaben
+      //         FROM buchungen
+      //         WHERE DATE_FORMAT(datum, '%m') = :monat and userid = :userid and barkasse =1 ";
+      //   $stmt = $pdo->prepare($sql);
+      //   $stmt->execute(['monat' => $monatNumFilter, 'userid' => $userid]);
+      //   $result = $stmt->fetch(PDO::FETCH_ASSOC);
+      // } else {
         $sql = "SELECT SUM(CASE WHEN typ = 'Einnahme' THEN betrag ELSE 0 END) AS einnahmen,
                      SUM(CASE WHEN typ = 'Ausgabe' THEN betrag ELSE 0 END) AS ausgaben
               FROM buchungen WHERE userid = :userid and barkasse = 1";
         $stmt = $pdo->prepare($sql);
         $stmt->execute(['userid' => $userid]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
-      }
+     // }
 
       $saldo = $Anfangsbestand + $result['einnahmen'] - $result['ausgaben'];
 
@@ -487,16 +487,16 @@ if ($_SESSION['userid'] == "") {
       fputs($datei, $eintrag . "\n");
       fclose($datei);
 
-      $fh = fopen("counter.txt", 'w') or die("Can't create file counter.txt.");
+      // $fh = fopen("counter.txt", 'w') or die("Can't create file counter.txt.");
 
-      $counterstand = intval(file_get_contents("counter.txt"));
+      // $counterstand = intval(file_get_contents("counter.txt"));
 
-      if (!isset($_SESSION['counter_ip'])) {
-        $counterstand++;
-        file_put_contents("counter.txt", $counterstand);
+      // if (!isset($_SESSION['counter_ip'])) {
+      //   $counterstand++;
+      //   file_put_contents("counter.txt", $counterstand);
 
-        $_SESSION['counter_ip'] = true;
-      }
+      //   $_SESSION['counter_ip'] = true;
+      // }
       ?>
     </div>
     <!-- Bootstrap Modal -->
