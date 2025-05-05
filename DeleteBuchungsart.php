@@ -20,10 +20,9 @@
     $id = intval($_POST['id']);
     $sql = "DELETE FROM buchungsarten WHERE id = :id";
     $stmt = $pdo->prepare($sql);
-    $stmt->execute(['id' => $id]);
-    echo "Eintrag mit der ID" . $id . " wurde gelöscht!";
+    $stmt-"Kassenbuch Buchungsarten - Eintrag mit der ID" . $id . " wurde gelöscht!";
     sleep(1);
-    header('Location: Buchungsarten.php'); // Zurück zur Übersicht
+    //header('Location: Buchungsarten.php'); // Zurück zur Übersicht
   
     exit();
   } else {

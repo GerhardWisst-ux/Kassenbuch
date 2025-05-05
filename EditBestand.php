@@ -179,7 +179,7 @@ if ($_SESSION['userid'] == "") {
     <a class="active" href="Index.php">Haupseite</a>
     <a href="Buchungsarten.php">Buchungsarten</a>
     <a href="Bestaende.php">Bestände</a>
-    <a href="About.php">Über</a>
+    <a href="Impressum.php">Impressum</a>
     <a href="javascript:void(0);" class="icon" onclick="NavBarClick()">
       <i class="fa fa-bars"></i>
     </a>

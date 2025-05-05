@@ -188,7 +188,7 @@ if ($_SESSION['userid'] == "") {
         <a href="Index.php">Haupseite</a>
         <a href="Buchungsarten.php">Buchungsarten</a>
         <a href="Bestaende.php" class="active">Bestände</a>
-        <a class="disabled" href="About.php">Über</a>
+        <a class="disabled"  href="Impressum.php">Impressum</a>
         <a href="javascript:void(0);" class="icon" onclick="NavBarClick()">
             <i class="fa fa-bars"></i>
         </a>
@@ -243,9 +243,9 @@ if ($_SESSION['userid'] == "") {
                         <thead>
                             <tr>
                                 <th>Datum</th>
-                                <th>Einnahmen</th>
-                                <th>Ausgaben</th>
-                                <th>Bestand</th>
+                                <th style="text-align:right;">Einlagen</th>
+                                <th style="text-align:right;">Ausgaben</th>
+                                <th style="text-align:right;">Bestand</th>
                                 <th></th>
 
                             </tr>
@@ -258,11 +258,14 @@ if ($_SESSION['userid'] == "") {
                             $stmt->execute(['userid' => $userid]);
                             while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                                 $formattedDate = (new DateTime($row['datum']))->format('d.m.Y');
+
+                                $bestand = number_format( $row['einlagen'] - $row['ausgaben'], 2, '.', '');
+
                                 echo "<tr>
                                     <td>{$formattedDate}</td>
-                                    <td class='betrag-right'>{$row['einnahmen']}</td>
+                                    <td class='betrag-right'>{$row['einlagen']}</td>
                                     <td class='betrag-right'>{$row['ausgaben']}</td>
-                                    <td class='betrag-right'>{$row['bestand']}</td>
+                                    <td class='betrag-right'>$bestand</td>
                                     <td style='vertical-align: top; width:7%; white-space: nowrap;'>
                                         <a href='EditBestand.php?id={$row['id']}' style='width:60px;' title='Bestand bearbeiten' class='btn btn-primary btn-sm'><i class='fa-solid fa-pen-to-square'></i></a>
                                         <a href='DeleteBestand.php?id={$row['id']}' style='width:60px;' title='Bestand löschen' class='btn btn-danger btn-sm delete-button'><i class='fa-solid fa-trash'></i></a>
@@ -359,6 +362,7 @@ if ($_SESSION['userid'] == "") {
                         url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/de-DE.json"
                     },
                     responsive: true,
+                    pageLength: 12,
                     autoWidth: false,
                     columnDefs: [
                         {

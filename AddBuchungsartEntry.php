@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     echo "Eintrag hinzugefügt!";
     sleep(3);
-    header('Location: Index.php'); // Zurück zur Übersicht
+    header('Location: Buchungsarten.php'); // Zurück zur Übersicht
     
 }
 ?>

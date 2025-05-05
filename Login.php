@@ -351,7 +351,7 @@ session_start();
         <a href="Index.php" class="active">Haupseite</a>
         <a href="Buchungsarten.php">Buchungsarten</a>
         <a href="Bestaende.php">Bestände</a>
-        <a class="disabled" href="About.php">Über</a>
+        <a class="disabled"  href="Impressum.php">Impressum</a>
         <a href="javascript:void(0);" class="icon" onclick="NavBarClick()">
             <i class="fa fa-bars"></i>
         </a>

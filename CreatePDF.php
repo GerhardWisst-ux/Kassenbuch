@@ -16,7 +16,7 @@ if (!file_exists('Images/Cash.png')) {
 
 $kassenbuch_header = '
 <img src="Images/Cash.png">
-Gerhard Wißt, Augsburger Str. 717, 70329 Stuttgart';
+';
  
 $kassenbuch_empfaenger = 'Firma: Barkasse GmbH, Im Neuen Berg 32, 70327 Stuttgart';
 
@@ -24,9 +24,7 @@ $kassenbuch_empfaenger = "<b>" . htmlspecialchars($kassenbuch_empfaenger, ENT_QU
  
 $kassenbuch_footer = "Dieses PDF Dokument wurde mit dem Kassenbuch erstellt:
  
-<b>Empfänger:</b> EDV Beratung Wisst
-<b>IBAN</b>: DE23 6009 0800 0003 7232 50
-<b>BIC</b>: GENO DEF1 S02";
+";
  
  // Wenn kein Monat ausgewählt wurde, alle Buchungen anzeigen
  $sql = "SELECT * FROM buchungen WHERE userid = :userid and barkasse =1 ORDER BY datum DESC";      

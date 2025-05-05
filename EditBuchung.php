@@ -178,7 +178,7 @@ if ($_SESSION['userid'] == "") {
     <a class="active" href="Index.php">Haupseite</a>
     <a href="Buchungsarten.php">Buchungsarten</a>
     <a href="Bestaende.php">Bestände</a>
-    <a href="About.php">Über</a>
+    <a href="Impressum.php">Impressum</a>
     <a href="javascript:void(0);" class="icon" onclick="NavBarClick()">
       <i class="fa fa-bars"></i>
     </a>
@@ -216,7 +216,7 @@ if ($_SESSION['userid'] == "") {
         <label class="col-sm-2 col-form-label text-dark">Typ:</label>
         <div class="col-sm-1">
           <select class="form-control" name="typ">
-            <option value="Einnahme" <?= $result['typ'] === 'Einnahme' ? 'selected' : '' ?>>Einnahme</option>
+            <option value="Einlage" <?= $result['typ'] === 'Einlage' ? 'selected' : '' ?>>Einlage</option>
             <option value="Ausgabe" <?= $result['typ'] === 'Ausgabe' ? 'selected' : '' ?>>Ausgabe</option>
           </select>
         </div>
@@ -252,13 +252,7 @@ if ($_SESSION['userid'] == "") {
     </form>
   </div>
 
-  <script>
-    // Heutiges Datum automatisch setzen
-    document.addEventListener("DOMContentLoaded", function () {
-      const today = new Date();
-      const formattedDate = today.toISOString().split('T')[0];
-      document.getElementById("datum").value = formattedDate;
-    });
+  <script>   
 
     function NavBarClick() {
       const topnav = document.getElementById("myTopnav");

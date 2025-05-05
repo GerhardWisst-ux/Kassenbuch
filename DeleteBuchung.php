@@ -1,5 +1,5 @@
 <head>
-  <title>Buchungungen - Eintrag löschen</title>
+  <title>Buchungungen - Position löschen</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- CSS -->
@@ -21,9 +21,9 @@
     $sql = "DELETE FROM buchungen WHERE id = :id";
     $stmt = $pdo->prepare($sql);
     $stmt->execute(['id' => $id]);
-    echo "Position mit der ID" . $id . " wurde gelöscht!";
+    $stmt-"Kassenbuch Buchungsarten - Position mit der ID" . $id . " wurde gelöscht!";
     sleep(1);
-    header('Location: Indxex.php'); // Zurück zur Übersicht
+   // header('Location: Index.php'); // Zurück zur Übersicht
   
     exit();
   } else {

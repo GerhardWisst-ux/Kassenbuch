@@ -160,7 +160,7 @@ if ($_SESSION['userid'] == "") {
     <a href="Index.php">Haupseite</a>
     <a href="Buchungsarten.php" class="active">Buchungsarten</a>
     <a href="Bestaende.php">Bestände</a>
-    <a class="disabled" href="About.php">Über</a>
+    <a class="disabled"  href="Impressum.php">Impressum</a>
     <a href="javascript:void(0);" class="icon" onclick="NavBarClick()">
       <i class="fa fa-bars"></i>
     </a>
@@ -311,6 +311,7 @@ if ($_SESSION['userid'] == "") {
             url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/de-DE.json"
           },
           responsive: true,
+          pageLength: 25,
           autoWidth: false,
           columnDefs: [
             {

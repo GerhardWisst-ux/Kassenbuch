@@ -180,7 +180,7 @@ if ($_SESSION['userid'] == "") {
     <a href="Index.php">Haupseite</a>
     <a class="active" href="Buchungsarten.php">Buchungsarten</a>
     <a href="Bestaende.php">Bestände</a>
-    <a href="About.php">Über</a>
+    <a href="Impressum.php">Impressum</a>
     <a href="javascript:void(0);" class="icon" onclick="NavBarClick()">
       <i class="fa fa-bars"></i>
     </a>

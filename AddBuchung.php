@@ -171,7 +171,7 @@ if ($_SESSION['userid'] == "") {
         <a class="active" href="Index.php">Haupseite</a>
         <a href="Buchungsarten.php">Buchungsarten</a>
         <a href="Bestaende.php">Bestände</a>
-        <a href="About.php">Über</a>
+        <a href="Impressum.php">Impressum</a>
         <a href="javascript:void(0);" class="icon" onclick="NavBarClick()">
             <i class="fa fa-bars"></i>
         </a>
@@ -208,7 +208,7 @@ if ($_SESSION['userid'] == "") {
                 <label class="col-sm-2 col-form-label text-dark">Typ:</label>
                 <div class="col-sm-1">
                     <select class="form-control" name="typ">
-                        <option value="Einnahme">Einnahme</option>
+                        <option value="Einlage">Einlage</option>
                         <option value="Ausgabe">Ausgabe</option>
                     </select>
                 </div>
@@ -247,7 +247,6 @@ if ($_SESSION['userid'] == "") {
                     <input class="form-control" type="text" name="beschreibung" required>
                 </div>
             </div>
-
             <div class="form-group row me-4">
                 <div class="col-sm-offset-2 col-sm-10">
                     <button class="btn btn-primary" type="submit"><i class="fas fa-save"></i></button>

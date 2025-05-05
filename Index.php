@@ -58,6 +58,10 @@ if ($_SESSION['userid'] == "") {
       margin-left: 1.2rem !important;
     }
 
+    .me-2 {
+      margin-left: 0.6rem !important;
+    }
+
     .betrag-right {
       text-align: right;
     }
@@ -213,6 +217,8 @@ if ($_SESSION['userid'] == "") {
   require 'db.php';
 
   $Anfangsbestand = 0;
+  $yearFilter = date("Y");
+
   $monatNumFilter = 0;
   $email = $_SESSION['email'];
   $userid = $_SESSION['userid'];
@@ -222,7 +228,7 @@ if ($_SESSION['userid'] == "") {
     <a href="Index.php" class="active">Haupseite</a>
     <a href="Buchungsarten.php">Buchungsarten</a>
     <a href="Bestaende.php">Bestände</a>
-    <a class="disabled" href="About.php">Über</a>
+    <a class="disabled" href="Impressum.php">Impressum</a>
     <a href="javascript:void(0);" class="icon" onclick="NavBarClick()">
       <i class="fa fa-bars"></i>
     </a>
@@ -265,7 +271,7 @@ if ($_SESSION['userid'] == "") {
       echo '</div>';
 
       // Abrufen der verfügbaren Monate
-      $sql = "SELECT DISTINCT DATE_FORMAT(datum, '%Y-%m') AS monat FROM buchungen WHERE Userid = " . $userid . " ORDER BY datum DESC";
+      $sql = "SELECT DISTINCT DATE_FORMAT(datum, '%Y-%m') AS monat FROM buchungen WHERE Userid = " . $userid . " ORDER BY datum DESC, Day(datum) DESC";
       $stmt = $pdo->query($sql);
 
       echo '<form method="GET" action="" style="display: flex; flex-direction: column; gap: 10px;">';
@@ -312,25 +318,36 @@ if ($_SESSION['userid'] == "") {
 
       echo '</select><br>';
 
+
       // Wenn ein Monat ausgewählt wurde, dann filtern wir die Buchungen
       $monatFilter = isset($_GET['monat']) ? $_GET['monat'] : '';
       $monatNumFilter = (new DateTime($monatFilter . '-01'))->format('n'); // 'n' gibt die Monatszahl zurück
       
-      if ($monatFilter) {
-        $sql = "SELECT * FROM buchungen WHERE DATE_FORMAT(datum, '%Y-%m') = :monat AND userid = :userid and barkasse = 1 ORDER BY datum DESC";
+      if ($monatFilter <> '')
+        $yearFilter = substr($monatFilter, 0, 4);
+
+      //echo $monatFilter;
+      if ($monatFilter <> '') {
+        $startDatum = $monatFilter . "-01";
+        $endDatum = date("Y-m-t", strtotime($startDatum)); // Letzter Tag des Monats
+        $sql = "SELECT * FROM buchungen 
+            WHERE datum BETWEEN :startDatum AND :endDatum 
+            AND userid = :userid 
+            AND barkasse = 1 
+            ORDER BY datum DESC";
         $stmt = $pdo->prepare($sql);
-        $stmt->execute(['monat' => $monatFilter, 'userid' => $userid]);
+        $stmt->execute(['startDatum' => $startDatum, 'endDatum' => $endDatum, 'userid' => $userid]);
 
       } else {
-        // Wenn kein Monat ausgewählt wurde, alle Buchungen anzeigen
+        //Wenn kein Monat ausgewählt wurde, alle Buchungen anzeigen
         $sql = "SELECT * FROM buchungen WHERE userid = :userid and barkasse = 1 ORDER BY datum DESC";
         $stmt = $pdo->prepare($sql);
         $stmt->execute(['userid' => $userid]);
       }
 
-      $sql = "SELECT * FROM bestaende WHERE  DATE_FORMAT(datum, '%Y-%m') = :monat AND userid = :userid ORDER BY Datum DESC";
+      $sql = "SELECT * FROM bestaende WHERE  DATE_FORMAT(datum, '%Y-%m') = :monat AND Year(datum) = :year AND userid = :userid ORDER BY datum DESC";
       $stmtAB = $pdo->prepare($sql);
-      $stmtAB->execute(['monat' => $monatFilter, 'userid' => $userid]);
+      $stmtAB->execute(['year' => 2025, 'monat' => $monatFilter, 'userid' => $userid]);
 
       while ($row = $stmtAB->fetch(PDO::FETCH_ASSOC)) {
         // Textfeld für Anfangsbestand
@@ -378,60 +395,65 @@ if ($_SESSION['userid'] == "") {
       </table>
       <?php
 
-      // if ($monatNumFilter > 0) {
-      //   $sql = "SELECT COUNT(*) AS anzahl FROM buchungen WHERE DATE_FORMAT(datum, '%m') = :monat and userid = :userid and barkasse = 1";
-      //   $stmt = $pdo->prepare($sql);
-      //   $stmt->execute(['monat' => $monatNumFilter, 'userid' => $userid]);
-      //   $resultCount = $stmt->fetch(PDO::FETCH_ASSOC);
-      // } else {
+      echo $monatFilter;
+      if ($monatFilter <> '') {
+
+        $sql = "SELECT COUNT(*) AS anzahl FROM buchungen WHERE userid = :userid and barkasse = 1 AND Year(datum) = :year AND MONTH(datum) = :monat";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute(['year' => 2025, 'monat' => $monatNumFilter, 'userid' => $userid]);
+        $resultCount = $stmt->fetch(PDO::FETCH_ASSOC);
+      } else {
+
         $sql = "SELECT COUNT(*) AS anzahl FROM buchungen WHERE userid = :userid and barkasse = 1";
         $stmt = $pdo->prepare($sql);
         $stmt->execute(['userid' => $userid]);
         $resultCount = $stmt->fetch(PDO::FETCH_ASSOC);
-      //}
+      }
 
       // Summen für den ausgewählten Monat
-      // if ($monatNumFilter > 0) {
-      //   $sql = "SELECT SUM(CASE WHEN typ = 'Einnahme' THEN betrag ELSE 0 END) AS einnahmen,
-      //                SUM(CASE WHEN typ = 'Ausgabe' THEN betrag ELSE 0 END) AS ausgaben
-      //         FROM buchungen
-      //         WHERE DATE_FORMAT(datum, '%m') = :monat and userid = :userid and barkasse =1 ";
-      //   $stmt = $pdo->prepare($sql);
-      //   $stmt->execute(['monat' => $monatNumFilter, 'userid' => $userid]);
-      //   $result = $stmt->fetch(PDO::FETCH_ASSOC);
-      // } else {
-        $sql = "SELECT SUM(CASE WHEN typ = 'Einnahme' THEN betrag ELSE 0 END) AS einnahmen,
-                     SUM(CASE WHEN typ = 'Ausgabe' THEN betrag ELSE 0 END) AS ausgaben
-              FROM buchungen WHERE userid = :userid and barkasse = 1";
+      if ($monatFilter <> '') {
+        $sql = "SELECT SUM(CASE WHEN typ = 'Einlage' THEN betrag ELSE 0 END) AS einlagen,
+        SUM(CASE WHEN typ = 'Ausgabe' THEN betrag ELSE 0 END) AS ausgaben
+        FROM buchungen
+        WHERE Year(datum) = :year AND MONTH(datum) = :monat and userid = :userid and barkasse =1 ";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute(['year' => 2025, 'monat' => $monatNumFilter, 'userid' => $userid]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+      } else {
+        $sql = "SELECT SUM(CASE WHEN typ = 'Einlage' THEN betrag ELSE 0 END) AS einlagen,
+        SUM(CASE WHEN typ = 'Ausgabe' THEN betrag ELSE 0 END) AS ausgaben
+        FROM buchungen WHERE userid = :userid and barkasse = 1";
         $stmt = $pdo->prepare($sql);
         $stmt->execute(['userid' => $userid]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
-     // }
 
-      $saldo = $Anfangsbestand + $result['einnahmen'] - $result['ausgaben'];
+      }
+
+      $saldo = $Anfangsbestand + $result['einlagen'] - $result['ausgaben'];
 
       echo '<div class="col-md-5">';
 
       // Anzahl Buchungen
-      echo '<div class="form-group row me-4">
+      echo '<div class="form-group row me-2">
             <div style="vertical-align: top;" class="col-md-3">Anzahl Buchungen:</div>
             <div style="text-align:right;vertical-align: top;" class="col-md-2">' . number_format($resultCount['anzahl'], 0, '.', '.') . '</div>
           </div>';
 
       // Einnahmen
-      echo '<div class="form-group row me-4">
-            <div style="vertical-align: top;" class="col-md-3">Einnahmen:</div>
-            <div style="text-align:right;vertical-align: top;" class="col-md-2">' . number_format($result['einnahmen'], 2, '.', '.') . ' €</div>
+      echo '<div class="form-group row me-2">
+            <div style="vertical-align: top;" class="col-md-3">Einlagen:</div>
+            <div style="text-align:right;vertical-align: top;" class="col-md-2">' . number_format($result['einlagen'], 2, '.', '.') . ' €</div>
           </div>';
 
       // Ausgaben
-      echo '<div class="form-group row me-4">
+      echo '<div class="form-group row me-2">
             <div style="vertical-align: top;" class="col-md-3">Ausgaben:</div>
             <div style="text-align:right;vertical-align: top;" class="col-md-2">' . number_format($result['ausgaben'], 2, '.', '.') . ' €</div>
           </div>';
 
       // Saldo
-      echo '<div class="form-group row me-4">
+      echo '<div class="form-group row me-2">
             <div style="vertical-align: top;" class="col-md-3"><b>Neuer Bestand:</b></div>
             <div style="text-align:right;vertical-align: top;" class="col-md-2"><b>' . number_format($saldo, 2, '.', '.') . ' €</b></div>
           </div>';
@@ -441,12 +463,11 @@ if ($_SESSION['userid'] == "") {
       $ausgaben = number_format($result['ausgaben'], 2, '.', ',');
 
       // // Update Bestände
-      // if ($monatNumFilter > 0) {
-      //   $sqlBestaende = "UPDATE bestaende  SET ausgaben = :ausgaben WHERE monat = :monat AND userid = :userid";
-      //   $stmtBestaende = $pdo->prepare($sqlBestaende);
-      //   $stmtBestaende->execute(['ausgaben' => $ausgaben, 'userid' => $userid, 'monat' => $monatNumFilter]);
-      // }
-      
+      if ($monatFilter = '') {
+        $sqlBestaende = "UPDATE bestaende  SET ausgaben = :ausgaben WHERE monat = :monat AND  userid = :userid AND Year(datum) = :year";
+        $stmtBestaende = $pdo->prepare($sqlBestaende);
+        $stmtBestaende->execute(['ausgaben' => $ausgaben, 'userid' => $userid, 'monat' => $monatNumFilter, 'year' => 2025]);
+      }
 
       $format = "txt"; //Moeglichkeiten: csv und txt
       
@@ -488,13 +509,13 @@ if ($_SESSION['userid'] == "") {
       fclose($datei);
 
       // $fh = fopen("counter.txt", 'w') or die("Can't create file counter.txt.");
-
+      
       // $counterstand = intval(file_get_contents("counter.txt"));
-
+      
       // if (!isset($_SESSION['counter_ip'])) {
       //   $counterstand++;
       //   file_put_contents("counter.txt", $counterstand);
-
+      
       //   $_SESSION['counter_ip'] = true;
       // }
       ?>
@@ -580,13 +601,14 @@ if ($_SESSION['userid'] == "") {
           url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/de-DE.json"
         },
         responsive: true,
-        columnDefs: [
-          { targets: 1, visible: true } // Sichtbarkeit der Spalten einstellen
+        pageLength: 25
+            columnDefs: [{
+          targets: 1,
+          visible: true
+        } // Sichtbarkeit der Spalten einstellen
         ]
       });
     });
-
-
   </script>
 
 </body>

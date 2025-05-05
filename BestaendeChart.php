@@ -77,7 +77,7 @@ session_start();
         <a href="Index.php">Haupseite</a>
         <a href="Buchungsarten.php">Buchungsarten</a>
         <a class="active" href="Bestaende.php">Bestände</a>
-        <a href="About.php">Über</a>
+        <a href="Impressum.php">Impressum</a>
         <a href="javascript:void(0);" class="icon" onclick="NavBarClick()">
             <i class="fa fa-bars"></i>
         </a>
@@ -115,15 +115,15 @@ session_start();
                 $einnahmen = [];
                 $ausgaben = [];
 
-                // Einnahmen
-                $sqlEinnahmen = "SELECT monat, einnahmen FROM bestaende ORDER BY monat ASC";
-                $stmtEinnahmen = $pdo->prepare($sqlEinnahmen);
-                $stmtEinnahmen->execute();
+                // Einlagen
+                $sqlEinlagen = "SELECT monat, einlagen FROM bestaende ORDER BY monat ASC";
+                $stmtEinlagen = $pdo->prepare($sqlEinlagen);
+                $stmtEinlagen->execute();
 
-                while ($row = $stmtEinnahmen->fetch(PDO::FETCH_ASSOC)) {
+                while ($row = $stmtEinlagen->fetch(PDO::FETCH_ASSOC)) {
                     $monatName = $monatMapping[trim($row['monat'])] ?? null;
                     if ($monatName) {
-                        $einnahmen[$monatName] = (float) $row['einnahmen'];
+                        $einnahmen[$monatName] = (float) $row['einlagen'];
                     }
                 }
 
@@ -139,7 +139,7 @@ session_start();
                     }
                 }
                 $monate = array_values($monatMapping); // Monatsnamen
-                $einnahmenWerte = array_map(function ($monat) use ($einnahmen) {
+                $einlagenWerte = array_map(function ($monat) use ($einnahmen) {
                     return $einnahmen[$monat] ?? 0;
                 }, $monate);
 
@@ -173,7 +173,7 @@ session_start();
 
         <script>
             var xValues = <?php echo json_encode($monate); ?>;
-            var yEinnahmen = <?php echo json_encode($einnahmenWerte); ?>;
+            var yEinlagen = <?php echo json_encode($einlagenWerte); ?>;
             var yAusgaben = <?php echo json_encode($ausgabenWerte); ?>;
 
             new Chart("myChart", {
@@ -182,9 +182,9 @@ session_start();
                     labels: xValues,
                     datasets: [
                         {
-                            label: "Einnahmen",
+                            label: "Einlagen",
                             backgroundColor: "green",
-                            data: yEinnahmen,
+                            data: yEinlagen,
                         },
                         {
                             label: "Ausgaben",
@@ -196,7 +196,7 @@ session_start();
                 options: {
                     title: {
                         display: true,
-                        text: "Einnahmen und Ausgaben Jahresverlauf 2025",
+                        text: "Einlagen und Ausgaben Jahresverlauf 2025",
                         fontSize: 18 // Titelgröße
                     },
                     legend: {

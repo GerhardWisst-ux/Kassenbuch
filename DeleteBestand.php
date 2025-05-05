@@ -1,5 +1,5 @@
 <head>
-  <title>Buchungungen - Eintrag löschen</title>
+  <title>Buchunngen - Eintrag löschen</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- CSS -->
@@ -20,7 +20,7 @@
     $sql = "DELETE FROM bestand WHERE id = :id";
     $stmt = $pdo->prepare($sql);
     $stmt->execute(['id' => $id]);
-    echo "Position mit der ID" . $id . " wurde gelöscht!";
+    echo "Buchunngen - Position mit der ID" . $id . " wurde gelöscht!";
     sleep(1);
     header('Location: Bestaende.php'); // Zurück zur Übersicht
   
