@@ -7,6 +7,7 @@ session_start();
 if ($_SESSION['userid'] == "") {
   header('Location: Login.php'); // zum Loginformular
 }
+
 ?>
 
 <head>
@@ -109,7 +110,7 @@ if ($_SESSION['userid'] == "") {
       }
 
       .mr-2 {
-        margin-right: 1.2rem !important;
+        margin-right: 0.2rem !important;
       }
 
       .dataTables_wrapper .dataTables_length select,
@@ -131,8 +132,10 @@ if ($_SESSION['userid'] == "") {
       #TableBuchungen td:nth-child(3),
       #TableBuchungen td:nth-child(4),
       #TableBuchungen td:nth-child(5),
-      #TableBuchungen td:nth-child(6) {
+      #TableBuchungen td:nth-child(6),
+      #TableBuchungen td:nth-child(7) {
         display: table-cell;
+        vertical-align: :top;
       }
 
       .topnav a:not(:first-child) {
@@ -176,8 +179,10 @@ if ($_SESSION['userid'] == "") {
       #TableBuchungen td:nth-child(3),
       #TableBuchungen td:nth-child(4),
       #TableBuchungen td:nth-child(5),
-      #TableBuchungen td:nth-child(6) {
+      #TableBuchungen td:nth-child(6),
+      #TableBuchungen td:nth-child(7) {
         display: table-cell;
+        vertical-align: :top;
       }
 
 
@@ -205,6 +210,14 @@ if ($_SESSION['userid'] == "") {
         text-align: left;
       }
 
+      .me-4 {
+        margin-left: 0.2rem !important;
+      }
+
+      .mr-2 {
+        margin-right: 0.2rem !important;
+      }
+
 
     }
   </style>
@@ -224,15 +237,32 @@ if ($_SESSION['userid'] == "") {
   $userid = $_SESSION['userid'];
   ?>
 
-  <div class="topnav" id="myTopnav">
-    <a href="Index.php" class="active">Haupseite</a>
-    <a href="Buchungsarten.php">Buchungsarten</a>
-    <a href="Bestaende.php">Bestände</a>
-    <a class="disabled" href="Impressum.php">Impressum</a>
-    <a href="javascript:void(0);" class="icon" onclick="NavBarClick()">
-      <i class="fa fa-bars"></i>
-    </a>
-  </div>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="Index.php"><i class="fa-solid fa-house"></i></a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown"
+        aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNavDropdown">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a href="Index.php" class="nav-link">Hauptseite</a>
+          </li>
+          <li class="nav-item">
+            <a href="Buchungsarten.php" class="nav-link">Buchungsarten</a>
+          </li>
+          <li class="nav-item">
+            <a href="Bestaende.php" class="nav-link">Bestaende</a>
+          </li>
+          <li class="nav-item">
+            <a href="Impressum.php" class="nav-link">Impressum</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+ 
   <form id="bestaendeform">
     <div class="custom-container">
       <div class="mt-0 p-5 bg-secondary text-white text-center rounded-bottom">
@@ -265,7 +295,11 @@ if ($_SESSION['userid'] == "") {
       echo '<a href="Import.php" title="Import Buchungen in CSV-Datei" class="btn btn-primary btn-sm"><span><i class="fa-solid fa-file-import"></i></span></a>';
       echo '</div>';
       echo '<div class="btn-group me-2" role="group" aria-label="First group">';
-      echo '<a href="CreatePDF.php" title="PDF erzeugen" class="btn btn-primary btn-sm"><span><i class="fa-solid fa-file-pdf"></i></span></a>';
+      if (isset($_GET['monat']) && !empty($_GET['monat'])) {
+        echo '<a href="CreatePDF.php?monat=' . htmlspecialchars($_GET['monat']) . '" title="PDF erzeugen" class="btn btn-primary btn-sm">
+            <span><i class="fa-solid fa-file-pdf"></i></span>
+          </a>';
+      }
       echo '</div>';
       echo '</div>';
       echo '</div>';
@@ -318,7 +352,6 @@ if ($_SESSION['userid'] == "") {
 
       echo '</select><br>';
 
-
       // Wenn ein Monat ausgewählt wurde, dann filtern wir die Buchungen
       $monatFilter = isset($_GET['monat']) ? $_GET['monat'] : '';
       $monatNumFilter = (new DateTime($monatFilter . '-01'))->format('n'); // 'n' gibt die Monatszahl zurück
@@ -326,7 +359,6 @@ if ($_SESSION['userid'] == "") {
       if ($monatFilter <> '')
         $yearFilter = substr($monatFilter, 0, 4);
 
-      //echo $monatFilter;
       if ($monatFilter <> '') {
         $startDatum = $monatFilter . "-01";
         $endDatum = date("Y-m-t", strtotime($startDatum)); // Letzter Tag des Monats
@@ -365,8 +397,9 @@ if ($_SESSION['userid'] == "") {
           <tr>
             <th>Datum</th>
             <th class='visible-column'>Typ</th>
-            <th>Betrag</th>
-            <th>Von/An</th>
+            <th class='visible-column'>Beleg-Nr</th>
+            <th class='betrag-right'>Betrag</th>
+            <th>Beschreibung</th>
             <th class='visible-column'>Verwendungszweck</th>
             <th></th>
           </tr>
@@ -381,7 +414,8 @@ if ($_SESSION['userid'] == "") {
             echo "<tr>
                   <td style='vertical-align: top; width:7%;' >{$formattedDate}</td>
                   <td style='vertical-align: top; width:7%;' class='visible-column'>{$row['typ']}</td>
-                  <td style='vertical-align: top; width:7%; white-space: nowrap;' class='betrag-right'>" . number_format($row['betrag'], 2, '.', ',') . " €</td>                  
+                  <td style='vertical-align: top; width:10%;' class='visible-column'>{$row['belegnr']}</td>
+                  <td style='vertical-align: top; width:7%; white-space: nowrap;' class='betrag-right'>" . number_format($row['betrag'], 2, '.', ',') . " €</td>
                   <td style='vertical-align: top; width:10%;' >{$row['vonan']}</td>
                   <td style='vertical-align: top; width:40%;' class='visible-column'>{$row['beschreibung']}</td>
                   <td style='vertical-align: top; width:7%; white-space: nowrap;'>
@@ -395,7 +429,7 @@ if ($_SESSION['userid'] == "") {
       </table>
       <?php
 
-      echo $monatFilter;
+      //echo $monatFilter;
       if ($monatFilter <> '') {
 
         $sql = "SELECT COUNT(*) AS anzahl FROM buchungen WHERE userid = :userid and barkasse = 1 AND Year(datum) = :year AND MONTH(datum) = :monat";
@@ -463,10 +497,10 @@ if ($_SESSION['userid'] == "") {
       $ausgaben = number_format($result['ausgaben'], 2, '.', ',');
 
       // // Update Bestände
-      if ($monatFilter = '') {
-        $sqlBestaende = "UPDATE bestaende  SET ausgaben = :ausgaben WHERE monat = :monat AND  userid = :userid AND Year(datum) = :year";
+      if ($monatFilter <> '') {
+        $sqlBestaende = "UPDATE bestaende  SET ausgaben = :ausgaben, einlagen = :einlagen WHERE monat = :monat AND  userid = :userid AND Year(datum) = :year";
         $stmtBestaende = $pdo->prepare($sqlBestaende);
-        $stmtBestaende->execute(['ausgaben' => $ausgaben, 'userid' => $userid, 'monat' => $monatNumFilter, 'year' => 2025]);
+        $stmtBestaende->execute(['ausgaben' => $ausgaben, 'einlagen' => $Anfangsbestand + $result['einlagen'], 'userid' => $userid, 'monat' => $monatNumFilter, 'year' => 2025]);
       }
 
       $format = "txt"; //Moeglichkeiten: csv und txt
@@ -508,16 +542,23 @@ if ($_SESSION['userid'] == "") {
       fputs($datei, $eintrag . "\n");
       fclose($datei);
 
-      // $fh = fopen("counter.txt", 'w') or die("Can't create file counter.txt.");
-      
-      // $counterstand = intval(file_get_contents("counter.txt"));
-      
-      // if (!isset($_SESSION['counter_ip'])) {
-      //   $counterstand++;
-      //   file_put_contents("counter.txt", $counterstand);
-      
-      //   $_SESSION['counter_ip'] = true;
-      // }
+      // Sicherstellen, dass die Datei existiert
+      $file = __DIR__ . "/counter.txt";
+      if (!file_exists($file)) {
+        file_put_contents($file, "0");
+      }
+
+      // Dateiinhalt lesen und in Integer umwandeln
+      $counterstand = intval(file_get_contents($file));
+
+      // Prüfen, ob die Session-Variable gesetzt ist
+      if (!isset($_SESSION['counter_ip'])) {
+        $counterstand++;
+        file_put_contents($file, $counterstand);
+
+        $_SESSION['counter_ip'] = true;
+      }
+
       ?>
     </div>
     <!-- Bootstrap Modal -->
@@ -563,6 +604,7 @@ if ($_SESSION['userid'] == "") {
         $('#confirmDeleteModal').modal('show'); // Zeige das Modal an
       });
 
+      alert(deleteId);
       $('#confirmDeleteBtn').on('click', function () {
         if (deleteId) {
           // Dynamisches Formular erstellen und absenden
@@ -571,6 +613,7 @@ if ($_SESSION['userid'] == "") {
             method: 'POST'
           }).append($('<input>', {
             type: 'hidden',
+            id = deleteId;
             name: 'id',
             value: deleteId
           }));

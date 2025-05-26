@@ -176,18 +176,34 @@ if ($_SESSION['userid'] == "") {
   }
   ?>
 
-  <div class="topnav" id="myTopnav">
-    <a href="Index.php">Haupseite</a>
-    <a class="active" href="Buchungsarten.php">Buchungsarten</a>
-    <a href="Bestaende.php">Bestände</a>
-    <a href="Impressum.php">Impressum</a>
-    <a href="javascript:void(0);" class="icon" onclick="NavBarClick()">
-      <i class="fa fa-bars"></i>
-    </a>
-  </div>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="Index.php"><i class="fa-solid fa-house"></i></a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown"
+        aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNavDropdown">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a href="Index.php" class="nav-link">Hauptseite</a>
+          </li>
+          <li class="nav-item">
+            <a href="Buchungsarten.php" class="nav-link">Buchungsarten</a>
+          </li>
+          <li class="nav-item">
+            <a href="Bestaende.php" class="nav-link">Bestaende</a>
+          </li>
+          <li class="nav-item">
+            <a href="Impressum.php" class="nav-link">Impressum</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
 
   <div id="addbuchungsart">
-  <form action="EditBuchungEntry.php" method="post">
+    <form action="EditBuchungsartEntry.php" method="post">
       <div class="custom-container">
         <div class="mt-0 p-5 bg-secondary text-white text-center rounded-bottom">
           <h1>Kassenbuch</h1>
@@ -195,41 +211,42 @@ if ($_SESSION['userid'] == "") {
         </div>
         <br>
         <div class="form-group row me-4">
-        <div class="container-fluid mt-3">
-        <div class="row">
-          <div class="col-12 text-end" style="text-align: right;">
-            <?php echo "<span>Angemeldet als: " . $email . "</span>"; ?>
-            <a class="btn btn-primary" title="Abmelden vom Kassenbuch" href="logout.php"><span><i class="fa fa-sign-out"
-                  aria-hidden="true"></i></span></a>
+          <div class="container-fluid mt-3">
+            <div class="row">
+              <div class="col-12 text-end" style="text-align: right;">
+                <?php echo "<span>Angemeldet als: " . $email . "</span>"; ?>
+                <a class="btn btn-primary" title="Abmelden vom Kassenbuch" href="logout.php"><span><i
+                      class="fa fa-sign-out" aria-hidden="true"></i></span></a>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-      <div class="form-group row">
-        <label class="col-sm-2 col-form-label text-dark">Buchungsart:</label>
-        <div class="col-sm-10">
-          <input class="form-control" type="text" name="buchungsart"
-            value="<?= htmlspecialchars($result['Buchungsart']) ?>" required>
-          <div class="form-check form-switch mt-2">
-            <input type="checkbox" class="btn-check" id="btn-check-outlined" name="Dauerbuchung" value="1"
-              <?= $result['Dauerbuchung'] == 1 ? 'checked' : '' ?> autocomplete="off">
-            <label class="btn btn-outline-primary" for="btn-check-outlined">Dauerbuchung</label>
+          <div class="form-group row">
+            <label class="col-sm-2 col-form-label text-dark">Buchungsart:</label>
+            <div class="col-sm-10">
+              <input class="form-control" type="text" name="buchungsart"
+                value="<?= htmlspecialchars($result['Buchungsart']) ?>" required>
+              <div class="form-check form-switch mt-2">
+                <label class="btn btn-outline-primary" for="btn-check-outlined">Dauerbuchung</label>
+                <input type="checkbox" class="btn-check" id="btn-check-outlined" name="dauerbuchung" value="1"
+                  <?= $result['Dauerbuchung'] == 1 ? 'checked' : '' ?> autocomplete="off">
+
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-      <div class="form-group row" style="visibility: hidden;">
-        <label class="col-sm-2 col-form-label text-dark">Geändert am:</label>
-        <div class="col-sm-1">
-          <input id="updated_at" class="form-control" type="date" name="updated_at"
-            value="<?= htmlspecialchars($result['updated_at']) ?>">
-        </div>
-      </div>
-      <div class="form-group row">
-        <div class="col-sm-offset-2 col-sm-10">
-          <button class="btn btn-primary" type="submit"><i class="fa fa-save"></i></button>
-          <a href="Buchungsarten.php" title="Zurück zu den Buchungsarten" class="btn btn-primary"><span>
-              <i class="fa fa-arrow-left" aria-hidden="true"></i></span></a>'
-        </div>
-      </div>
+          <div class="form-group row" style="visibility: hidden;">
+            <label class="col-sm-2 col-form-label text-dark">Geändert am:</label>
+            <div class="col-sm-1">
+              <input id="updated_at" class="form-control" type="date" name="updated_at"
+                value="<?= htmlspecialchars($result['updated_at']) ?>">
+            </div>
+          </div>
+          <div class="form-group row">
+            <div class="col-sm-offset-2 col-sm-10">
+              <button class="btn btn-primary" type="submit"><i class="fa fa-save"></i></button>
+              <a href="Buchungsarten.php" title="Zurück zu den Buchungsarten" class="btn btn-primary"><span>
+                  <i class="fa fa-arrow-left" aria-hidden="true"></i></span></a>'
+            </div>
+          </div>
     </form>
   </div>
 

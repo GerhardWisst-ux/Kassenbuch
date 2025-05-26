@@ -175,15 +175,31 @@ if ($_SESSION['userid'] == "") {
   }
   ?>
 
-  <div class="topnav" id="myTopnav">
-    <a class="active" href="Index.php">Haupseite</a>
-    <a href="Buchungsarten.php">Buchungsarten</a>
-    <a href="Bestaende.php">Bestände</a>
-    <a href="Impressum.php">Impressum</a>
-    <a href="javascript:void(0);" class="icon" onclick="NavBarClick()">
-      <i class="fa fa-bars"></i>
-    </a>
-  </div>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="Index.php"><i class="fa-solid fa-house"></i></a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown"
+        aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNavDropdown">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a href="Index.php" class="nav-link">Hauptseite</a>
+          </li>
+          <li class="nav-item">
+            <a href="Buchungsarten.php" class="nav-link">Buchungsarten</a>
+          </li>
+          <li class="nav-item">
+            <a href="Bestaende.php" class="nav-link">Bestaende</a>
+          </li>
+          <li class="nav-item">
+            <a href="Impressum.php" class="nav-link">Impressum</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
 
   <div id="addbuchung">
     <form action="AddBuchungEntry.php" method="post">
@@ -234,7 +250,8 @@ if ($_SESSION['userid'] == "") {
 
           <div class="form-group row">
             <div class="col-sm-offset-2 col-sm-10">
-              <button class="btn btn-primary" title="Speichert Bestand ab"  type="submit"><i class="fas fa-save"></i></button>
+              <button class="btn btn-primary" title="Speichert Bestand ab" type="submit"><i
+                  class="fas fa-save"></i></button>
               <a href="Bestaende.php" title="Zurück zur Übersicht Bestände" class="btn btn-primary"><span>
                   <i class="fa fa-arrow-left" aria-hidden="true"></i></span></a>'
             </div>

@@ -16,13 +16,13 @@
   require 'db.php';
   session_start();
 
-  if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
+  if (isset($_POST['id'])) {
     $id = intval($_POST['id']);
     $sql = "DELETE FROM buchungsarten WHERE id = :id";
     $stmt = $pdo->prepare($sql);
     $stmt-"Kassenbuch Buchungsarten - Eintrag mit der ID" . $id . " wurde gelöscht!";
     sleep(1);
-    //header('Location: Buchungsarten.php'); // Zurück zur Übersicht
+    header('Location: Buchungsarten.php'); // Zurück zur Übersicht
   
     exit();
   } else {

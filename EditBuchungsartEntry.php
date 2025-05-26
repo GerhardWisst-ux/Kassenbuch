@@ -32,6 +32,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'userid' => $userid,
         ]);
 
+        echo "Position mit der ID" . $id . " wurde upgedatet!";
+
         header('Location: Buchungsarten.php');
         exit();
     } catch (PDOException $e) {

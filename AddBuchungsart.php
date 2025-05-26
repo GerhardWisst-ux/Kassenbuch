@@ -144,26 +144,42 @@ if ($_SESSION['userid'] == "") {
 
 <body>
 
-  <?php  
+  <?php
   // Abfrage der E-Mail vom Login
   $email = $_SESSION['email'];
 
   ?>
 
-  <div class="topnav" id="myTopnav">
-    <a class="active" href="Index.php">Haupseite</a>
-    <a href="Buchungsarten.php">Buchungsarten</a>
-    <a href="Bestaende.php">Bestände</a>
-    <a href="Impressum.php">Impressum</a>
-    <a href="javascript:void(0);" class="icon" onclick="NavBarClick()">
-      <i class="fa fa-bars"></i>
-    </a>
-  </div>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="Index.php"><i class="fa-solid fa-house"></i></a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown"
+        aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNavDropdown">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a href="Index.php" class="nav-link">Hauptseite</a>
+          </li>
+          <li class="nav-item">
+            <a href="Buchungsarten.php" class="nav-link">Buchungsarten</a>
+          </li>
+          <li class="nav-item">
+            <a href="Bestaende.php" class="nav-link">Bestaende</a>
+          </li>
+          <li class="nav-item">
+            <a href="Impressum.php" class="nav-link">Impressum</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
 
-  <div id="addbuchung">      
-      <form action="AddBuchungsartEntry.php" method="post">
+  <div id="addbuchung">
+    <form action="AddBuchungsartEntry.php" method="post">
       <div class="custom-container">
-      <div class="mt-0 p-5 bg-secondary text-white text-center rounded-bottom">
+        <div class="mt-0 p-5 bg-secondary text-white text-center rounded-bottom">
           <h1>Kassenbuch</h1>
           <p>Buchungsart Eintrag hinzufügen</pü>
         </div>
@@ -204,9 +220,9 @@ if ($_SESSION['userid'] == "") {
       <div class="form-group row me-4">
         <div class="col-sm-offset-2 col-sm-10">
           <button class="btn btn-primary" type="submit" aria-hidden="true"><i class="fas fa-save"></i></button>
-          
-            <a href="Buchungsarten.php" title="Zurück zu den Buchungsarten" class="btn btn-primary"><span><i
-                  class="fa fa-arrow-left" aria-hidden="true"></i></span></a>'
+
+          <a href="Buchungsarten.php" title="Zurück zu den Buchungsarten" class="btn btn-primary"><span><i
+                class="fa fa-arrow-left" aria-hidden="true"></i></span></a>'
         </div>
       </div>
     </form>

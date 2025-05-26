@@ -157,7 +157,7 @@ if ($_SESSION['userid'] == "") {
 
   $email = $_SESSION['email'];
   $userid = $_SESSION['userid'];
-  
+
 
   // Abfrage der E-Mail vom Login
   $email = $_SESSION['email'];
@@ -174,14 +174,31 @@ if ($_SESSION['userid'] == "") {
   }
   ?>
 
-  <div class="topnav" id="myTopnav">
-    <a class="active" href="Index.php">Haupseite</a>
-    <a href="Buchungsarten.php">Buchungsarten</a>
-    <a href="Bestaende.php">Bestände</a>
-    <a href="Impressum.php">Impressum</a>
-    <a href="javascript:void(0);" class="icon" onclick="NavBarClick()">
-      <i class="fa fa-bars"></i>
-    </a>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="Index.php"><i class="fa-solid fa-house"></i></a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown"
+        aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNavDropdown">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a href="Index.php" class="nav-link">Hauptseite</a>
+          </li>
+          <li class="nav-item">
+            <a href="Buchungsarten.php" class="nav-link">Buchungsarten</a>
+          </li>
+          <li class="nav-item">
+            <a href="Bestaende.php" class="nav-link">Bestaende</a>
+          </li>
+          <li class="nav-item">
+            <a href="Impressum.php" class="nav-link">Impressum</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
   </div>
 
   <div id="addbuchung">
@@ -204,7 +221,7 @@ if ($_SESSION['userid'] == "") {
         </div>
         <br>
       </div>
-      <br>      
+      <br>
       <div class="form-group row me-4">
         <label class="col-sm-2 col-form-label text-dark">Datum:</label>
         <div class="col-sm-1">
@@ -219,6 +236,13 @@ if ($_SESSION['userid'] == "") {
             <option value="Einlage" <?= $result['typ'] === 'Einlage' ? 'selected' : '' ?>>Einlage</option>
             <option value="Ausgabe" <?= $result['typ'] === 'Ausgabe' ? 'selected' : '' ?>>Ausgabe</option>
           </select>
+        </div>
+      </div>
+      <div class="form-group row me-4">
+        <label class="col-sm-2 col-form-label text-dark">Beleg-Nr:</label>
+        <div class="col-sm-2">
+          <input class="form-control" type="text" name="belegnr" value="<?= htmlspecialchars($result['belegnr']) ?>"
+            disabled>
         </div>
       </div>
       <div class="form-group row me-4">
@@ -252,7 +276,7 @@ if ($_SESSION['userid'] == "") {
     </form>
   </div>
 
-  <script>   
+  <script>
 
     function NavBarClick() {
       const topnav = document.getElementById("myTopnav");

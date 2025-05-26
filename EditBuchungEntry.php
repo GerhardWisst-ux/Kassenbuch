@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
 
         echo "Position mit der ID" . $id . " wurde upgedatet!";
-        header('Location: Buchungsarten.php');
+        header('Location: Index.php');
         exit();
     } catch (PDOException $e) {
         echo "Fehler beim Aktualisieren: " . $e->getMessage();

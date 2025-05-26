@@ -10,13 +10,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $beschreibung = htmlspecialchars($_POST['beschreibung'], ENT_QUOTES, 'UTF-8');
     $betrag = $_POST['betrag'];
     $typ = $_POST['typ'];
+    
 
     try {
         $pdo->beginTransaction();
 
         // Einfügen in die Tabelle
-        $sql = "INSERT INTO buchungen (datum, vonan, beschreibung, betrag, typ, userid) 
-                VALUES (:datum, :vonan, :beschreibung, :betrag, :typ, :userid)";
+        $sql = "INSERT INTO buchungen (datum, vonan, beschreibung, betrag, typ, userid,barkasse) 
+                VALUES (:datum, :vonan, :beschreibung, :betrag, :typ, :userid, :barkasse)";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
             'datum' => $datum,
@@ -24,19 +25,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'beschreibung' => $beschreibung,
             'betrag' => $betrag,
             'typ' => $typ,
+            'barkasse' => 1,
             'userid' => $userid,
         ]);
 
         $last_id = str_pad($pdo->lastInsertId(), 4, 0, STR_PAD_LEFT); 
 
-        // Aktualisieren der Tabelle
-        $sql = "UPDATE buchungen SET barkasse = 1 WHERE id = :last_id";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute(['last_id' => $last_id]);
-
         $sql = "UPDATE buchungen SET belegnr = CONCAT('RE', YEAR(CURDATE()), '21-', :last_id) WHERE id = :last_id";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute(['last_id' => $last_id]);
+        $stmtReNr = $pdo->prepare($sql);
+        $stmtReNr->execute(['last_id' => $last_id]);
 
         $pdo->commit();
 

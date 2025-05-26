@@ -156,15 +156,31 @@ if ($_SESSION['userid'] == "") {
   $userid = $_SESSION['userid'];
   ?>
 
-  <div class="topnav" id="myTopnav">
-    <a href="Index.php">Haupseite</a>
-    <a href="Buchungsarten.php" class="active">Buchungsarten</a>
-    <a href="Bestaende.php">Bestände</a>
-    <a class="disabled"  href="Impressum.php">Impressum</a>
-    <a href="javascript:void(0);" class="icon" onclick="NavBarClick()">
-      <i class="fa fa-bars"></i>
-    </a>
-  </div>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="Index.php"><i class="fa-solid fa-house"></i></a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown"
+        aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNavDropdown">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a href="Index.php" class="nav-link">Hauptseite</a>
+          </li>
+          <li class="nav-item">
+            <a href="Buchungsarten.php" class="nav-link">Buchungsarten</a>
+          </li>
+          <li class="nav-item">
+            <a href="Bestaende.php" class="nav-link">Bestaende</a>
+          </li>
+          <li class="nav-item">
+            <a href="Impressum.php" class="nav-link">Impressum</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
 
   <div id="bestaende">
     <form id="bestaendeform">
@@ -270,6 +286,7 @@ if ($_SESSION['userid'] == "") {
         $('.delete-button').on('click', function (event) {
           event.preventDefault();
           deleteId = $(this).data('id'); // Hole die ID aus dem Button-Datenattribut
+          alert(deleteId);
           $('#confirmDeleteModal').modal('show'); // Zeige das Modal an
         });
 
