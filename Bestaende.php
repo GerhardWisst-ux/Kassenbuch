@@ -283,10 +283,9 @@ if ($_SESSION['userid'] == "") {
                                     <td class='betrag-right'>{$row['ausgaben']}</td>
                                     <td class='betrag-right'>$bestand</td>
                                     <td style='vertical-align: top; width:7%; white-space: nowrap;'>
-                                        <a href='EditBestand.php?id={$row['id']}' style='width:60px;' title='Bestand bearbeiten' class='btn btn-primary btn-sm'><i class='fa-solid fa-pen-to-square'></i></a>
-                                        <a href='DeleteBestand.php?id={$row['id']}' style='width:60px;' title='Bestand löschen' class='btn btn-danger btn-sm delete-button'><i class='fa-solid fa-trash'></i></a>
-                                    </td>
-                                    
+                                        <a href='EditBestand.php?id={$row['id']}' style='width:60px;' title='Bestand bearbeiten' class='btn btn-primary btn-sm'><i class='fa-solid fa-pen-to-square'></i></a>                                        
+                                        <a href='DeleteBestand.php?id={$row['id']}' data-id={$row['id']} style='width:60px;' title='Buchung löschen' class='btn btn-danger btn-sm delete-button'><i class='fa-solid fa-trash'></i></a>
+                                    </td>                                    
                                 </tr>";
                             }
                             ?>

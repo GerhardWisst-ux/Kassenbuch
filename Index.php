@@ -7,13 +7,12 @@ session_start();
 if ($_SESSION['userid'] == "") {
   header('Location: Login.php'); // zum Loginformular
 }
-
 ?>
 
 <head>
-  <title>Kassenbuch</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kassenbuch Buchungen</title>
 
   <!-- CSS -->
   <link href="css/bootstrap.min.css" rel="stylesheet">
@@ -28,7 +27,7 @@ if ($_SESSION['userid'] == "") {
   <script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
   <style>
     /* Allgemeine Einstellungen */
-    body {
+   body {
       font-family: 'Arial', sans-serif;
       background-color: #f4f7f6;
       margin: 0;
@@ -215,8 +214,6 @@ if ($_SESSION['userid'] == "") {
       .mr-2 {
         margin-right: 0.2rem !important;
       }
-
-
     }
   </style>
 </head>
@@ -226,7 +223,6 @@ if ($_SESSION['userid'] == "") {
   <?php
 
   require 'db.php';
-
   $Anfangsbestand = 0;
   $yearFilter = date("Y");
 
@@ -260,156 +256,159 @@ if ($_SESSION['userid'] == "") {
       </div>
     </div>
   </nav>
- 
-  <form id="bestaendeform">
-    <div class="custom-container">
-      <div class="mt-0 p-5 bg-secondary text-white text-center rounded-bottom">
-        <h1>Kassenbuch</h1>
-        <p>Hauptseite</p>
-      </div>
 
-      <div class="container-fluid mt-3">
-        <div class="row">
-          <div class="col-12 text-end">
-            <?php echo "<span>Angemeldet als: " . htmlspecialchars($email) . "</span>"; ?>
-            <a class="btn btn-primary" title="Abmelden vom Kassenbuch" href="logout.php">
-              <i class="fa fa-sign-out" aria-hidden="true"></i>
-            </a>
+  <div id="bestaende">
+    <form id="bestaendeform">
+      <div class="custom-container">
+        <div class="mt-0 p-5 bg-secondary text-white text-center rounded-bottom">
+          <h1>Kassenbuch</h1>
+          <p>Buchungen</p>
+        </div>
+
+        <div class="container-fluid mt-3">
+          <div class="row">
+            <div class="col-12 text-end">
+              <?php echo "<span>Angemeldet als: " . htmlspecialchars($email) . "</span>"; ?>
+              <a class="btn btn-primary" title="Abmelden vom Kassenbuch" href="logout.php">
+                <i class="fa fa-sign-out" aria-hidden="true"></i>
+              </a>
+            </div>
           </div>
         </div>
-      </div>
-      <?php
-      echo '<div class="btn-toolbar" role="toolbar" aria-label="Toolbar with button groups">';
-      echo '<div class="btn-group" role="group" aria-label="First group">';
-      echo '<a href="AddBuchung.php" title="Position hinzufügen" class="btn btn-primary btn-sm me-4"><span><i class="fa fa-plus" aria-hidden="true"></i></span></a>';
-      echo '</div>';
+        <?php
 
-      // Export und Import Buttons in einen flexiblen Container für kleine Bildschirmauflösung
-      echo '<div class="d-flex flex-nowrap">';
-      echo '<div class="btn-group me-1" role="group" aria-label="Second group">';
-      echo '<a href="Export.php" title="Export Buchungen in CSV-Datei" class="btn btn-primary btn-sm"><span><i class="fa-solid fa-file-export"></i></span></a>';
-      echo '</div>';
-      echo '<div class="btn-group me-1" role="group" aria-label="Third group">';
-      echo '<a href="Import.php" title="Import Buchungen in CSV-Datei" class="btn btn-primary btn-sm"><span><i class="fa-solid fa-file-import"></i></span></a>';
-      echo '</div>';
-      echo '<div class="btn-group me-2" role="group" aria-label="First group">';
-      if (isset($_GET['monat']) && !empty($_GET['monat'])) {
-        echo '<a href="CreatePDF.php?monat=' . htmlspecialchars($_GET['monat']) . '" title="PDF erzeugen" class="btn btn-primary btn-sm">
-            <span><i class="fa-solid fa-file-pdf"></i></span>
-          </a>';
-      }
-      echo '</div>';
-      echo '</div>';
-      echo '</div>';
+        echo '<div class="btn-toolbar" role="toolbar" aria-label="Toolbar with button groups">';
+        echo '<div class="btn-group" role="group" aria-label="First group">';
+        echo '<a href="AddBuchung.php" title="Position hinzufügen" class="btn btn-primary btn-sm me-4"><span><i class="fa fa-plus" aria-hidden="true"></i></span></a>';
+        echo '</div>';
 
-      // Abrufen der verfügbaren Monate
-      $sql = "SELECT DISTINCT DATE_FORMAT(datum, '%Y-%m') AS monat FROM buchungen WHERE Userid = " . $userid . " ORDER BY datum DESC, Day(datum) DESC";
-      $stmt = $pdo->query($sql);
+        // Export und Import Buttons in einen flexiblen Container für kleine Bildschirmauflösung
+        echo '<div class="d-flex flex-nowrap">';
+        echo '<div class="btn-group me-1" role="group" aria-label="Second group">';
+        echo '<a href="Export.php" title="Export Buchungen in CSV-Datei" class="btn btn-primary btn-sm"><span><i class="fa-solid fa-file-export"></i></span></a>';
+        echo '</div>';
+        echo '<div class="btn-group me-1" role="group" aria-label="Third group">';
+        echo '<a href="Import.php" title="Import Buchungen in CSV-Datei" class="btn btn-primary btn-sm"><span><i class="fa-solid fa-file-import"></i></span></a>';
+        echo '</div>';
+        echo '<div class="btn-group me-2" role="group" aria-label="First group">';
+        if (isset($_GET['monat']) && !empty($_GET['monat'])) {
+          echo '<a href="CreatePDF.php?monat=' . htmlspecialchars($_GET['monat']) . '" title="PDF erzeugen" class="btn btn-primary btn-sm">
+              <span><i class="fa-solid fa-file-pdf"></i></span>
+            </a>';
+        }
+        echo '</div>';
+        echo '</div>';
+        echo '</div>';
 
-      echo '<form method="GET" action="" style="display: flex; flex-direction: column; gap: 10px;">';
+        // Abrufen der verfügbaren Monate
+        $sql = "SELECT DISTINCT DATE_FORMAT(datum, '%Y-%m') AS monat FROM buchungen WHERE Userid = " . $userid . " ORDER BY datum DESC, Day(datum) DESC";
+        $stmt = $pdo->query($sql);
 
-      // Erste Zeile: Labels
-      echo '<div id="divLabels" style="display: flex; justify-content: space-between; width: 30%;">';
-      echo '<label for="monat" class="label me-4" style="width: 45%; text-align: left;">Bewegungen im Monat:</label>';
-      echo '<label for="anfangsbestand" style="width: 45%; text-align: left;">Anfangsbestand:</label>';
-      echo '</div>';
+        echo '<form method="GET" action="" style="display: flex; flex-direction: column; gap: 10px;">';
 
-      // Zweite Zeile: Eingabefelder
-      echo '<div id ="divInputs" style="display: flex; justify-content: space-between; width: 30%;">';
+        // Erste Zeile: Labels
+        echo '<div id="divLabels" style="display: flex; justify-content: space-between; width: 30%;">';
+        echo '<label for="monat" class="label me-4" style="width: 45%; text-align: left;">Bewegungen im Monat:</label>';
+        echo '<label for="anfangsbestand" style="width: 45%; text-align: left;">Anfangsbestand:</label>';
+        echo '</div>';
 
-      // Dropdown für Bewegungen im Monat
-      echo '<select id="monat" name="monat" class="form-control me-4" style="width: 45%;" onchange="this.form.submit()">';
-      echo '<option value="">Alle Monate</option>';
+        // Zweite Zeile: Eingabefelder
+        echo '<div id ="divInputs" style="display: flex; justify-content: space-between; width: 30%;">';
 
-      // Combobox mit den verfügbaren Monaten
-      setlocale(LC_TIME, 'de_DE.UTF-8', 'de_DE', 'deu_deu'); // Locale auf Deutsch setzen
-      while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $monat = $row['monat'];
-        $timestamp = DateTime::createFromFormat('Y-m', $monat)->getTimestamp(); // Zeitstempel aus Monat erzeugen
-      
-        $monatNames = [
-          1 => 'Januar',
-          2 => 'Februar',
-          3 => 'März',
-          4 => 'April',
-          5 => 'Mai',
-          6 => 'Juni',
-          7 => 'Juli',
-          8 => 'August',
-          9 => 'September',
-          10 => 'Oktober',
-          11 => 'November',
-          12 => 'Dezember'
-        ];
+        // Dropdown für Bewegungen im Monat
+        echo '<select id="monat" name="monat" class="form-control me-4" style="width: 45%;" onchange="this.form.submit()">';
+        echo '<option value="">Alle Monate</option>';
+        // Combobox mit den verfügbaren Monaten
+        setlocale(LC_TIME, 'de_DE.UTF-8', 'de_DE', 'deu_deu'); // Locale auf Deutsch setzen
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+          $monat = $row['monat'];
+          $timestamp = DateTime::createFromFormat('Y-m', $monat)->getTimestamp(); // Zeitstempel aus Monat erzeugen
+        
+          $monatNames = [
+            1 => 'Januar',
+            2 => 'Februar',
+            3 => 'März',
+            4 => 'April',
+            5 => 'Mai',
+            6 => 'Juni',
+            7 => 'Juli',
+            8 => 'August',
+            9 => 'September',
+            10 => 'Oktober',
+            11 => 'November',
+            12 => 'Dezember'
+          ];
 
-        $monatNum = (new DateTime($monat . '-01'))->format('n'); // 'n' gibt die Monatszahl zurück
-        $monatFormatted = $monatNames[$monatNum] . ' ' . (new DateTime($monat . '-01'))->format('Y');
-        $selected = isset($_GET['monat']) && $_GET['monat'] == $monat ? 'selected' : '';
-        echo "<option value=\"$monat\" $selected>$monatFormatted</option>";
-      }
+          $monatNum = (new DateTime($monat . '-01'))->format('n'); // 'n' gibt die Monatszahl zurück
+          $monatFormatted = $monatNames[$monatNum] . ' ' . (new DateTime($monat . '-01'))->format('Y');
+          $selected = isset($_GET['monat']) && $_GET['monat'] == $monat ? 'selected' : '';
+          echo "<option value=\"$monat\" $selected>$monatFormatted</option>";
+        }
 
-      echo '</select><br>';
+        echo '</select><br>';
 
-      // Wenn ein Monat ausgewählt wurde, dann filtern wir die Buchungen
-      $monatFilter = isset($_GET['monat']) ? $_GET['monat'] : '';
-      $monatNumFilter = (new DateTime($monatFilter . '-01'))->format('n'); // 'n' gibt die Monatszahl zurück
-      
-      if ($monatFilter <> '')
-        $yearFilter = substr($monatFilter, 0, 4);
+        // Wenn ein Monat ausgewählt wurde, dann filtern wir die Buchungen
+        $monatFilter = isset($_GET['monat']) ? $_GET['monat'] : '';
+        $monatNumFilter = (new DateTime($monatFilter . '-01'))->format('n'); // 'n' gibt die Monatszahl zurück
+        
+        if ($monatFilter <> '')
+          $yearFilter = substr($monatFilter, 0, 4);
 
-      if ($monatFilter <> '') {
-        $startDatum = $monatFilter . "-01";
-        $endDatum = date("Y-m-t", strtotime($startDatum)); // Letzter Tag des Monats
-        $sql = "SELECT * FROM buchungen 
+        if ($monatFilter <> '') {
+          $startDatum = $monatFilter . "-01";
+          $endDatum = date("Y-m-t", strtotime($startDatum)); // Letzter Tag des Monats
+          $sql = "SELECT * FROM buchungen 
             WHERE datum BETWEEN :startDatum AND :endDatum 
             AND userid = :userid 
             AND barkasse = 1 
             ORDER BY datum DESC";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute(['startDatum' => $startDatum, 'endDatum' => $endDatum, 'userid' => $userid]);
+          $stmt = $pdo->prepare($sql);
+          $stmt->execute(['startDatum' => $startDatum, 'endDatum' => $endDatum, 'userid' => $userid]);
 
-      } else {
-        //Wenn kein Monat ausgewählt wurde, alle Buchungen anzeigen
-        $sql = "SELECT * FROM buchungen WHERE userid = :userid and barkasse = 1 ORDER BY datum DESC";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute(['userid' => $userid]);
-      }
+        } else {
+          //Wenn kein Monat ausgewählt wurde, alle Buchungen anzeigen
+          $sql = "SELECT * FROM buchungen WHERE userid = :userid and barkasse = 1 ORDER BY datum DESC";
+          $stmt = $pdo->prepare($sql);
+          $stmt->execute(['userid' => $userid]);
+        }
 
-      $sql = "SELECT * FROM bestaende WHERE  DATE_FORMAT(datum, '%Y-%m') = :monat AND Year(datum) = :year AND userid = :userid ORDER BY datum DESC";
-      $stmtAB = $pdo->prepare($sql);
-      $stmtAB->execute(['year' => 2025, 'monat' => $monatFilter, 'userid' => $userid]);
+        $sql = "SELECT * FROM bestaende WHERE  DATE_FORMAT(datum, '%Y-%m') = :monat AND Year(datum) = :year AND userid = :userid ORDER BY datum DESC";
+        $stmtAB = $pdo->prepare($sql);
+        $stmtAB->execute(['year' => $yearFilter, 'monat' => $monatFilter, 'userid' => $userid]);
 
-      while ($row = $stmtAB->fetch(PDO::FETCH_ASSOC)) {
-        // Textfeld für Anfangsbestand
-        $Anfangsbestand = $row['bestand'];
-        echo '<input class="form-control" type="text" name="anfangsbestand" id="anfangsbestand" value="' . number_format($row['bestand'], 2, '.', '') . ' €" style="width: 45%; text-align:right;" step="0.01" disabled>';
-      }
+        while ($row = $stmtAB->fetch(PDO::FETCH_ASSOC)) {
+          // Textfeld für Anfangsbestand
+          $Anfangsbestand = $row['bestand'];
+          echo '<input class="form-control" type="text" name="anfangsbestand" id="anfangsbestand" value="' . number_format($row['bestand'], 2, '.', '') . ' €" style="width: 45%; text-align:right;" step="0.01" disabled>';
+        }
 
-      echo '</div>';
+        echo '</div>';
+        echo '</div>';
+       
 
-      echo '</div>';
+        ?>
+        <br>
+        <div class="custom-container">
+          <table id="TableBuchungen" class="display nowrap me-4">
+            <thead>
+              <tr>
+                <th>Datum</th>                
+                <th class='visible-column'>Typ</th>
+                <th class='visible-column'>Beleg-Nr</th>
+                <th class='betrag-right'>Betrag</th>
+                <th>Beschreibung</th>
+                <th class='visible-column'>Verwendungszweck</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php
 
-      ?>
-      <table id="TableBuchungen" class="display nowrap me-4">
-        <thead>
-          <tr>
-            <th>Datum</th>
-            <th class='visible-column'>Typ</th>
-            <th class='visible-column'>Beleg-Nr</th>
-            <th class='betrag-right'>Betrag</th>
-            <th>Beschreibung</th>
-            <th class='visible-column'>Verwendungszweck</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php
+              while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                // Datum ins deutsche Format umwandeln
+                $formattedDate = (new DateTime($row['datum']))->format('d.m.Y');
 
-          while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            // Datum ins deutsche Format umwandeln
-            $formattedDate = (new DateTime($row['datum']))->format('d.m.Y');
-
-            echo "<tr>
+                echo "<tr>                
                   <td style='vertical-align: top; width:7%;' >{$formattedDate}</td>
                   <td style='vertical-align: top; width:7%;' class='visible-column'>{$row['typ']}</td>
                   <td style='vertical-align: top; width:10%;' class='visible-column'>{$row['belegnr']}</td>
@@ -418,231 +417,232 @@ if ($_SESSION['userid'] == "") {
                   <td style='vertical-align: top; width:40%;' class='visible-column'>{$row['beschreibung']}</td>
                   <td style='vertical-align: top; width:7%; white-space: nowrap;'>
                       <a href='EditBuchung.php?id={$row['id']}' style='width:60px;' title='Buchung bearbeiten' class='btn btn-primary btn-sm'><i class='fa-solid fa-pen-to-square'></i></a> 
-                      <a href='DeleteBuchung.php?id={$row['id']}' style='width:60px;' title='Buchung löschen' class='btn btn-danger btn-sm delete-button'><i class='fa-solid fa-trash'></i></a>
+                      <a href='DeleteBuchung.php?id={$row['id']}' data-id={$row['id']} style='width:60px;' title='Buchung löschen' class='btn btn-danger btn-sm delete-button'><i class='fa-solid fa-trash'></i></a>
                   </td>
                   </tr>";
+              }
+              ?>
+            </tbody>
+          </table>
+          <?php
+
+          //echo $monatFilter;
+          if ($monatFilter <> '') {
+
+            $sql = "SELECT COUNT(*) AS anzahl FROM buchungen WHERE userid = :userid and barkasse = 1 AND Year(datum) = :year AND MONTH(datum) = :monat";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute(['year' => 2025, 'monat' => $monatNumFilter, 'userid' => $userid]);
+            $resultCount = $stmt->fetch(PDO::FETCH_ASSOC);
+          } else {
+
+            $sql = "SELECT COUNT(*) AS anzahl FROM buchungen WHERE userid = :userid and barkasse = 1";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute(['userid' => $userid]);
+            $resultCount = $stmt->fetch(PDO::FETCH_ASSOC);
           }
-          ?>
-        </tbody>
-      </table>
-      <?php
 
-      //echo $monatFilter;
-      if ($monatFilter <> '') {
+          // Summen für den ausgewählten Monat
+          if ($monatFilter <> '') {
+            $sql = "SELECT SUM(CASE WHEN typ = 'Einlage' THEN betrag ELSE 0 END) AS einlagen,
+                    SUM(CASE WHEN typ = 'Ausgabe' THEN betrag ELSE 0 END) AS ausgaben
+                    FROM buchungen
+                    WHERE Year(datum) = :year AND MONTH(datum) = :monat and userid = :userid and barkasse =1 ";
+                        $stmt = $pdo->prepare($sql);
+                        $stmt->execute(['year' => 2025, 'monat' => $monatNumFilter, 'userid' => $userid]);
+                        $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $sql = "SELECT COUNT(*) AS anzahl FROM buchungen WHERE userid = :userid and barkasse = 1 AND Year(datum) = :year AND MONTH(datum) = :monat";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute(['year' => 2025, 'monat' => $monatNumFilter, 'userid' => $userid]);
-        $resultCount = $stmt->fetch(PDO::FETCH_ASSOC);
-      } else {
+                      } else {
+                        $sql = "SELECT SUM(CASE WHEN typ = 'Einlage' THEN betrag ELSE 0 END) AS einlagen,
+                    SUM(CASE WHEN typ = 'Ausgabe' THEN betrag ELSE 0 END) AS ausgaben
+                    FROM buchungen WHERE userid = :userid and barkasse = 1";
+                        $stmt = $pdo->prepare($sql);
+                        $stmt->execute(['userid' => $userid]);
+                        $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $sql = "SELECT COUNT(*) AS anzahl FROM buchungen WHERE userid = :userid and barkasse = 1";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute(['userid' => $userid]);
-        $resultCount = $stmt->fetch(PDO::FETCH_ASSOC);
-      }
+          }
 
-      // Summen für den ausgewählten Monat
-      if ($monatFilter <> '') {
-        $sql = "SELECT SUM(CASE WHEN typ = 'Einlage' THEN betrag ELSE 0 END) AS einlagen,
-        SUM(CASE WHEN typ = 'Ausgabe' THEN betrag ELSE 0 END) AS ausgaben
-        FROM buchungen
-        WHERE Year(datum) = :year AND MONTH(datum) = :monat and userid = :userid and barkasse =1 ";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute(['year' => 2025, 'monat' => $monatNumFilter, 'userid' => $userid]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+          $saldo = $Anfangsbestand + $result['einlagen'] - $result['ausgaben'];
 
-      } else {
-        $sql = "SELECT SUM(CASE WHEN typ = 'Einlage' THEN betrag ELSE 0 END) AS einlagen,
-        SUM(CASE WHEN typ = 'Ausgabe' THEN betrag ELSE 0 END) AS ausgaben
-        FROM buchungen WHERE userid = :userid and barkasse = 1";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute(['userid' => $userid]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+          echo '<div class="col-md-5">';
 
-      }
-
-      $saldo = $Anfangsbestand + $result['einlagen'] - $result['ausgaben'];
-
-      echo '<div class="col-md-5">';
-
-      // Anzahl Buchungen
-      echo '<div class="form-group row me-2">
+          // Anzahl Buchungen
+          echo '<div class="form-group row me-2">
             <div style="vertical-align: top;" class="col-md-3">Anzahl Buchungen:</div>
             <div style="text-align:right;vertical-align: top;" class="col-md-2">' . number_format($resultCount['anzahl'], 0, '.', '.') . '</div>
           </div>';
 
-      // Einnahmen
-      echo '<div class="form-group row me-2">
+          // Einnahmen
+          echo '<div class="form-group row me-2">
             <div style="vertical-align: top;" class="col-md-3">Einlagen:</div>
-            <div style="text-align:right;vertical-align: top;" class="col-md-2">' . number_format($result['einlagen'], 2, '.', '.') . ' €</div>
+            <div style="text-align:right;vertical-align: top;" class="col-md-2">' . number_format($Anfangsbestand + $result['einlagen'], 2, '.', '.') . ' €</div>
           </div>';
 
-      // Ausgaben
-      echo '<div class="form-group row me-2">
+          // Ausgaben
+          echo '<div class="form-group row me-2">
             <div style="vertical-align: top;" class="col-md-3">Ausgaben:</div>
             <div style="text-align:right;vertical-align: top;" class="col-md-2">' . number_format($result['ausgaben'], 2, '.', '.') . ' €</div>
           </div>';
 
-      // Saldo
-      echo '<div class="form-group row me-2">
+          // Saldo
+          echo '<div class="form-group row me-2">
             <div style="vertical-align: top;" class="col-md-3"><b>Neuer Bestand:</b></div>
             <div style="text-align:right;vertical-align: top;" class="col-md-2"><b>' . number_format($saldo, 2, '.', '.') . ' €</b></div>
           </div>';
 
-      echo '</div>';
+          echo '</div>';
 
-      $ausgaben = number_format($result['ausgaben'], 2, '.', ',');
+          $ausgaben = number_format($result['ausgaben'], 2, '.', ',');
 
-      // // Update Bestände
-      if ($monatFilter <> '') {
-        $sqlBestaende = "UPDATE bestaende  SET ausgaben = :ausgaben, einlagen = :einlagen WHERE monat = :monat AND  userid = :userid AND Year(datum) = :year";
-        $stmtBestaende = $pdo->prepare($sqlBestaende);
-        $stmtBestaende->execute(['ausgaben' => $ausgaben, 'einlagen' => $Anfangsbestand + $result['einlagen'], 'userid' => $userid, 'monat' => $monatNumFilter, 'year' => 2025]);
-      }
+          // // Update Bestände
+          if ($monatFilter <> '') {
+            $sqlBestaende = "UPDATE bestaende  SET ausgaben = :ausgaben, einlagen = :einlagen WHERE monat = :monat AND  userid = :userid AND Year(datum) = :year";
+            $stmtBestaende = $pdo->prepare($sqlBestaende);
+            $stmtBestaende->execute(['ausgaben' => $ausgaben, 'einlagen' => $Anfangsbestand + $result['einlagen'], 'userid' => $userid, 'monat' => $monatNumFilter, 'year' => 2025]);
+          }
 
-      $format = "txt"; //Moeglichkeiten: csv und txt
-      
-      $datum_zeit = date("d.m.Y H:i:s");
-      $ip = $_SERVER["REMOTE_ADDR"];
-      $site = $_SERVER['REQUEST_URI'];
-      $browser = $_SERVER["HTTP_USER_AGENT"];
+          $format = "txt"; //Moeglichkeiten: csv und txt
+          
+          $datum_zeit = date("d.m.Y H:i:s");
+          $ip = $_SERVER["REMOTE_ADDR"];
+          $site = $_SERVER['REQUEST_URI'];
+          $browser = $_SERVER["HTTP_USER_AGENT"];
 
-      $monate = array(1 => "Januar", 2 => "Februar", 3 => "Maerz", 4 => "April", 5 => "Mai", 6 => "Juni", 7 => "Juli", 8 => "August", 9 => "September", 10 => "Oktober", 11 => "November", 12 => "Dezember");
-      $monat = date("n");
-      $jahr = date("y");
+          $monate = array(1 => "Januar", 2 => "Februar", 3 => "Maerz", 4 => "April", 5 => "Mai", 6 => "Juni", 7 => "Juli", 8 => "August", 9 => "September", 10 => "Oktober", 11 => "November", 12 => "Dezember");
+          $monat = date("n");
+          $jahr = date("y");
 
-      $dateiname = "logs/log_" . $monate[$monat] . "_$jahr.$format";
+          $dateiname = "logs/log_" . $monate[$monat] . "_$jahr.$format";
 
-      $header = array("Datum", "IP", "Seite", "Browser");
-      $infos = array($datum_zeit, $ip, $site, $browser);
+          $header = array("Datum", "IP", "Seite", "Browser");
+          $infos = array($datum_zeit, $ip, $site, $browser);
 
-      if ($format == "csv") {
-        $eintrag = '"' . implode('", "', $infos) . '"';
-      } else {
-        $eintrag = implode("\t", $infos);
-      }
+          if ($format == "csv") {
+            $eintrag = '"' . implode('", "', $infos) . '"';
+          } else {
+            $eintrag = implode("\t", $infos);
+          }
 
-      $write_header = !file_exists($dateiname);
+          $write_header = !file_exists($dateiname);
 
-      $datei = fopen($dateiname, "a");
+          $datei = fopen($dateiname, "a");
 
-      if ($write_header) {
-        if ($format == "csv") {
-          $header_line = '"' . implode('", "', $header) . '"';
+          if ($write_header) {
+            if ($format == "csv") {
+              $header_line = '"' . implode('", "', $header) . '"';
+            } else {
+              $header_line = implode("\t", $header);
+            }
+
+            fputs($datei, $header_line . "\n");
+          }
+
+          fputs($datei, $eintrag . "\n");
+          fclose($datei);
+
+          // Sicherstellen, dass die Datei existiert
+          $file = __DIR__ . "/counter.txt";
+          if (!file_exists($file)) {
+            file_put_contents($file, "0");
+          }
+
+          // Dateiinhalt lesen und in Integer umwandeln
+          $counterstand = intval(file_get_contents($file));
+
+          // Prüfen, ob die Session-Variable gesetzt ist
+          if (!isset($_SESSION['counter_ip'])) {
+            $counterstand++;
+            file_put_contents($file, $counterstand);
+
+            $_SESSION['counter_ip'] = true;
+          }
+
+          ?>
+
+
+        </div>
+        <!-- Bootstrap Modal -->
+        <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel"
+          aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="confirmDeleteModalLabel">Löschbestätigung</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+              </div>
+              <div class="modal-body">
+                Möchten Sie diese Buchung wirklich löschen?
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Löschen</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Toast -->
+        <div class="toast-container position-fixed top-0 end-0 p-3">
+          <div id="deleteToast" class="toast toast-green" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+              <strong class="me-auto">Benachrichtigung</strong>
+              <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+              Buchung wurde gelöscht.
+            </div>
+          </div>
+        </div>
+    </form>
+
+    <script>
+      $(document).ready(function () {
+        let deleteId = null; // Speichert die ID für die Löschung
+
+        $('.delete-button').on('click', function (event) {
+          event.preventDefault();
+          deleteId = $(this).data('id'); // Hole die ID aus dem Button-Datenattribut          
+          alert(deleteId);
+          $('#confirmDeleteModal').modal('show'); // Zeige das Modal an
+        });
+
+        $('#confirmDeleteBtn').on('click', function () {
+          if (deleteId) {
+            // Dynamisches Formular erstellen und absenden
+            const form = $('<form>', {
+              action: 'DeleteBuchung.php',
+              method: 'POST'
+            }).append($('<input>', {
+              type: 'hidden',
+              name: 'id',
+              value: deleteId
+            }));
+
+            $('body').append(form);
+            form.submit();
+          }
+          $('#confirmDeleteModal').modal('hide'); // Schließe das Modal
+
+          // Zeige den Toast an
+          var toast = new bootstrap.Toast($('#deleteToast')[0]);
+          toast.show();
+        });
+      });
+
+      function NavBarClick() {
+        var x = document.getElementById("myTopnav");
+        if (x.className === "topnav") {
+          x.className += " responsive";
         } else {
-          $header_line = implode("\t", $header);
+          x.className = "topnav";
         }
-
-        fputs($datei, $header_line . "\n");
       }
 
-      fputs($datei, $eintrag . "\n");
-      fclose($datei);
-
-      // Sicherstellen, dass die Datei existiert
-      $file = __DIR__ . "/counter.txt";
-      if (!file_exists($file)) {
-        file_put_contents($file, "0");
-      }
-
-      // Dateiinhalt lesen und in Integer umwandeln
-      $counterstand = intval(file_get_contents($file));
-
-      // Prüfen, ob die Session-Variable gesetzt ist
-      if (!isset($_SESSION['counter_ip'])) {
-        $counterstand++;
-        file_put_contents($file, $counterstand);
-
-        $_SESSION['counter_ip'] = true;
-      }
-
-      ?>
-    </div>
-    <!-- Bootstrap Modal -->
-    <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel"
-      aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="confirmDeleteModalLabel">Löschbestätigung</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
-          </div>
-          <div class="modal-body">
-            Möchten Sie diese Position wirklich löschen?
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
-            <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Löschen</button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- Toast -->
-    <div class="toast-container position-fixed top-0 end-0 p-3">
-      <div id="deleteToast" class="toast toast-green" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="toast-header">
-          <strong class="me-auto">Benachrichtigung</strong>
-          <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-        <div class="toast-body">
-          Position wurde gelöscht.
-        </div>
-      </div>
-    </div>
-  </form>
-
-  <script>
-    $(document).ready(function () {
-      let deleteId = null; // Speichert die ID für die Löschung
-
-      $('.delete-button').on('click', function (event) {
-        event.preventDefault();
-        deleteId = $(this).data('id'); // Hole die ID aus dem Button-Datenattribut
-        $('#confirmDeleteModal').modal('show'); // Zeige das Modal an
-      });
-
-      alert(deleteId);
-      $('#confirmDeleteBtn').on('click', function () {
-        if (deleteId) {
-          // Dynamisches Formular erstellen und absenden
-          const form = $('<form>', {
-            action: 'DeleteBuchung.php',
-            method: 'POST'
-          }).append($('<input>', {
-            type: 'hidden',
-            id = deleteId;
-            name: 'id',
-            value: deleteId
-          }));
-
-          $('body').append(form);
-          form.submit();
-        }
-        $('#confirmDeleteModal').modal('hide'); // Schließe das Modal
-
-        // Zeige den Toast an
-        var toast = new bootstrap.Toast($('#deleteToast')[0]);
-        toast.show();
-      });
-    });
-
-    function NavBarClick() {
-      const topnav = document.getElementById("myTopnav");
-      if (topnav.className === "topnav") {
-        topnav.className += " responsive";
-      } else {
-        topnav.className = "topnav";
-      }
-    }
-
-    $(document).ready(function () {
+      $(document).ready(function () {
         $('#TableBuchungen').DataTable({
           language: {
             url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/de-DE.json"
           },
           responsive: true,
-          pageLength: 25,
+          pageLength: 50,
           autoWidth: false,
           columnDefs: [
             {
@@ -652,7 +652,7 @@ if ($_SESSION['userid'] == "") {
           ]
         });
       });
-  </script>
+    </script>
 
 </body>
 

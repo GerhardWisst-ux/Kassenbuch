@@ -1,5 +1,5 @@
 <head>
-  <title>Buchunngen - Position löschen</title>
+  <title>Buchungen - Position löschen</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- CSS -->
@@ -15,9 +15,9 @@
   <?php
   require 'db.php';
   session_start();
-
-  if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id'])) {
-    $id = intval($_GET['id']);
+  
+  if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
+    $id = intval($_POST['id']);
     $sql = "DELETE FROM buchungen WHERE id = :id";
     $stmt = $pdo->prepare($sql);
     $stmt->execute(['id' => $id]);

@@ -1,5 +1,5 @@
 <head>
-  <title>Buchunngen - Eintrag löschen</title>
+  <title>Kassenbuch Bestände - Position löschen</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- CSS -->
@@ -11,23 +11,23 @@
 </head>
 
 <body>
+  
   <?php
   require 'db.php';
   session_start();
-
+  
   if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
     $id = intval($_POST['id']);
-    $sql = "DELETE FROM bestand WHERE id = :id";
+    $sql = "DELETE FROM bestaende WHERE id = :id";
     $stmt = $pdo->prepare($sql);
-    $stmt->execute(['id' => $id]);
-    echo "Buchunngen - Position mit der ID" . $id . " wurde gelöscht!";
+    $stmt->execute(['id' => $id]);    
     sleep(1);
-    header('Location: Bestaende.php'); // Zurück zur Übersicht
-  
-    exit();
+    header('Location: Bestaende.php'); 
+    
   } else {
     echo "Ungültige Anfrage.";
   }
+
 
   ?>
 </body>

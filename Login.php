@@ -14,6 +14,7 @@ session_start();
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="js/jquery.min"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
     <style>
         /* Allgemeine Einstellungen */
         body {
@@ -347,13 +348,14 @@ session_start();
     ?>
 
     <div class="topnav" id="myTopnav">
-        <a href="Index.php" class="active">Haupseite</a>
-        <a href="Buchungsarten.php">Buchungsarten</a>
+        <a class="navbar-brand" href="Index.php"><i class="fa-solid fa-house"></i></a>
+        <!-- <a href="Index.php" class="active">Haupseite</a> -->
+        <!-- <a href="Buchungsarten.php">Buchungsarten</a>
         <a href="Bestaende.php">Bestände</a>
         <a class="disabled"  href="Impressum.php">Impressum</a>
         <a href="javascript:void(0);" class="icon" onclick="NavBarClick()">
             <i class="fa fa-bars"></i>
-        </a>
+        </a> -->
     </div>
 
     <div id="login">
