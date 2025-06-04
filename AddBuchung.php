@@ -236,12 +236,12 @@ if ($_SESSION['userid'] == "") {
                 </div>
             </div>
             <div class="form-group row me-4">
-                <label id="labelvonan" class="col-sm-2 col-form-label text-dark">Von/An:</label>
+                <label id="labelvonan" class="col-sm-2 col-form-label text-dark">Beschreibung:</label>
                 <div class="col-sm-10">
                     <select class="form-control" id="buchungsarten-dropdown" onchange="toggleCustomInput(this)"
                         name="vonan">
                         <?php
-                        $sql = "SELECT DISTINCT Buchungsart FROM Buchungsarten Where userid = :userid";
+                        $sql = "SELECT DISTINCT Buchungsart FROM Buchungsarten Where userid = :userid ORDER BY Buchungsart";
                         $stmt = $pdo->prepare(query: $sql);
                         $stmt->execute(['userid' => $userid]);
 

@@ -230,7 +230,7 @@ if ($_SESSION['userid'] == "") {
             <label class="col-sm-2 col-form-label text-dark">Einnahmen:</label>
             <div class="col-sm-1">
               <input id="einnahmen" class="form-control" type="text" name="einnahmen"
-                value="<?= htmlspecialchars($result['einnahmen']) ?>">
+                value="<?= htmlspecialchars($result['einlagen']) ?>">
             </div>
           </div>
           <div class="form-group row">

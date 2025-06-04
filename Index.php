@@ -161,7 +161,6 @@ if ($_SESSION['userid'] == "") {
         display: block;
         text-align: left;
       }
-
     }
 
     /* Responsive Design */
@@ -184,7 +183,6 @@ if ($_SESSION['userid'] == "") {
         display: table-cell;
         vertical-align: :top;
       }
-
 
       .topnav a:not(:first-child) {
         display: none;
@@ -639,19 +637,21 @@ if ($_SESSION['userid'] == "") {
     }
 
     $(document).ready(function () {
-      $('#TableBuchungen').DataTable({
-        language: {
-          url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/de-DE.json"
-        },
-        responsive: true,
-        pageLength: 25
-            columnDefs: [{
-          targets: 1,
-          visible: true
-        } // Sichtbarkeit der Spalten einstellen
-        ]
+        $('#TableBuchungen').DataTable({
+          language: {
+            url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/de-DE.json"
+          },
+          responsive: true,
+          pageLength: 25,
+          autoWidth: false,
+          columnDefs: [
+            {
+              targets: 1, // Dauerbuchung
+              className: "dt-body-nowrap" // Keine Zeilenumbrüche
+            }
+          ]
+        });
       });
-    });
   </script>
 
 </body>

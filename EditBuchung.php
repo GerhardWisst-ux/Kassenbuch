@@ -253,7 +253,7 @@ if ($_SESSION['userid'] == "") {
         </div>
       </div>
       <div class="form-group row me-4">
-        <label class="col-sm-2 col-form-label text-dark">Von/An:</label>
+        <label class="col-sm-2 col-form-label text-dark">Beschreibung:</label>
         <div class="col-sm-10">
           <input class="form-control" type="text" name="vonan" value="<?= htmlspecialchars($result['vonan']) ?>"
             required>
