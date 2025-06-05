@@ -72,8 +72,9 @@ if ($_SESSION['userid'] == "") {
       width: 98%;
     }
 
-    .dataTables_wrapper .dataTables_length select,
-    .dataTables_wrapper .dataTables_filter {
+     .dataTables_wrapper .dataTables_length select,
+      .dataTables_wrapper .dataTables_filter,
+      .dataTables_info {
       margin-left: 1.2rem !important;
       margin-right: 0.8rem !important;
     }
@@ -172,7 +173,7 @@ if ($_SESSION['userid'] == "") {
             <a href="Buchungsarten.php" class="nav-link">Buchungsarten</a>
           </li>
           <li class="nav-item">
-            <a href="Bestaende.php" class="nav-link">Bestaende</a>
+            <a href="Bestaende.php" class="nav-link">Bestände</a>
           </li>
           <li class="nav-item">
             <a href="Impressum.php" class="nav-link">Impressum</a>

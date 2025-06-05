@@ -247,7 +247,7 @@ if ($_SESSION['userid'] == "") {
             <a href="Buchungsarten.php" class="nav-link">Buchungsarten</a>
           </li>
           <li class="nav-item">
-            <a href="Bestaende.php" class="nav-link">Bestaende</a>
+            <a href="Bestaende.php" class="nav-link">Bestände</a>
           </li>
           <li class="nav-item">
             <a href="Impressum.php" class="nav-link">Impressum</a>
@@ -408,13 +408,14 @@ if ($_SESSION['userid'] == "") {
                 // Datum ins deutsche Format umwandeln
                 $formattedDate = (new DateTime($row['datum']))->format('d.m.Y');
 
-                echo "<tr>                
+                echo "<tr>
+                
                   <td style='vertical-align: top; width:7%;' >{$formattedDate}</td>
                   <td style='vertical-align: top; width:7%;' class='visible-column'>{$row['typ']}</td>
                   <td style='vertical-align: top; width:10%;' class='visible-column'>{$row['belegnr']}</td>
                   <td style='vertical-align: top; width:7%; white-space: nowrap;' class='betrag-right'>" . number_format($row['betrag'], 2, '.', ',') . " €</td>
-                  <td style='vertical-align: top; width:10%;' >{$row['vonan']}</td>
-                  <td style='vertical-align: top; width:40%;' class='visible-column'>{$row['beschreibung']}</td>
+                  <td style='vertical-align: top; width:20%;' >{$row['vonan']}</td>
+                  <td style='vertical-align: top; width:50%;' class='visible-column'>{$row['beschreibung']}</td>
                   <td style='vertical-align: top; width:7%; white-space: nowrap;'>
                       <a href='EditBuchung.php?id={$row['id']}' style='width:60px;' title='Buchung bearbeiten' class='btn btn-primary btn-sm'><i class='fa-solid fa-pen-to-square'></i></a> 
                       <a href='DeleteBuchung.php?id={$row['id']}' data-id={$row['id']} style='width:60px;' title='Buchung löschen' class='btn btn-danger btn-sm delete-button'><i class='fa-solid fa-trash'></i></a>
@@ -467,26 +468,26 @@ if ($_SESSION['userid'] == "") {
 
           // Anzahl Buchungen
           echo '<div class="form-group row me-2">
-            <div style="vertical-align: top;" class="col-md-3">Anzahl Buchungen:</div>
-            <div style="text-align:right;vertical-align: top;" class="col-md-2">' . number_format($resultCount['anzahl'], 0, '.', '.') . '</div>
+            <div style="vertical-align: top;" class="col-3">Anzahl Buchungen:</div>
+            <div style="text-align:right;vertical-align: top;" class="col-9 col-md-3">' . number_format($resultCount['anzahl'], 0, '.', '.') . '</div>
           </div>';
 
           // Einnahmen
           echo '<div class="form-group row me-2">
-            <div style="vertical-align: top;" class="col-md-3">Einlagen:</div>
-            <div style="text-align:right;vertical-align: top;" class="col-md-2">' . number_format($Anfangsbestand + $result['einlagen'], 2, '.', '.') . ' €</div>
+            <div style="vertical-align: top;" class="col-3">Einlagen:</div>
+            <div style="text-align:right;vertical-align: top;" class="col-9 col-md-3">' . number_format($Anfangsbestand + $result['einlagen'], 2, '.', '.') . ' €</div>
           </div>';
 
           // Ausgaben
           echo '<div class="form-group row me-2">
-            <div style="vertical-align: top;" class="col-md-3">Ausgaben:</div>
-            <div style="text-align:right;vertical-align: top;" class="col-md-2">' . number_format($result['ausgaben'], 2, '.', '.') . ' €</div>
+            <div style="vertical-align: top;" class="col-3">Ausgaben:</div>
+            <div style="text-align:right;vertical-align: top;" class="col-9 col-md-3">' . number_format($result['ausgaben'], 2, '.', '.') . ' €</div>
           </div>';
 
           // Saldo
           echo '<div class="form-group row me-2">
-            <div style="vertical-align: top;" class="col-md-3"><b>Neuer Bestand:</b></div>
-            <div style="text-align:right;vertical-align: top;" class="col-md-2"><b>' . number_format($saldo, 2, '.', '.') . ' €</b></div>
+            <div style="vertical-align: top;" class="col-3"><b>Neuer Bestand:</b></div>
+            <div style="text-align:right;vertical-align: top;" class="col-9 col-md-3"><b>' . number_format($saldo, 2, '.', '.') . ' €</b></div>
           </div>';
 
           echo '</div>';
