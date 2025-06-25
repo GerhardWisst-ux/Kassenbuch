@@ -1,6 +1,3 @@
-<!DOCTYPE html>
-<html>
-
 <?php
 ob_start();
 session_start();
@@ -8,6 +5,9 @@ if ($_SESSION['userid'] == "") {
     header('Location: Login.php'); // zum Loginformular
 }
 ?>
+
+<!DOCTYPE html>
+<html>
 
 <head>
     <meta charset="utf-8">
@@ -393,3 +393,6 @@ if ($_SESSION['userid'] == "") {
 </body>
 
 </html>
+<?php
+ob_end_flush();
+?>

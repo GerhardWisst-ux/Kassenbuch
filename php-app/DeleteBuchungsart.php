@@ -21,6 +21,7 @@
     $sql = "DELETE FROM buchungsarten WHERE id = :id";
     $stmt = $pdo->prepare($sql);
     $stmt->execute(['id' => $id]);    
+    echo "Kassenbuch Buchungsarten - Position " . $id . " wurde gelöscht!";
     sleep(1);
     header('Location: Buchungsarten.php'); 
     

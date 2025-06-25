@@ -1,6 +1,3 @@
-<!DOCTYPE html>
-<html>
-
 <?php
 ob_start();
 session_start();
@@ -9,14 +6,17 @@ if ($_SESSION['userid'] == "") {
 }
 ?>
 
+<!DOCTYPE html>
+<html>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="manifest" href="manifest.json" />
     <title>Kassenbuch Impressum</title>
 
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
+    <script src="js/script.js"></script>
     <!-- JS -->
     <script src="js/jquery.min.js"></script>
     <script src="js/bootstrap.bundle.min.js"></script>
@@ -162,8 +162,14 @@ if ($_SESSION['userid'] == "") {
                     </div>
                 </div>
                 <div class="custom-container">
+                    <!-- <div>
+                        <p>Before you enable the PWA, check out how slow this website is.</p>
+                        <button class="formcontrol btn btn-primary" id="enable">Enable the PWA</button>
+                    </div> -->
+
                     <a href="Index.php" title="Zurück zur Hauptübersicht" class="btn btn-primary btn-sm me-4 "><i
                             class="fa fa-arrow-left" aria-hidden="true"></i></a>
+
                     <p><strong>Das Kassenbuch wurde 2025 erstellt<br>
                             Author : Gerhard Wißt<br>
                             Langjährige Programmiererfahrung unter .NET,ASP.NET, C#, VB.NET, PHP, Blazor,
@@ -224,9 +230,11 @@ if ($_SESSION['userid'] == "") {
                         dieser Seite nicht vom Betreiber erstellt wurden, werden die Urheberrechte Dritter beachtet.
                         Insbesondere werden Inhalte Dritter als solche gekennzeichnet. Sollten Sie trotzdem auf eine
                         Urheberrechtsverletzung aufmerksam werden, bitten wir um einen entsprechenden Hinweis. Bei
-                        Bekanntwerden von Rechtsverletzungen werden wir derartige Inhalte umgehend entfernen.</p>
-
+                        Bekanntwerden von Rechtsverletzungen werden wir derartige Inhalte umgehend entfernen.                        
+                        
+                    </p>
                 </div>
+                <button class="formcontrol btn btn-primary me-4" id="install">Diese App installieren</button>
         </form>
 
 </body>

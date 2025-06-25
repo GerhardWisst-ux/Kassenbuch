@@ -4,22 +4,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- CSS -->
   <link href="css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
   <!-- JS -->
   <script src="js/jquery.min.js"></script>
   <script src="js/bootstrap.bundle.min.js"></script>
 </head>
+
 <body>
-<?php
+  <?php
 
-require 'db.php';
-session_start();
+  require 'db.php';
+  session_start();
 
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {    
+  if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $buchungsart = $_POST['buchungsart'];
-    $dauerbuchung = $_POST['dauerbuchung'];    
+    if ($_POST['dauerbuchung'] == null)
+      $dauerbuchung = 0;
+    else
+      $dauerbuchung = $_POST['dauerbuchung'];
+    
     $created_at = $_POST['created_at'];
     $updated_at = $_POST['updated_at'];
     $userid = $_SESSION['userid'];
@@ -31,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     echo "Eintrag hinzugefügt!";
     sleep(3);
     header('Location: Buchungsarten.php'); // Zurück zur Übersicht
-    
-}
-?>
+  
+  }
+  ?>
 </body>

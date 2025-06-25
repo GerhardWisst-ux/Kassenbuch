@@ -20,7 +20,8 @@
     $id = intval($_POST['id']);
     $sql = "DELETE FROM bestaende WHERE id = :id";
     $stmt = $pdo->prepare($sql);
-    $stmt->execute(['id' => $id]);    
+    $stmt->execute(['id' => $id]);        
+    echo "Kassenbuch Bestände - Position " . $id . " wurde gelöscht!";
     sleep(1);
     header('Location: Bestaende.php'); 
     

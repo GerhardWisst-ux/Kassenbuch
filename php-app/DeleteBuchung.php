@@ -20,8 +20,8 @@
     $id = intval($_POST['id']);
     $sql = "DELETE FROM buchungen WHERE id = :id";
     $stmt = $pdo->prepare($sql);
-    $stmt->execute(['id' => $id]);
-    //$stmt->"Kassenbuch Buchungen - Position mit der ID" . $id . " wurde gelöscht!";
+    $stmt->execute(['id' => $id]);    
+    echo "Kassenbuch Buchungen - Position " . $id . " wurde gelöscht!";
     sleep(1);
     header('Location: Index.php'); // Zurück zur Übersicht
   

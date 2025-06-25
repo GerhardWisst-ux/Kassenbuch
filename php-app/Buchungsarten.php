@@ -1,6 +1,3 @@
-<!DOCTYPE html>
-<html>
-
 <?php
 ob_start();
 session_start();
@@ -9,6 +6,8 @@ if ($_SESSION['userid'] == "") {
 }
 ?>
 
+<!DOCTYPE html>
+<html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -342,3 +341,6 @@ if ($_SESSION['userid'] == "") {
 </body>
 
 </html>
+<?php
+  ob_end_flush();
+?>

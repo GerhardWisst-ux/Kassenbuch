@@ -1,6 +1,3 @@
-<!DOCTYPE html>
-<html>
-
 <?php
 ob_start();
 session_start();
@@ -9,9 +6,12 @@ if ($_SESSION['userid'] == "") {
 }
 ?>
 
+<!DOCTYPE html>
+<html>
+
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1">  
   <title>Kassenbuch Buchungen</title>
 
   <!-- CSS -->
@@ -601,7 +601,7 @@ if ($_SESSION['userid'] == "") {
         $('.delete-button').on('click', function (event) {
           event.preventDefault();
           deleteId = $(this).data('id'); // Hole die ID aus dem Button-Datenattribut          
-          alert(deleteId);
+          //alert(deleteId);
           $('#confirmDeleteModal').modal('show'); // Zeige das Modal an
         });
 
@@ -658,3 +658,7 @@ if ($_SESSION['userid'] == "") {
 </body>
 
 </html>
+
+<?php
+  ob_end_flush();
+?>
