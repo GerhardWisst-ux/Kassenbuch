@@ -186,6 +186,9 @@ if ($_SESSION['userid'] == "") {
                         <a href="Bestaende.php" class="nav-link">Bestände</a>
                     </li>
                     <li class="nav-item">
+                        <a href="Auswertungen.php" class="nav-link">Auswertungen</a>
+                    </li>
+                    <li class="nav-item">
                         <a href="Impressum.php" class="nav-link">Impressum</a>
                     </li>
                 </ul>
@@ -225,7 +228,7 @@ if ($_SESSION['userid'] == "") {
                 <div class="col-sm-1">
                     <select class="form-control" name="typ">
                         <option value="Einlage">Einlage</option>
-                        <option value="Ausgabe">Ausgabe</option>
+                        <option selected value="Ausgabe">Ausgabe</option>
                     </select>
                 </div>
             </div>
@@ -236,24 +239,23 @@ if ($_SESSION['userid'] == "") {
                 </div>
             </div>
             <div class="form-group row me-4">
-                <label id="labelvonan" class="col-sm-2 col-form-label text-dark">Beschreibung:</label>
+                <label id="labelvonan" class="col-sm-2 col-form-label text-dark">Buchungsart:</label>
                 <div class="col-sm-10">
-                    <select class="form-control" id="buchungsarten-dropdown" onchange="toggleCustomInput(this)"
-                        name="vonan">
+                    <select class="form-control" id="buchungsarten-dropdown" name="buchungart_id"
+                        onchange="toggleCustomInput(this)">
                         <?php
-                        $sql = "SELECT DISTINCT Buchungsart FROM Buchungsarten Where userid = :userid ORDER BY Buchungsart";
-                        $stmt = $pdo->prepare(query: $sql);
+                        $sql = "SELECT DISTINCT ID, Buchungsart FROM Buchungsarten WHERE userid = :userid ORDER BY Buchungsart";
+                        $stmt = $pdo->prepare($sql);
                         $stmt->execute(['userid' => $userid]);
 
-                        // echo "<option value='' disabled selected>Wert eingeben</option>";
                         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                            echo "<option value='" . htmlspecialchars($row['Buchungsart']) . "'>" . htmlspecialchars($row['Buchungsart']) . "</option>";
+                            echo "<option value='" . htmlspecialchars($row['ID']) . "'>" . htmlspecialchars($row['Buchungsart']) . "</option>";
                         }
                         ?>
                         <option value="custom">Wert eingeben</option>
                     </select>
 
-                    <input class="form-control mt-2 d-none" type="text" id="custom-input" name="custom_vonan"
+                    <input class="form-control mt-2 d-none" type="text" id="custom-input" name="custom_buchungsart"
                         placeholder="Wert eingeben">
                 </div>
             </div>

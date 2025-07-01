@@ -195,6 +195,9 @@ if ($_SESSION['userid'] == "") {
             <a href="Bestaende.php" class="nav-link">Bestände</a>
           </li>
           <li class="nav-item">
+            <a href="Auswertungen.php" class="nav-link">Auswertungen</a>
+          </li>
+          <li class="nav-item">
             <a href="Impressum.php" class="nav-link">Impressum</a>
           </li>
         </ul>

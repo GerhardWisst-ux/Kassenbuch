@@ -8,6 +8,7 @@ if ($_SESSION['userid'] == "") {
 
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -71,9 +72,9 @@ if ($_SESSION['userid'] == "") {
       width: 98%;
     }
 
-     .dataTables_wrapper .dataTables_length select,
-      .dataTables_wrapper .dataTables_filter,
-      .dataTables_info {
+    .dataTables_wrapper .dataTables_length select,
+    .dataTables_wrapper .dataTables_filter,
+    .dataTables_info {
       margin-left: 1.2rem !important;
       margin-right: 0.8rem !important;
     }
@@ -175,6 +176,9 @@ if ($_SESSION['userid'] == "") {
             <a href="Bestaende.php" class="nav-link">Bestände</a>
           </li>
           <li class="nav-item">
+            <a href="Auswertungen.php" class="nav-link">Auswertungen</a>
+          </li>
+          <li class="nav-item">
             <a href="Impressum.php" class="nav-link">Impressum</a>
           </li>
         </ul>
@@ -220,6 +224,7 @@ if ($_SESSION['userid'] == "") {
             <thead>
               <tr>
                 <th>Buchungsart</th>
+                <th>ID</th>
                 <th>Dauerbuchung</th>
                 <th></th>
               </tr>
@@ -234,6 +239,7 @@ if ($_SESSION['userid'] == "") {
                 $dauerbuchung = $row['Dauerbuchung'] == 1 ? 'Ja' : 'Nein';
                 echo "<tr>
                             <td>{$row['Buchungsart']}</td>
+                            <td>{$row['id']}</td>
                             <td style='vertical-align: top;'>{$dauerbuchung}</td>                                    
                             <td style='vertical-align: top; width:7%; white-space: nowrap;'>
                                 <a href='EditBuchungsart.php?id={$row['id']}' style='width:60px;'  class='btn btn-primary btn-sm'><i class='fa-solid fa-pen-to-square'></i></a>                                
@@ -342,5 +348,5 @@ if ($_SESSION['userid'] == "") {
 
 </html>
 <?php
-  ob_end_flush();
+ob_end_flush();
 ?>

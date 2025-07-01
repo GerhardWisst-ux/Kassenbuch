@@ -11,7 +11,7 @@ if ($_SESSION['userid'] == "") {
 
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">  
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Kassenbuch Buchungen</title>
 
   <!-- CSS -->
@@ -27,7 +27,7 @@ if ($_SESSION['userid'] == "") {
   <script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
   <style>
     /* Allgemeine Einstellungen */
-   body {
+    body {
       font-family: 'Arial', sans-serif;
       background-color: #f4f7f6;
       margin: 0;
@@ -250,6 +250,9 @@ if ($_SESSION['userid'] == "") {
             <a href="Bestaende.php" class="nav-link">Bestände</a>
           </li>
           <li class="nav-item">
+            <a href="Auswertungen.php" class="nav-link">Auswertungen</a>
+          </li>
+          <li class="nav-item">
             <a href="Impressum.php" class="nav-link">Impressum</a>
           </li>
         </ul>
@@ -384,7 +387,7 @@ if ($_SESSION['userid'] == "") {
 
         echo '</div>';
         echo '</div>';
-       
+
 
         ?>
         <br>
@@ -392,7 +395,7 @@ if ($_SESSION['userid'] == "") {
           <table id="TableBuchungen" class="display nowrap me-4">
             <thead>
               <tr>
-                <th>Datum</th>                
+                <th>Datum</th>
                 <th class='visible-column'>Typ</th>
                 <th class='visible-column'>Beleg-Nr</th>
                 <th class='betrag-right'>Betrag</th>
@@ -448,17 +451,17 @@ if ($_SESSION['userid'] == "") {
                     SUM(CASE WHEN typ = 'Ausgabe' THEN betrag ELSE 0 END) AS ausgaben
                     FROM buchungen
                     WHERE Year(datum) = :year AND MONTH(datum) = :monat and userid = :userid and barkasse =1 ";
-                        $stmt = $pdo->prepare($sql);
-                        $stmt->execute(['year' => 2025, 'monat' => $monatNumFilter, 'userid' => $userid]);
-                        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute(['year' => 2025, 'monat' => $monatNumFilter, 'userid' => $userid]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
-                      } else {
-                        $sql = "SELECT SUM(CASE WHEN typ = 'Einlage' THEN betrag ELSE 0 END) AS einlagen,
+          } else {
+            $sql = "SELECT SUM(CASE WHEN typ = 'Einlage' THEN betrag ELSE 0 END) AS einlagen,
                     SUM(CASE WHEN typ = 'Ausgabe' THEN betrag ELSE 0 END) AS ausgaben
                     FROM buchungen WHERE userid = :userid and barkasse = 1";
-                        $stmt = $pdo->prepare($sql);
-                        $stmt->execute(['userid' => $userid]);
-                        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute(['userid' => $userid]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
           }
 
@@ -660,5 +663,5 @@ if ($_SESSION['userid'] == "") {
 </html>
 
 <?php
-  ob_end_flush();
+ob_end_flush();
 ?>

@@ -1,8 +1,9 @@
 <?php
 ob_start();
 session_start();
-if ($_SESSION['userid'] == "") {
-    header('Location: Login.php'); // zum Loginformular
+if (!isset($_SESSION['userid']) || $_SESSION['userid'] == "") {
+    header('Location: Login.php'); // Zum Loginformular umleiten
+    exit; // Sicherstellen, dass kein weiterer Code ausgeführt wird
 }
 ?>
 
@@ -12,7 +13,7 @@ if ($_SESSION['userid'] == "") {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Kassenbuch Bestände</title>
+    <title>Kassenbuch Auswertungen</title>
 
     <!-- CSS -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
@@ -158,7 +159,7 @@ if ($_SESSION['userid'] == "") {
             }
 
             .topnav.responsive {
-                position: relative;
+                position: relative;7
             }
 
             .topnav.responsive .icon {
@@ -219,7 +220,7 @@ if ($_SESSION['userid'] == "") {
             <div class="custom-container">
                 <div class="mt-0 p-5 bg-secondary text-white text-center rounded-bottom">
                     <h1>Kassenbuch</h1>
-                    <p>Bestände</p>
+                    <p>Auswertungen</p>
                 </div>
 
                 <div class="container-fluid mt-3">
@@ -236,12 +237,9 @@ if ($_SESSION['userid'] == "") {
 
                 echo '<div class="btn-toolbar" role="toolbar" aria-label="Toolbar with button groups">';
                 echo '<div class="btn-group" role="group" aria-label="First group">';
-                echo '<a href="BestaendeChart.php" title="Position hinzufügen" class="btn btn-primary btn-sm me-4"><span><i class="fas fa-chart-bar"></i></span></a>';
+                echo '<a href="Index.php" title="Zurück zur Hauptübersicht" class="btn btn-primary btn-sm me-4"><span><i class="fa fa-arrow-left"></i></span></a>';
                 echo '</div>';
 
-                echo '<div class="btn-group me-0" role="group" aria-label="First group">';
-                echo '<a href="Index.php" title="Zurück zur Hauptübersicht" class="btn btn-primary btn-sm"><span><i class="fa fa-arrow-left" aria-hidden="true"></i></span></a>';
-                echo '</div>';
                 echo '</div>';
                 echo '</div><br>';
 
@@ -262,73 +260,69 @@ if ($_SESSION['userid'] == "") {
                     <table id="TableBestaende" class="display nowrap">
                         <thead>
                             <tr>
-                                <th>Datum</th>
-                                <th style="text-align:right;">Einlagen</th>
-                                <th style="text-align:right;">Ausgaben</th>
-                                <th style="text-align:right;">Bestand</th>
-                                <th></th>
-
+                                <th>Buchungsart</th>
+                                <th style="display:none;">Beschreibung</th>                                
+                                <th style="text-align:right;">Anzahl</th>
+                                <th style="text-align:right;">Gesamtbetrag</th>
+                                <th style="text-align:right;">Anteil</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php
-                            $userid = $_SESSION['userid'];
-                            $sql = "SELECT * FROM bestaende WHERE userid = :userid ORDER BY Monat DESC";
+                            <?php                        
+                            $sql = "WITH Gesamtsumme AS (
+                                    SELECT 
+                                        COALESCE(SUM(betrag), 1) AS gesamt_ausgabe
+                                    FROM 
+                                        buchungen
+                                    WHERE 
+                                        barkasse = 1 
+                                        AND typ = 'Ausgabe' 
+                                        AND userid = 1 
+                                        AND buchungsart > 0
+                                )
+                                SELECT 
+                                    COUNT(beschreibung) AS anzahl_beschreibungen,
+                                    beschreibung, 
+                                    vonan,
+                                    SUM(betrag) AS gesamt_betrag,
+                                    ROUND(SUM(betrag) / (SELECT gesamt_ausgabe FROM Gesamtsumme) * 100, 2) AS anteil
+                                FROM 
+                                    buchungen
+                                WHERE 
+                                    barkasse = 1 
+                                    AND typ = 'Ausgabe'
+                                    AND userid = 1
+                                    AND buchungsart > 0
+                                GROUP BY 
+                                    buchungsart, vonan
+                                ORDER BY 
+                                    anteil DESC";
+
+
+
                             $stmt = $pdo->prepare($sql);
-                            $stmt->execute(['userid' => $userid]);
-                            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                                $formattedDate = (new DateTime($row['datum']))->format('d.m.Y');
+                            //$stmt->execute(['userid' => $userid]);
+                            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-                                $bestand = number_format($row['einlagen'] - $row['ausgaben'], 2, '.', '');
-
-                                echo "<tr>
-                                    <td>{$formattedDate}</td>
-                                    <td class='betrag-right'>{$row['einlagen']}</td>
-                                    <td class='betrag-right'>{$row['ausgaben']}</td>
-                                    <td class='betrag-right'>$bestand</td>
-                                    <td style='vertical-align: top; width:7%; white-space: nowrap;'>
-                                        <a href='EditBestand.php?id={$row['id']}' style='width:60px;' title='Bestand bearbeiten' class='btn btn-primary btn-sm'><i class='fa-solid fa-pen-to-square'></i></a>                                        
-                                        <a href='DeleteBestand.php?id={$row['id']}' data-id={$row['id']} style='width:60px;' title='Buchung löschen' class='btn btn-danger btn-sm delete-button'><i class='fa-solid fa-trash'></i></a>
-                                    </td>                                    
-                                </tr>";
+                            try {
+                                $stmt = $pdo->prepare($sql);
+                                $stmt->execute();
+                                while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                                    echo "<tr>
+                                            <td>" . htmlspecialchars($row['vonan']) . "</td>
+                                            <td>" . htmlspecialchars($row['beschreibung']) . "</td>
+                                            <td class='betrag-right'>" . htmlspecialchars($row['anzahl_beschreibungen']) . "</td>
+                                            <td class='betrag-right'>" . htmlspecialchars($row['gesamt_betrag']) . "</td>
+                                            <td class='betrag-right'>" . htmlspecialchars($row['anteil']) . "%</td>
+                                        </tr>";
+                                }
+                            } catch (PDOException $e) {
+                                echo "SQL-Fehler: " . $e->getMessage();
                             }
+
                             ?>
                         </tbody>
                     </table>
-                </div>
-                <!-- Bootstrap Modal -->
-                <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel"
-                    aria-hidden="true">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="confirmDeleteModalLabel">Löschbestätigung</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                    aria-label="Schließen"></button>
-                            </div>
-                            <div class="modal-body">
-                                Möchten Sie diese Position wirklich löschen?
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary"
-                                    data-bs-dismiss="modal">Abbrechen</button>
-                                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Löschen</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <!-- Toast -->
-                <div class="toast-container position-fixed top-0 end-0 p-3">
-                    <div id="deleteToast" class="toast toast-green" role="alert" aria-live="assertive"
-                        aria-atomic="true">
-                        <div class="toast-header">
-                            <strong class="me-auto">Benachrichtigung</strong>
-                            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-                        </div>
-                        <div class="toast-body">
-                            Position wurde gelöscht.
-                        </div>
-                    </div>
                 </div>
         </form>
 
@@ -381,7 +375,7 @@ if ($_SESSION['userid'] == "") {
                         url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/de-DE.json"
                     },
                     responsive: true,
-                    pageLength: 12,
+                    pageLength: 50,
                     autoWidth: false,
                     columnDefs: [
                         {

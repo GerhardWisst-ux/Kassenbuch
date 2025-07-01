@@ -8,6 +8,7 @@ if ($_SESSION['userid'] == "") {
 
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -136,6 +137,9 @@ if ($_SESSION['userid'] == "") {
                         <a href="Bestaende.php" class="nav-link">Bestände</a>
                     </li>
                     <li class="nav-item">
+                        <a href="Auswertungen.php" class="nav-link">Auswertungen</a>
+                    </li>
+                    <li class="nav-item">
                         <a href="Impressum.php" class="nav-link">Impressum</a>
                     </li>
                 </ul>
@@ -230,8 +234,8 @@ if ($_SESSION['userid'] == "") {
                         dieser Seite nicht vom Betreiber erstellt wurden, werden die Urheberrechte Dritter beachtet.
                         Insbesondere werden Inhalte Dritter als solche gekennzeichnet. Sollten Sie trotzdem auf eine
                         Urheberrechtsverletzung aufmerksam werden, bitten wir um einen entsprechenden Hinweis. Bei
-                        Bekanntwerden von Rechtsverletzungen werden wir derartige Inhalte umgehend entfernen.                        
-                        
+                        Bekanntwerden von Rechtsverletzungen werden wir derartige Inhalte umgehend entfernen.
+
                     </p>
                 </div>
                 <button class="formcontrol btn btn-primary me-4" id="install">Diese App installieren</button>
