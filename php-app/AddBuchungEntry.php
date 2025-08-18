@@ -18,7 +18,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         $pdo->beginTransaction();
-
         
         $sql = "select Buchungsart from Buchungsarten where id = :buchungsart";
 

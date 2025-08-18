@@ -32,10 +32,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'userid' => $userid,
         ]);
 
-        echo "Position mit der ID" . $id . " wurde upgedatet!";
+        //echo "Position mit der ID" . $id . " wurde upgedatet!";
+        // Erfolgsmeldung setzen
+        $_SESSION['success_message'] = "Die Buchungsart wurde erfolgreich gespeichert.";
 
-        header('Location: Buchungsarten.php');
-        exit();
+          if (isset($_SERVER['HTTP_REFERER'])) {
+            header('Location: ' . $_SERVER['HTTP_REFERER']);
+            exit;
+        } else {
+            header('Location: Buchungsarten.php'); // Fallback, falls kein Referrer vorhanden
+            exit;
+        }        
     } catch (PDOException $e) {
         echo "Fehler beim Aktualisieren: " . $e->getMessage();
         exit();

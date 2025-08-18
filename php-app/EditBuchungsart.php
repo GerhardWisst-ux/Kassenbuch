@@ -22,121 +22,110 @@ if ($_SESSION['userid'] == "") {
   <script src="js/bootstrap.bundle.min.js"></script>
 
   <style>
-    /* Allgemeine Einstellungen */
+    /* === Grundlayout === */
+    html,
     body {
-      font-family: 'Arial', sans-serif;
-      background-color: #f4f7f6;
+      height: 100%;
       margin: 0;
-      padding: 0;
+      background-color: #dedfe0ff;
+      /* hellgrau statt reinweiß */
     }
 
-    .topnav {
-      background-color: #2d3436;
-      overflow: hidden;
+
+    /* Wrapper nimmt die volle Höhe ein und ist Flex-Container */
+    .wrapper {
+      min-height: 100vh;
+      /* viewport height */
       display: flex;
-      padding: 10px 20px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      flex-direction: column;
     }
 
-    .topnav a {
+    /* Container oder Content-Bereich wächst flexibel */
+    .container {
+      flex: 1;
+      /* nimmt den verfügbaren Platz ein */
+    }
+
+    /* Footer bleibt unten */
+    footer {
+      /* kein spezielles CSS nötig, wenn wrapper und container wie oben */
+    }
+
+    /* === Karten-Design mit Schatten === */
+    .card {
+      font-size: 0.9rem;
+      background-color: #ffffff;
+      border: 1px solid #dee2e6;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      /* leichter Schatten */
+      transition: transform 0.2s ease-in-out;
+    }
+
+    .card:hover {
+      transform: scale(1.01);
+      /* kleine Hover-Interaktion */
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+    }
+
+    .card-body p {
+      margin-bottom: 0.5rem;
+    }
+
+    .card-img-top {
+      height: 200px;
+      /* Einheitliche Höhe */
+      object-fit: cover;
+      /* Bild wird beschnitten, nicht verzerrt */
+    }
+
+    /* === Navbar Design === */
+    .navbar-custom {
+      background: linear-gradient(to right, #cce5f6, #e6f2fb);
+      border-bottom: 1px solid #b3d7f2;
+    }
+
+    .navbar-custom .navbar-brand,
+    .navbar-custom .nav-link {
+      color: #0c2c4a;
+      font-weight: 500;
+    }
+
+    .navbar-custom .nav-link:hover,
+    .navbar-custom .nav-link:focus {
+      color: #04588c;
+      text-decoration: underline;
+    }
+
+    .custom-header {
+      background: linear-gradient(to right, #2a55e0ff, #4670e4ff);
+      /* dunkles, klassisches Grün */
+      border-bottom: 2px solid #0666f7ff;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      border-radius: 0 0 1rem 1rem;
+    }
+
+    .btn-darkgreen {
+      background-color: #0d3dc2ff;
+      border-color: #145214;
       color: #fff;
-      text-decoration: none;
-      padding: 10px 15px;
-      font-size: 16px;
-      transition: background-color 0.3s ease;
     }
 
-    .topnav a:hover {
-      background-color: rgb(161, 172, 169);
-      color: #2d3436;
+    .btn-darkgreen:hover {
+      background-color: #0337e4ff;
+      ;
+      border-color: #2146beff;
     }
 
-    .topnav .icon {
-      display: none;
-    }
-
-    label {
-      font-size: 14px;
-      font-weight: 600;
-      color: #333;
-    }
-
-    /* Tabelle Margins */
-    .custom-container table {
-      margin-left: 1.2rem !important;
-      margin-right: 1.2rem !important;
-      width: 98%;
-    }
-
-    .me-4 {
-      margin-left: 1.2rem !important;
-    }
-
-    /* Spaltenbreiten optimieren */
-    @media screen and (max-width: 767px) {
-
-      .custom-container table {
-        margin-left: 0.2rem !important;
-        margin-right: 0.2rem !important;
-        width: 98%;
-      }
-
-      .me-4 {
-        margin-left: 0.2rem !important;
-      }
-
-
-      .topnav a:not(:first-child) {
-        display: none;
-      }
-
-      .topnav a.icon {
-        display: block;
-        font-size: 30px;
-      }
-
-      .topnav.responsive {
-        position: relative;
-      }
-
-      .topnav.responsive .icon {
-        position: absolute;
-        right: 0;
-        top: 0;
-      }
-
-      .topnav.responsive a {
-        display: block;
-        text-align: left;
-      }
-    }
-
-    /* Responsive Design */
-    @media screen and (max-width: 600px) {
-      .topnav a:not(:first-child) {
-        display: none;
-      }
-
-      .topnav a.icon {
-        display: block;
-        font-size: 30px;
-      }
-
-      .topnav.responsive {
-        position: relative;
-      }
-
-      .topnav.responsive .icon {
-        position: absolute;
-        right: 0;
-        top: 0;
-      }
-
-      .topnav.responsive a {
-        display: block;
-        text-align: left;
-      }
-
+    .btn {
+      border-radius: 50rem;
+      /* pill-shape */
+      font-size: 0.9rem;
+      padding: 0.375rem 0.75rem;
+      font-size: 0.85rem;
     }
   </style>
 </head>
@@ -154,6 +143,15 @@ if ($_SESSION['userid'] == "") {
   // Prüfen, ob die Verbindung zur Datenbank steht
   if (!$pdo) {
     die("Datenbankverbindung fehlgeschlagen: " . mysqli_connect_error());
+  }
+
+  if (isset($_SESSION['success_message'])) {
+    echo '<div class="alert alert-success alert-dismissible fade show" role="alert">'
+      . htmlspecialchars($_SESSION['success_message']) .
+      '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+         </div>';
+    // Meldung nach einmaligem Anzeigen löschen
+    unset($_SESSION['success_message']);
   }
 
   $email = $_SESSION['email'];
@@ -174,82 +172,79 @@ if ($_SESSION['userid'] == "") {
   } else {
     echo "Keine ID angegeben.";
   }
+  require_once 'includes/header.php';
   ?>
 
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="Index.php"><i class="fa-solid fa-house"></i></a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown"
-        aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNavDropdown">
-        <ul class="navbar-nav">
-          <li class="nav-item">
-            <a href="Index.php" class="nav-link">Hauptseite</a>
-          </li>
-          <li class="nav-item">
-            <a href="Buchungsarten.php" class="nav-link">Buchungsarten</a>
-          </li>
-          <li class="nav-item">
-            <a href="Bestaende.php" class="nav-link">Bestände</a>
-          </li>
-          <li class="nav-item">
-            <a href="Auswertungen.php" class="nav-link">Auswertungen</a>
-          </li>
-          <li class="nav-item">
-            <a href="Impressum.php" class="nav-link">Impressum</a>
-          </li>
-        </ul>
-      </div>
-    </div>
-  </nav>
-
-  <div id="addbuchungsart">
+  <div id="editbuchungsart">
     <form action="EditBuchungsartEntry.php" method="post">
       <div class="custom-container">
-        <div class="mt-0 p-5 bg-secondary text-white text-center rounded-bottom">
-          <h1>Kassenbuch</h1>
-          <p>Buchungen Buchungsart bearbeiten</p>
-        </div>
-        <br>
-        <div class="form-group row me-4">
-          <div class="container-fluid mt-3">
-            <div class="row">
-              <div class="col-12 text-end" style="text-align: right;">
-                <?php echo "<span>Angemeldet als: " . $email . "</span>"; ?>
-                <a class="btn btn-primary" title="Abmelden vom Kassenbuch" href="logout.php"><span><i
-                      class="fa fa-sign-out" aria-hidden="true"></i></span></a>
+        <header class="custom-header py-2 text-white">
+          <div class="container-fluid">
+            <div class="row align-items-center">
+              
+              <!-- Titel zentriert -->
+              <div class="col-12 text-center mb-2 mb-md-0">
+                <h2 class="h4 mb-0">Kassenbuch - Buchungsart bearbeiten</h2>
               </div>
-            </div>
-          </div>
-          <div class="form-group row">
-            <label class="col-sm-2 col-form-label text-dark">Buchungsart:</label>
-            <div class="col-sm-10">
-              <input class="form-control" type="text" name="buchungsart"
-                value="<?= htmlspecialchars($result['Buchungsart']) ?>" required>
-              <div class="form-check form-switch mt-2">
-                <label class="btn btn-outline-primary" for="btn-check-outlined">Dauerbuchung</label>
-                <input type="checkbox" class="btn-check" id="btn-check-outlined" name="dauerbuchung" value="1"
-                  <?= $result['Dauerbuchung'] == 1 ? 'checked' : '' ?> autocomplete="off">
 
+              <!-- Benutzerinfo + Logout -->
+              <div class="col-12 col-md-auto ms-md-auto text-center text-md-end">
+                <!-- Auf kleinen Bildschirmen: eigene Zeile für E-Mail -->
+                <div class="d-block d-md-inline mb-1 mb-md-0">
+                  <span class="me-2">Angemeldet als:
+                    <?= htmlspecialchars($_SESSION['email']) ?></span>
+                </div>
+                <!-- Logout-Button -->
+                <a class="btn btn-darkgreen btn-sm" title="Abmelden vom Webshop" href="logout.php">
+                  <i class="fa fa-sign-out" aria-hidden="true"></i> Ausloggen
+                </a>
               </div>
             </div>
           </div>
-          <div class="form-group row" style="visibility: hidden;">
-            <label class="col-sm-2 col-form-label text-dark">Geändert am:</label>
-            <div class="col-sm-1">
-              <input id="updated_at" class="form-control" type="date" name="updated_at"
+        </header>
+        <div class="container-fluid mt-3">
+          <!-- Buchungsart -->
+          <div class="mb-3 row">
+            <label for="buchungsart" class="col-sm-2 col-form-label text-dark">Buchungsart:</label>
+            <div class="col-sm-10">
+              <input type="text" id="buchungsart" name="buchungsart" class="form-control"
+                value="<?= htmlspecialchars($result['buchungsart']) ?>" required>
+            </div>
+          </div>
+
+          <!-- Dauerbuchung -->
+          <div class="mb-3 row">
+            <label for="dauerbuchung" class="col-sm-2 col-form-label text-dark">Dauerbuchung:</label>
+            <div class="col-sm-10 d-flex align-items-center">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="dauerbuchung" name="dauerbuchung" value="1"
+                  <?= isset($result['dauerbuchung']) && $result['dauerbuchung'] == 1 ? 'checked' : '' ?>>
+                <label class="form-check-label" for="dauerbuchung">Ja</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Geändert am (hidden) -->
+          <div class="mb-3 row" style="visibility: hidden;">
+            <label for="updated_at" class="col-sm-2 col-form-label text-dark">Geändert am:</label>
+            <div class="col-sm-10">
+              <input type="date" id="updated_at" name="updated_at" class="form-control"
                 value="<?= htmlspecialchars($result['updated_at']) ?>">
             </div>
           </div>
-          <div class="form-group row">
-            <div class="col-sm-offset-2 col-sm-10">
-              <button class="btn btn-primary" type="submit"><i class="fa fa-save"></i></button>
-              <a href="Buchungsarten.php" title="Zurück zu den Buchungsarten" class="btn btn-primary"><span>
-                  <i class="fa fa-arrow-left" aria-hidden="true"></i></span></a>'
+
+          <!-- Buttons -->
+          <div class="mb-3 row">
+            <div class="col-sm-12 d-flex gap-2">
+              <button type="submit" class="btn btn-primary">
+                <i class="fa fa-save"></i> Speichern
+              </button>
+              <a href="Buchungsarten.php" class="btn btn-secondary" title="Zurück zu den Buchungsarten">
+                <i class="fa fa-arrow-left" aria-hidden="true"></i> Zurück
+              </a>
             </div>
           </div>
+        </div>
     </form>
   </div>
 

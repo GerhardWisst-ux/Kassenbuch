@@ -1,171 +1,179 @@
 <?php
 ob_start();
-session_start();
-if ($_SESSION['userid'] == "") {
-    header('Location: Login.php'); // zum Loginformular
+// Session starten, falls noch nicht erfolgt
+if (session_status() === PHP_SESSION_NONE) {
+  session_start();
 }
+
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
+if ($_SESSION['userid'] == "") {
+  // Wenn kein Benutzer angemeldet ist, weiterleiten zur Login-Seite
+  header("Location: Login.php");
+}
+require_once 'db.php';
+
+
 ?>
 
 <!DOCTYPE html>
-<html>
+<html lang="de">
 
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="manifest" href="manifest.json" />
-    <title>Kassenbuch Impressum</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kassenbuch - Impressum</title>
+  <link href="css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-    <link href="css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="js/script.js"></script>
-    <!-- JS -->
-    <script src="js/jquery.min.js"></script>
-    <script src="js/bootstrap.bundle.min.js"></script>
-
-    <style>
-        /* Allgemeine Einstellungen */
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f4f7f6;
-            margin: 0;
-            padding: 0;
-        }
-
-        h1 {
-            text-align: center;
-        }
-
-        p {
-            text-align: center;
-        }
-
-        .topnav {
-            background-color: #2d3436;
-            overflow: hidden;
-            display: flex;
-            padding: 10px 20px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .topnav a {
-            color: #fff;
-            text-decoration: none;
-            padding: 10px 15px;
-            font-size: 16px;
-            transition: background-color 0.3s ease;
-        }
-
-        .topnav a:hover {
-            background-color: rgb(161, 172, 169);
-            color: #2d3436;
-        }
-
-        .topnav .icon {
-            display: none;
-        }
-
-        label {
-            font-size: 14px;
-            font-weight: 600;
-            color: #333;
-        }
-
-        .me-4 {
-            margin-left: 1.2rem !important;
-        }
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.4.1/css/responsive.dataTables.min.css">
 
 
-        /* Responsive Design */
-        @media screen and (max-width: 767px) {
-            .topnav a:not(:first-child) {
-                display: none;
-            }
+  <style>
+    /* === Grundlayout === */
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      background-color: #dedfe0ff;
+      /* hellgrau statt reinweiß */
+    }
 
-            .topnav a.icon {
-                display: block;
-                font-size: 30px;
-            }
 
-            .topnav.responsive {
-                position: relative;
-            }
+    /* Wrapper nimmt die volle Höhe ein und ist Flex-Container */
+    .wrapper {
+      min-height: 100vh;
+      /* viewport height */
+      display: flex;
+      flex-direction: column;
+    }
 
-            .topnav.responsive .icon {
-                position: absolute;
-                right: 0;
-                top: 0;
-            }
+    /* Container oder Content-Bereich wächst flexibel */
+    .container {
+      flex: 1;
+      /* nimmt den verfügbaren Platz ein */
+    }
 
-            .topnav.responsive a {
-                display: block;
-                text-align: left;
-            }
+    /* Footer bleibt unten */
+    footer {
+      /* kein spezielles CSS nötig, wenn wrapper und container wie oben */
+    }
 
-            .me-4 {
-                margin-left: 1.2rem !important;
-            }
+    /* === Karten-Design mit Schatten === */
+    .card {
+      font-size: 0.9rem;
+      background-color: #ffffff;
+      border: 1px solid #dee2e6;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      /* leichter Schatten */
+      transition: transform 0.2s ease-in-out;
+    }
 
-        }
-    </style>
+    .card:hover {
+      transform: scale(1.01);
+      /* kleine Hover-Interaktion */
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+    }
+
+    .card-body p {
+      margin-bottom: 0.5rem;
+    }
+
+    .card-img-top {
+      height: 200px;
+      /* Einheitliche Höhe */
+      object-fit: cover;
+      /* Bild wird beschnitten, nicht verzerrt */
+    }
+
+    /* === Navbar Design === */
+    .navbar-custom {
+      background: linear-gradient(to right, #cce5f6, #e6f2fb);
+      border-bottom: 1px solid #b3d7f2;
+    }
+
+    .navbar-custom .navbar-brand,
+    .navbar-custom .nav-link {
+      color: #0c2c4a;
+      font-weight: 500;
+    }
+
+    .navbar-custom .nav-link:hover,
+    .navbar-custom .nav-link:focus {
+      color: #04588c;
+      text-decoration: underline;
+    }
+
+    .custom-header {
+      background: linear-gradient(to right, #2a55e0ff, #4670e4ff);
+      /* dunkles, klassisches Grün */
+      border-bottom: 2px solid #0666f7ff;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      border-radius: 0 0 1rem 1rem;
+    }
+
+    .btn-darkgreen {
+      background-color: #0d3dc2ff;
+      border-color: #145214;
+      color: #fff;
+    }
+
+    .btn-darkgreen:hover {
+      background-color: #0337e4ff;
+      ;
+      border-color: #2146beff;
+    }
+
+    .btn {
+      border-radius: 50rem;
+      /* pill-shape */
+      font-size: 0.9rem;
+      padding: 0.375rem 0.75rem;
+      font-size: 0.85rem;
+    }
+  </style>
 </head>
 
 <body>
+  <?php
 
-    <?php
+  require_once 'includes/header.php';
+  $email = $_SESSION['email'];
+  $userid = $_SESSION['userid'];
+  ?>
 
-    require 'db.php';
-    $email = $_SESSION['email'];
-    $userid = $_SESSION['userid'];
-    ?>
+  <div class="wrapper">
+    <header class="custom-header py-2 text-white">
+      <div class="container-fluid">
+        <div class="row align-items-center">
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="Index.php"><i class="fa-solid fa-house"></i></a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown"
-                aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNavDropdown">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a href="Index.php" class="nav-link">Hauptseite</a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="Buchungsarten.php" class="nav-link">Buchungsarten</a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="Bestaende.php" class="nav-link">Bestände</a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="Auswertungen.php" class="nav-link">Auswertungen</a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="Impressum.php" class="nav-link">Impressum</a>
-                    </li>
-                </ul>
+          <!-- Titel zentriert -->
+          <div class="col-12 text-center mb-2 mb-md-0">
+            <h2 class="h4 mb-0">Kassenbuch - Impressum</h2>
+          </div>
+
+          <!-- Benutzerinfo + Logout -->
+          <div class="col-12 col-md-auto ms-md-auto text-center text-md-end">
+            <!-- Auf kleinen Bildschirmen: eigene Zeile für E-Mail -->
+            <div class="d-block d-md-inline mb-1 mb-md-0">
+              <span class="me-2">Angemeldet als: <?= htmlspecialchars($_SESSION['email']) ?></span>
             </div>
+            <!-- Logout-Button -->
+            <a class="btn btn-darkgreen btn-sm" title="Abmelden vom Webshop" href="logout.php">
+              <i class="fa fa-sign-out" aria-hidden="true"></i> Ausloggen
+            </a>
+          </div>
         </div>
-    </nav>
-
-    <div id="bestaende">
-        <form id="bestaendeform">
-            <div class="custom-container">
-                <div class="mt-0 p-5 bg-secondary text-white text-center rounded-bottom">
-                    <h1>Kassenbuch</h1>
-                    <p>Impressum</p>
-                </div>
-
-                <div class="container-fluid mt-3">
-                    <div class="row">
-                        <div class="col-12 text-end">
-                            <?php echo "<span>Angemeldet als: " . htmlspecialchars($email) . "</span>"; ?>
-                            <a class="btn btn-primary" title="Abmelden vom Kassenbuch" href="logout.php">
-                                <i class="fa fa-sign-out" aria-hidden="true"></i>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                <div class="custom-container">
+      </div>
+    </header>
+    <div class="container-fluid mt-4">
+     <div class="custom-container">
                     <!-- <div>
                         <p>Before you enable the PWA, check out how slow this website is.</p>
                         <button class="formcontrol btn btn-primary" id="enable">Enable the PWA</button>
@@ -238,19 +246,24 @@ if ($_SESSION['userid'] == "") {
 
                     </p>
                 </div>
-                <button class="formcontrol btn btn-primary me-4" id="install">Diese App installieren</button>
-        </form>
+    </div>
+  </div>
+  <script src="js/jquery.min.js"></script>
+  <script src="js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
+  <script>
+    function NavBarClick() {
+      var x = document.getElementById("myTopnav");
+      if (x.className === "topnav") {
+        x.className += " responsive";
+      } else {
+        x.className = "topnav";
+      }
+    }
+  </script>
+
 
 </body>
 
 </html>
-<script>
-    function NavBarClick() {
-        var x = document.getElementById("myTopnav");
-        if (x.className === "topnav") {
-            x.className += " responsive";
-        } else {
-            x.className = "topnav";
-        }
-    }
-</script>

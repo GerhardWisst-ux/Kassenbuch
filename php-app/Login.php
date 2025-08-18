@@ -310,7 +310,7 @@ session_start();
 </head>
 
 <body>
-    <?php
+    <!-- <?php
     
     require 'db.php';
     $_SESSION['userid'] = "";
@@ -345,7 +345,7 @@ session_start();
         header('Location: '.$url);
         die();
     }
-    ?>
+    ?> -->
 
     <div class="topnav" id="myTopnav">
         <a class="navbar-brand" href="Index.php"><i class="fa-solid fa-house"></i></a>

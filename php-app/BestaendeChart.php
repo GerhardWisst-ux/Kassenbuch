@@ -23,54 +23,6 @@ session_start();
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
 
 </head>
-<style>
-    .topnav {
-        overflow: hidden;
-        background-color: #333;
-    }
-
-    .topnav a {
-        float: left;
-        display: block;
-        color: white;
-        text-align: center;
-        padding: 14px 16px;
-        text-decoration: none;
-    }
-
-    .topnav .icon {
-        display: none;
-    }
-
-    @media screen and (max-width: 600px) {
-        .topnav a:not(:first-child) {
-            display: none;
-        }
-
-        .topnav a.icon {
-            float: right;
-            display: block;
-        }
-    }
-
-    @media screen and (max-width: 600px) {
-        .topnav.responsive {
-            position: relative;
-        }
-
-        .topnav.responsive a.icon {
-            position: absolute;
-            right: 0;
-            top: 0;
-        }
-
-        .topnav.responsive a {
-            float: none;
-            display: block;
-            text-align: left;
-        }
-    }
-</style>
 
 <body>
     <div class="topnav" id="myTopnav">
