@@ -26,59 +26,74 @@ if ($_SESSION['userid'] == "") {
     body {
       height: 100%;
       margin: 0;
-      background-color: #dedfe0ff;
-      /* hellgrau statt reinweiß */
+      background-color: #f8f9fa;
+      font-family: 'Segoe UI', Tahoma, sans-serif;
     }
 
-
-    /* Wrapper nimmt die volle Höhe ein und ist Flex-Container */
+    /* Wrapper für Flex */
     .wrapper {
       min-height: 100vh;
-      /* viewport height */
       display: flex;
       flex-direction: column;
     }
 
-    /* Container oder Content-Bereich wächst flexibel */
-    .container {
-      flex: 1;
-      /* nimmt den verfügbaren Platz ein */
+    /* === Navbar & Header === */
+    .custom-header {
+      background: linear-gradient(90deg, #1e3c72, #2a5298);
+      color: #fff;
+      border-bottom: 2px solid #1b3a6d;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+      border-radius: 0 0 12px 12px;
     }
 
-    /* Footer bleibt unten */
-    footer {
-      /* kein spezielles CSS nötig, wenn wrapper und container wie oben */
+    .custom-header h2 {
+      font-weight: 600;
+      letter-spacing: 0.5px;
     }
 
-    /* === Karten-Design mit Schatten === */
-    .card {
+    /* === Buttons === */
+    .btn {
+      border-radius: 30px;
+      font-size: 0.85rem;
+      padding: 0.45rem 0.9rem;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+      background-color: #2a5298;
+      border-color: #1e3c72;
+    }
+
+    .btn-primary:hover {
+      background-color: #1e3c72;
+    }
+
+    .btn-darkgreen {
+      background-color: #198754;
+      border-color: #146c43;
+    }
+
+    .btn-darkgreen:hover {
+      background-color: #146c43;
+    }
+
+    /* === Karten & Tabellen === */
+    .custom-container {
+      background-color: #fff;
+      border-radius: 12px;
+      /* padding: 20px; */
+      margin-top: 0px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    #TableBestaende {
+      width: 100%;
       font-size: 0.9rem;
-      background-color: #ffffff;
-      border: 1px solid #dee2e6;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-      /* leichter Schatten */
-      transition: transform 0.2s ease-in-out;
     }
 
-    .card:hover {
-      transform: scale(1.01);
-      /* kleine Hover-Interaktion */
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    }
-
-    .card-title {
-      font-size: 1.1rem;
-    }
-
-    .card-body p {
-      margin-bottom: 0.5rem;
-    }
-
-    .card-img-top {
-      height: 200px;
-      /* Einheitliche Höhe */
-      object-fit: cover;
-      /* Bild wird beschnitten, nicht verzerrt */
+    #TableBestaende tbody tr:hover {
+      background-color: #f1f5ff;
     }
 
     /* === Navbar Design === */
@@ -99,32 +114,21 @@ if ($_SESSION['userid'] == "") {
       text-decoration: underline;
     }
 
-    .custom-header {
-      background: linear-gradient(to right, #2a55e0ff, #4670e4ff);
-      /* dunkles, klassisches Grün */
-      border-bottom: 2px solid #0666f7ff;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-      border-radius: 0 0 1rem 1rem;
+    /* === Modal === */
+    .modal-content {
+      border-radius: 12px;
     }
 
-    .btn-darkgreen {
-      background-color: #0d3dc2ff;
-      border-color: #145214;
+    .modal-header {
+      background-color: #0946c9ff;
       color: #fff;
+      border-radius: 12px 12px 0 0;
     }
 
-    .btn-darkgreen:hover {
-      background-color: #0337e4ff;
-      ;
-      border-color: #2146beff;
-    }
-
-    .btn {
-      border-radius: 50rem;
-      /* pill-shape */
-      font-size: 0.9rem;
-      padding: 0.375rem 0.75rem;
-      font-size: 0.85rem;
+    /* === Toast === */
+    .toast-green {
+      background-color: #198754;
+      color: #fff;
     }
   </style>
 </head>
@@ -182,12 +186,12 @@ if ($_SESSION['userid'] == "") {
 
         ?>
         <br>
-        <div class="custom-container mx-2">
-          <table id="TableBuchungsarten" class="display nowrap">
+        <div class="table-responsive mx-2" style="width: 100%;">
+          <table id="TableBuchungsarten" class="display nowrap table table-striped w-100">
             <thead>
               <tr>
-                <th>Buchungsart</th>
                 <th>ID</th>
+                <th>Buchungsart</th>
                 <th>Dauerbuchung</th>
                 <th></th>
               </tr>
@@ -201,8 +205,8 @@ if ($_SESSION['userid'] == "") {
               while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $dauerbuchung = $row['Dauerbuchung'] == 1 ? 'Ja' : 'Nein';
                 echo "<tr>
-                            <td>{$row['buchungsart']}</td>
                             <td>{$row['id']}</td>
+                            <td>{$row['buchungsart']}</td>                            
                             <td style='vertical-align: top;'>{$dauerbuchung}</td>                                    
                             <td style='vertical-align: top; width:7%; white-space: nowrap;'>
                                 <a href='EditBuchungsart.php?id={$row['id']}' style='width:60px;'  class='btn btn-primary btn-sm'><i class='fa-solid fa-pen-to-square'></i></a>                                

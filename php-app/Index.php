@@ -20,70 +20,80 @@ if ($_SESSION['userid'] == "") {
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.4.1/css/responsive.dataTables.min.css">
 
-  <!-- JS -->
-  <script src="js/jquery.min.js"></script>
-  <script src="js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-  <script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
   <style>
     /* === Grundlayout === */
     html,
     body {
       height: 100%;
       margin: 0;
-      background-color: #dedfe0ff;
-      /* hellgrau statt reinweiß */
+      background-color: #f8f9fa;
+      font-family: 'Segoe UI', Tahoma, sans-serif;
     }
 
-
-    /* Wrapper nimmt die volle Höhe ein und ist Flex-Container */
+    /* Wrapper für Flex */
     .wrapper {
       min-height: 100vh;
-      /* viewport height */
       display: flex;
       flex-direction: column;
     }
 
-    /* Container oder Content-Bereich wächst flexibel */
-    .container {
-      flex: 1;
-      /* nimmt den verfügbaren Platz ein */
+    /* === Navbar & Header === */
+    .custom-header {
+      background: linear-gradient(90deg, #1e3c72, #2a5298);
+      color: #fff;
+      border-bottom: 2px solid #1b3a6d;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+      border-radius: 0 0 12px 12px;
     }
 
-    /* Footer bleibt unten */
-    footer {
-      /* kein spezielles CSS nötig, wenn wrapper und container wie oben */
+    .custom-header h2 {
+      font-weight: 600;
+      letter-spacing: 0.5px;
     }
 
-    /* === Karten-Design mit Schatten === */
-    .card {
+    /* === Buttons === */
+    .btn {
+      border-radius: 30px;
+      font-size: 0.85rem;
+      padding: 0.45rem 0.9rem;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+      background-color: #2a5298;
+      border-color: #1e3c72;
+    }
+
+    .btn-primary:hover {
+      background-color: #1e3c72;
+    }
+
+    .btn-darkgreen {
+      background-color: #198754;
+      border-color: #146c43;
+    }
+
+    .btn-darkgreen:hover {
+      background-color: #146c43;
+    }
+
+    /* === Karten & Tabellen === */
+    .custom-container {
+      background-color: #fff;
+      border-radius: 12px;
+      /* padding: 20px; */
+      margin-top: 0px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    #TableBestaende {
+      width: 100%;
       font-size: 0.9rem;
-      background-color: #ffffff;
-      border: 1px solid #dee2e6;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-      /* leichter Schatten */
-      transition: transform 0.2s ease-in-out;
     }
 
-    .card:hover {
-      transform: scale(1.01);
-      /* kleine Hover-Interaktion */
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    }
-
-    .card-title {
-      font-size: 1.1rem;
-    }
-
-    .card-body p {
-      margin-bottom: 0.5rem;
-    }
-
-    .card-img-top {
-      height: 200px;
-      /* Einheitliche Höhe */
-      object-fit: cover;
-      /* Bild wird beschnitten, nicht verzerrt */
+    #TableBestaende tbody tr:hover {
+      background-color: #f1f5ff;
     }
 
     /* === Navbar Design === */
@@ -104,32 +114,21 @@ if ($_SESSION['userid'] == "") {
       text-decoration: underline;
     }
 
-    .custom-header {
-      background: linear-gradient(to right, #2a55e0ff, #4670e4ff);
-      /* dunkles, klassisches Grün */
-      border-bottom: 2px solid #0666f7ff;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-      border-radius: 0 0 1rem 1rem;
+    /* === Modal === */
+    .modal-content {
+      border-radius: 12px;
     }
 
-    .btn-darkgreen {
-      background-color: #0d3dc2ff;
-      border-color: #145214;
+    .modal-header {
+      background-color: #0946c9ff;
       color: #fff;
+      border-radius: 12px 12px 0 0;
     }
 
-    .btn-darkgreen:hover {
-      background-color: #0337e4ff;
-      ;
-      border-color: #2146beff;
-    }
-
-    .btn {
-      border-radius: 50rem;
-      /* pill-shape */
-      font-size: 0.9rem;
-      padding: 0.375rem 0.75rem;
-      font-size: 0.85rem;
+    /* === Toast === */
+    .toast-green {
+      background-color: #198754;
+      color: #fff;
     }
   </style>
 </head>
@@ -217,16 +216,16 @@ if ($_SESSION['userid'] == "") {
         echo '<form method="GET" action="" style="display: flex; flex-direction: column; gap: 10px;">';
 
         // Erste Zeile: Labels
-        echo '<div id="divLabels" style="display: flex; justify-content: space-between; width: 30%;">';
-        echo '<label for="monat" class="label me-4 mx-2" style="width: 45%; text-align: left;">Bewegungen im Monat:</label>';
-        echo '<label for="anfangsbestand" style="width: 45%; text-align: left;">Anfangsbestand:</label>';
+        echo '<div id="divLabels" style="display: flex; justify-content: space-between; width: 25%;">';
+        echo '<label for="monat" class="label me-4 mx-2" style="width: 300px; text-align: left;">Bewegungen im Monat:</label>';
+        echo '<label for="anfangsbestand" style="width: 200px; text-align: left;">Anfangsbestand:</label>';
         echo '</div>';
 
         // Zweite Zeile: Eingabefelder
         echo '<div id="divInputs" style="display: flex; justify-content: space-between; width: 30%;">';
 
         // Dropdown für Bewegungen im Monat
-        echo '<select id="monat" name="monat" class="form-control me-4 mx-2" style="width: 45%;" onchange="this.form.submit()">';
+        echo '<select id="monat" name="monat" class="form-control me-4 mx-2" style="width: 200px;" onchange="this.form.submit()">';
 
         // Option "Alle Monate" nur anzeigen, wenn wir das brauchen
         echo '<option value="">Alle Monate</option>';
@@ -280,21 +279,26 @@ if ($_SESSION['userid'] == "") {
           $stmt = $pdo->prepare($sql);
           $stmt->execute(['startDatum' => $startDatum, 'endDatum' => $endDatum, 'userid' => $userid]);
 
+          $sql = "SELECT * FROM bestaende WHERE  DATE_FORMAT(datum, '%Y-%m') = :monat AND Year(datum) = :year AND userid = :userid ORDER BY datum DESC";
+          $stmtAB = $pdo->prepare($sql);
+          $stmtAB->execute(['year' => $yearFilter, 'monat' => $monatFilter, 'userid' => $userid]);
+
         } else {
           //Wenn kein Monat ausgewählt wurde, alle Buchungen anzeigen
           $sql = "SELECT * FROM buchungen WHERE userid = :userid and barkasse = 1 ORDER BY datum DESC";
           $stmt = $pdo->prepare($sql);
           $stmt->execute(['userid' => $userid]);
+
+          $currentMonth = '';
         }
 
-        $sql = "SELECT * FROM bestaende WHERE  DATE_FORMAT(datum, '%Y-%m') = :monat AND Year(datum) = :year AND userid = :userid ORDER BY datum DESC";
-        $stmtAB = $pdo->prepare($sql);
-        $stmtAB->execute(['year' => $yearFilter, 'monat' => $monatFilter, 'userid' => $userid]);
 
+        // echo $sql;        
+        
         while ($row = $stmtAB->fetch(PDO::FETCH_ASSOC)) {
           // Textfeld für Anfangsbestand
-          $Anfangsbestand = $row['bestand'];
-          echo '<input class="form-control" type="text" name="anfangsbestand" id="anfangsbestand" value="' . number_format($row['bestand'], 2, '.', '') . ' €" style="width: 45%; text-align:right;" step="0.01" disabled>';
+          $Anfangsbestand = $row['einlagen'];
+          echo '<input class="form-control" type="text" name="anfangsbestand" id="anfangsbestand" value="' . number_format($row['bestand'], 2, '.', '') . ' €" style="width: 200px; text-align:right;" step="0.01" disabled>';
         }
 
         echo '</div>';
@@ -354,6 +358,7 @@ if ($_SESSION['userid'] == "") {
                 <div class="modal-footer">
                   <a href="Export.php?type=monat" class="btn btn-primary">Monat</a>
                   <a href="Export.php?type=jahr" class="btn btn-secondary">Jahr</a>
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
                 </div>
               </div>
             </div>
@@ -395,7 +400,7 @@ if ($_SESSION['userid'] == "") {
 
           }
 
-          $saldo = $Anfangsbestand + $result['einlagen'] - $result['ausgaben'];
+          $saldo = $result['einlagen'] - $result['ausgaben'];
 
           echo '<div class="col-md-5">';
 
@@ -408,7 +413,7 @@ if ($_SESSION['userid'] == "") {
           // Einnahmen
           echo '<div class="form-group row me-2">
             <div style="vertical-align: top;" class="col-3">Einlagen:</div>
-            <div style="text-align:right;vertical-align: top;" class="col-9 col-md-3">' . number_format($Anfangsbestand + $result['einlagen'], 2, '.', '.') . ' €</div>
+            <div style="text-align:right;vertical-align: top;" class="col-9 col-md-3">' . number_format($result['einlagen'], 2, '.', '.') . ' €</div>
           </div>';
 
           // Ausgaben
@@ -427,13 +432,13 @@ if ($_SESSION['userid'] == "") {
 
           $ausgaben = number_format($result['ausgaben'], 2, '.', ',');
 
-          // // Update Bestände
-          if ($monatFilter <> '') {
-            $sqlBestaende = "UPDATE bestaende  SET ausgaben = :ausgaben, einlagen = :einlagen WHERE monat = :monat AND  userid = :userid AND Year(datum) = :year";
-            $stmtBestaende = $pdo->prepare($sqlBestaende);
-            $stmtBestaende->execute(['ausgaben' => $ausgaben, 'einlagen' => $Anfangsbestand + $result['einlagen'], 'userid' => $userid, 'monat' => $monatNumFilter, 'year' => 2025]);
-          }
-
+          // // // Update Bestände
+          // if ($monatFilter <> '') {
+          //   $sqlBestaende = "UPDATE bestaende  SET ausgaben = :ausgaben, einlagen = :einlagen WHERE monat = :monat AND  userid = :userid AND Year(datum) = :year";
+          //   $stmtBestaende = $pdo->prepare($sqlBestaende);
+          //   $stmtBestaende->execute(['ausgaben' => $ausgaben, 'einlagen' => $result['einlagen'], 'userid' => $userid, 'monat' => $monatNumFilter, 'year' => 2025]);
+          // }
+          
           $format = "txt"; //Moeglichkeiten: csv und txt
           
           $datum_zeit = date("d.m.Y H:i:s");
@@ -489,7 +494,6 @@ if ($_SESSION['userid'] == "") {
 
             $_SESSION['counter_ip'] = true;
           }
-
           ?>
 
 
@@ -526,6 +530,12 @@ if ($_SESSION['userid'] == "") {
           </div>
         </div>
     </form>
+
+    <!-- JS -->
+    <script src="js/jquery.min.js"></script>
+    <script src="js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
 
     <script>
       $(document).ready(function () {

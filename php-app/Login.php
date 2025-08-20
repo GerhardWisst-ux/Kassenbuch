@@ -1,319 +1,141 @@
 <?php
-if (headers_sent()) {
-    die("Headers wurden bereits gesendet.");
-}
-ob_start();
-session_start();
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 ?>
-
 <!DOCTYPE html>
-<html></html>
+<html lang="de">
+
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kassenbuch Login</title>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script src="js/jquery.min"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <style>
-        /* Allgemeine Einstellungen */
+        /* === Grundlayout === */
+        html,
         body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f4f7f6;
+            height: 100%;
             margin: 0;
-            padding: 0;
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
         }
 
-
-        .topnav {
-            background-color: #2d3436;
-            overflow: hidden;
-            display: flex;
-            padding: 10px 20px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .topnav a {
-            color: #fff;
-            text-decoration: none;
-            padding: 10px 15px;
-            font-size: 16px;
-            transition: background-color 0.3s ease;
-        }
-
-        .topnav a:hover {
-            background-color: rgb(161, 172, 169);
-            color: #2d3436;
-        }
-
-        .topnav .icon {
-            display: none;
-        }
-
-        .container {
-            width: 100%;
+        /* Wrapper für Flex */
+        .wrapper {
             min-height: 100vh;
-            padding: 0 10px;
-            display: flex;
-            background-color: #f4f7f6;
-            justify-content: center;
-            align-items: center;
-        }
-
-        #login-row {
-            display: flex;
-            justify-content: center;
-            width: 100%;
-        }
-
-        #login-column {
-            max-width: 400px;
-            padding: 20px;
-            background-color: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .login_form {
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
         }
 
-        .login_form h3 {
-            font-size: 20px;
-            text-align: center;
+        /* === Navbar & Header === */
+        .custom-header {
+            background: linear-gradient(90deg, #1e3c72, #2a5298);
+            color: #fff;
+            border-bottom: 2px solid #1b3a6d;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            border-radius: 0 0 12px 12px;
         }
 
-        /* Google & Apple button styling */
-        .login_form .login_option {
-            display: flex;
-            width: 100%;
-            justify-content: space-between;
-            align-items: center;
+        .custom-header h2 {
+            font-weight: 600;
+            letter-spacing: 0.5px;
         }
 
-        .login_form .login_option .option {
-            width: calc(100% / 2 - 12px);
-        }
-
-        .login_form .login_option .option a {
-            height: 56px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 12px;
-            background: #F8F8FB;
-            border: 1px solid #DADAF2;
-            border-radius: 5px;
-            margin: 34px 0 24px 0;
-            text-decoration: none;
-            color: #171645;
+        /* === Buttons === */
+        .btn {
+            border-radius: 30px;
+            font-size: 0.85rem;
+            padding: 0.45rem 0.9rem;
             font-weight: 500;
-            transition: 0.2s ease;
+            transition: all 0.3s ease;
         }
 
-        .login_form .login_option .option a:hover {
-            background: #ededf5;
-            border-color: #626cd6;
+        .btn-primary {
+            background-color: #2a5298;
+            border-color: #1e3c72;
         }
 
-        .login_form .login_option .option a img {
-            max-width: 25px;
+        .btn-primary:hover {
+            background-color: #1e3c72;
         }
 
-        .login_form p {
-            text-align: center;
-            font-weight: 500;
+        .btn-darkgreen {
+            background-color: #198754;
+            border-color: #146c43;
         }
 
-        .login_form .separator {
-            position: relative;
-            margin-bottom: 24px;
+        .btn-darkgreen:hover {
+            background-color: #146c43;
         }
 
-        /* Login option separator styling */
-        .login_form .separator span {
-            background: #fff;
-            z-index: 1;
-            padding: 0 10px;
-            position: relative;
+        /* === Karten & Tabellen === */
+        .custom-container {
+            background-color: #fff;
+            border-radius: 12px;
+            /* padding: 20px; */
+            margin-top: 0px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
         }
 
-        .login_form .separator::after {
-            content: '';
-            position: absolute;
+        #TableBestaende {
             width: 100%;
-            top: 50%;
-            left: 0;
-            height: 1px;
-            background: #C2C2C2;
-            display: block;
+            font-size: 0.9rem;
         }
 
-        form .input_box label {
-            display: block;
-            font-weight: 500;
-            margin-bottom: 4px;
+        #TableBestaende tbody tr:hover {
+            background-color: #f1f5ff;
         }
 
-        /* Input field styling */
-        form .input_box input {
-            width: 100%;
-            height: 57px;
-            border: 1px solid #DADAF2;
-            border-radius: 5px;
-            outline: none;
-            background: #F8F8FB;
-            font-size: 17px;
-            padding: 0px 20px;
-            margin-bottom: 25px;
-            transition: 0.2s ease;
+        /* === Navbar Design === */
+        .navbar-custom {
+            background: linear-gradient(to right, #cce5f6, #e6f2fb);
+            border-bottom: 1px solid #b3d7f2;
         }
 
-        form .input_box input:focus {
-            border-color:rgb(42, 42, 44);
-        }
-
-        form .input_box .password_title {
-            display: flex;
-            justify-content: space-between;
-            text-align: center;
-        }
-
-        form .input_box {
-            position: relative;
-        }
-
-        a {
-            text-decoration: none;
-            color: #626cd6;
+        .navbar-custom .navbar-brand,
+        .navbar-custom .nav-link {
+            color: #0c2c4a;
             font-weight: 500;
         }
 
-        a:hover {
+        .navbar-custom .nav-link:hover,
+        .navbar-custom .nav-link:focus {
+            color: #04588c;
             text-decoration: underline;
         }
 
-        /* Login button styling */
-        form button {
-            width: 100%;
-            height: 56px;
-            border-radius: 5px;
-            border: none;
-            outline: none;
-            background-color: rgb(97, 104, 102);
+        /* === Modal === */
+        .modal-content {
+            border-radius: 12px;
+        }
+
+        .modal-header {
+            background-color: #0946c9ff;
             color: #fff;
-            font-size: 18px;
-            font-weight: 500;
-            text-transform: uppercase;
-            cursor: pointer;
-            margin-bottom: 28px;
-            transition: 0.3s ease;
+            border-radius: 12px 12px 0 0;
         }
 
-        form button:hover {
-            background-color: rgb(60, 61, 61);
-            color: rgb(235, 240, 241);
-        }
-
-        label {
-            font-size: 14px;
-            font-weight: 600;
-            color: #333;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 10px;
-            margin-top: px;
-            border-radius: 4px;
-            border: 1px solid #ddd;
-            box-sizing: border-box;
-            font-size: 16px;
-            transition: border 0.3s ease;
-        }
-
-        .form-control:focus {
-            border: 1px solid #2d3436;
-            outline: none;
-        }
-
-        button {
-            width: 100%;
-            padding: 10px;
-            background-color: #2d3436;
+        /* === Toast === */
+        .toast-green {
+            background-color: #198754;
             color: #fff;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-
-        button:hover {
-            background-color: #f4f7f6;
-            color: #2d3436;
-        }
-
-        .text-danger {
-            color: rgb(110, 21, 11);
-            font-size: 14px;
-            margin-top: 10px;
-        }
-
-        .text-right a {
-            font-size: 14px;
-            text-decoration: none;
-            color: #2d3436;
-            transition: color 0.3s ease;
-        }
-
-        .text-right a:hover {
-            color: rgb(60, 61, 61);
-            background-color: rgb(162, 167, 168);
-        }
-
-        /* Responsive Design */
-        @media screen and (max-width: 600px) {
-            .topnav a:not(:first-child) {
-                display: none;
-            }
-
-            .topnav a.icon {
-                display: block;
-                font-size: 30px;
-            }
-
-            .topnav.responsive {
-                position: relative;
-            }
-
-            .topnav.responsive .icon {
-                position: absolute;
-                right: 0;
-                top: 0;
-            }
-
-            .topnav.responsive a {
-                display: block;
-                text-align: left;
-            }
-
-            #login-column {
-                max-width: 90%;
-            }
         }
     </style>
 </head>
 
 <body>
-    <!-- <?php
-    
+    <?php
     require 'db.php';
+    session_start(); // Session starten
+    
     $_SESSION['userid'] = "";
+
+    ini_set('display_errors', 1);
+    ini_set('display_startup_errors', 1);
+    error_reporting(E_ALL);
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email = filter_var(trim($_POST['email']), FILTER_SANITIZE_EMAIL);
@@ -330,7 +152,8 @@ session_start();
                 if ($user !== false && password_verify($passwort, $user['passwort'])) {
                     $_SESSION['userid'] = $user['id'];
                     $_SESSION['email'] = $user['email'];
-                    redirect("Index.php");
+                    // Redirect nur, wenn Bedingung erreicht
+                    header("Location: Index.php");
                     exit();
                 } else {
                     $errorMessage = "E-Mail oder Passwort war ungültig.";
@@ -338,84 +161,60 @@ session_start();
             } catch (PDOException $e) {
                 $errorMessage = "Datenbankfehler: " . $e->getMessage();
             }
-        }       
+        }
     }
+    ?>
 
-    function redirect($url) {
-        header('Location: '.$url);
-        die();
-    }
-    ?> -->
+    <!-- Inhalt mit Login-Form -->
+<body>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card shadow-lg border-0">
+                    <div class="card-header bg-primary text-white text-center">
+                        <h4 class="mb-0">Kassenbuch Login</h4>
+                    </div>
 
-    <div class="topnav" id="myTopnav">
-        <a class="navbar-brand" href="Index.php"><i class="fa-solid fa-house"></i></a>
-        <!-- <a href="Index.php" class="active">Haupseite</a> -->
-        <!-- <a href="Buchungsarten.php">Buchungsarten</a>
-        <a href="Bestaende.php">Bestände</a>
-        <a class="disabled"  href="Impressum.php">Impressum</a>
-        <a href="javascript:void(0);" class="icon" onclick="NavBarClick()">
-            <i class="fa fa-bars"></i>
-        </a> -->
-    </div>
+                    <div class="card-body">
+                        <form method="post" action="" class="needs-validation" novalidate>
 
-    <div id="login">
-        <form id="loginform" method="post" action="?login=1" class="login_form needs-validation" novalidate>
-            <div id="login">
-                <div class="container">
-                    <div id="login-row" class="row justify-content-center align-items-center">
-                        <div id="login-column" class="col-md-6">
-                            <h1>Kassenbuch Login</h1>
-                            <div id="login-box" class="col-md-12">
-
-                                <div class="input_box">
-                                    <label for="email" class="text-dark">Benutzer:</label><br>
-                                    <input type="text" name="email" placeholder="Benutzer eingeben" required id="email"
-                                        class="form-control">
-                                </div>
-                                <div class="input_box">
-                                    <label for="password" class="text-dark">Passwort:</label><br>
-                                    <input type="password" name="passwort" placeholder="Passwort eingeben" required
-                                        id="passwort" class="form-control">
-                                </div>
-                                <div class="input_box">
-                                    <button type="submit" class="btn btn-success" name="login" id="login">
-                                        Anmelden
-                                    </button>
-                                </div>
-                                <div id="error-link" class="text-danger">
-                                    <?php
-                                    if (isset($errorMessage)) {
-                                        echo $errorMessage;
-                                    } ?>
-                                </div>
-                                <div id="register-link" class="text-right">
-                                    <a href="Register.php" class="text-dark">Registierung</a>
-                                </div>
-
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Benutzer:</label>
+                                <input type="text" name="email" id="email" required class="form-control"
+                                    placeholder="Benutzer eingeben">
                             </div>
-                        </div>
+
+                            <div class="mb-3">
+                                <label for="passwort" class="form-label">Passwort:</label>
+                                <input type="password" name="passwort" id="passwort" required class="form-control"
+                                    placeholder="Passwort eingeben">
+                            </div>
+
+                            <?php if (!empty($errorMessage)): ?>
+                                <div class="alert alert-danger">
+                                    <?= htmlspecialchars($errorMessage) ?>
+                                </div>
+                            <?php endif; ?>
+
+                            <div class="d-grid">
+                                <button type="submit" class="btn bg-primary text-white rounded-pill">Anmelden</button>
+                            </div>
+
+                            <div class="text-center mt-3">
+                                <a href="register.php" class="text-decoration-none">Noch kein Konto? Jetzt
+                                    registrieren</a>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
-        </form>
+        </div>
+    </div>
 
-        <script>
-            function NavBarClick() {
-                var x = document.getElementById("myTopnav");
-                if (x) {
-                    if (x.className === "topnav") {
-                        x.className += " responsive";
-                    } else {
-                        x.className = "topnav";
-                    }
-                }
-            }
 
-        </script>
-
+    <!-- Optional: Bootstrap JS -->
+    <script src="../assets/js/bootstrap.bundle.min.js"></script>
 </body>
 
 </html>
-<?php
-  ob_end_flush();
-?>
+<?php ob_end_flush(); ?>

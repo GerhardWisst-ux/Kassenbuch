@@ -1,9 +1,13 @@
 <?php
 ob_start();
 session_start();
-if ($_SESSION['userid'] == "") {
+if (empty($_SESSION['userid'])) {
+    http_response_code(403);
+    echo json_encode(['error' => 'not authorized']);
     header('Location: Login.php'); // zum Loginformular
+    exit;
 }
+
 ?>
 
 <!DOCTYPE html>
@@ -20,118 +24,118 @@ if ($_SESSION['userid'] == "") {
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.4.1/css/responsive.dataTables.min.css">
 
-    <!-- JS -->
-    <script src="js/jquery.min.js"></script>
-    <script src="js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
-    <style>
-        /* === Grundlayout === */
-        html,
-        body {
-            height: 100%;
-            margin: 0;
-            background-color: #dedfe0ff;
-            /* hellgrau statt reinweiß */
-        }
 
+  <style>
+    /* === Grundlayout === */
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      background-color: #f8f9fa;
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+    }
 
-        /* Wrapper nimmt die volle Höhe ein und ist Flex-Container */
-        .wrapper {
-            min-height: 100vh;
-            /* viewport height */
-            display: flex;
-            flex-direction: column;
-        }
+    /* Wrapper für Flex */
+    .wrapper {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
 
-        /* Container oder Content-Bereich wächst flexibel */
-        .container {
-            flex: 1;
-            /* nimmt den verfügbaren Platz ein */
-        }
+    /* === Navbar & Header === */
+    .custom-header {
+      background: linear-gradient(90deg, #1e3c72, #2a5298);
+      color: #fff;
+      border-bottom: 2px solid #1b3a6d;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+      border-radius: 0 0 12px 12px;
+    }
 
-        /* Footer bleibt unten */
-        footer {
-            /* kein spezielles CSS nötig, wenn wrapper und container wie oben */
-        }
+    .custom-header h2 {
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
 
-        /* === Karten-Design mit Schatten === */
-        .card {
-            font-size: 0.9rem;
-            background-color: #ffffff;
-            border: 1px solid #dee2e6;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-            /* leichter Schatten */
-            transition: transform 0.2s ease-in-out;
-        }
+    /* === Buttons === */
+    .btn {
+      border-radius: 30px;
+      font-size: 0.85rem;
+      padding: 0.45rem 0.9rem;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
 
-        .card:hover {
-            transform: scale(1.01);
-            /* kleine Hover-Interaktion */
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        }
+    .btn-primary {
+      background-color: #2a5298;
+      border-color: #1e3c72;
+    }
 
-        .card-title {
-            font-size: 1.1rem;
-        }
+    .btn-primary:hover {
+      background-color: #1e3c72;
+    }
 
-        .card-body p {
-            margin-bottom: 0.5rem;
-        }
+    .btn-darkgreen {
+      background-color: #198754;
+      border-color: #146c43;
+    }
 
-        .card-img-top {
-            height: 200px;
-            /* Einheitliche Höhe */
-            object-fit: cover;
-            /* Bild wird beschnitten, nicht verzerrt */
-        }
+    .btn-darkgreen:hover {
+      background-color: #146c43;
+    }
 
-        /* === Navbar Design === */
-        .navbar-custom {
-            background: linear-gradient(to right, #cce5f6, #e6f2fb);
-            border-bottom: 1px solid #b3d7f2;
-        }
+    /* === Karten & Tabellen === */
+    .custom-container {
+      background-color: #fff;
+      border-radius: 12px;
+      /* padding: 20px; */
+      margin-top: 0px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    }
 
-        .navbar-custom .navbar-brand,
-        .navbar-custom .nav-link {
-            color: #0c2c4a;
-            font-weight: 500;
-        }
+    #TableBestaende {
+      width: 100%;
+      font-size: 0.9rem;
+    }
 
-        .navbar-custom .nav-link:hover,
-        .navbar-custom .nav-link:focus {
-            color: #04588c;
-            text-decoration: underline;
-        }
+    #TableBestaende tbody tr:hover {
+      background-color: #f1f5ff;
+    }
 
-        .custom-header {
-            background: linear-gradient(to right, #2a55e0ff, #4670e4ff);
-            /* dunkles, klassisches Grün */
-            border-bottom: 2px solid #0666f7ff;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-            border-radius: 0 0 1rem 1rem;
-        }
+    /* === Navbar Design === */
+    .navbar-custom {
+      background: linear-gradient(to right, #cce5f6, #e6f2fb);
+      border-bottom: 1px solid #b3d7f2;
+    }
 
-        .btn-darkgreen {
-            background-color: #0d3dc2ff;
-            border-color: #145214;
-            color: #fff;
-        }
+    .navbar-custom .navbar-brand,
+    .navbar-custom .nav-link {
+      color: #0c2c4a;
+      font-weight: 500;
+    }
 
-        .btn-darkgreen:hover {
-            background-color: #0337e4ff;
-            ;
-            border-color: #2146beff;
-        }
+    .navbar-custom .nav-link:hover,
+    .navbar-custom .nav-link:focus {
+      color: #04588c;
+      text-decoration: underline;
+    }
 
-        .btn {
-            border-radius: 50rem;
-            /* pill-shape */
-            font-size: 0.9rem;
-            padding: 0.375rem 0.75rem;
-            font-size: 0.85rem;
-        }
-    </style>
+    /* === Modal === */
+    .modal-content {
+      border-radius: 12px;
+    }
+
+    .modal-header {
+      background-color: #0946c9ff;
+      color: #fff;
+      border-radius: 12px 12px 0 0;
+    }
+
+    /* === Toast === */
+    .toast-green {
+      background-color: #198754;
+      color: #fff;
+    }
+  </style>
 </head>
 
 <body>
@@ -142,21 +146,31 @@ if ($_SESSION['userid'] == "") {
     $email = $_SESSION['email'];
     $userid = $_SESSION['userid'];
 
+
+    // Verfügbare Jahre aus der Datenbank holen
+    $sqlYears = "SELECT DISTINCT YEAR(datum) AS Jahr FROM bestaende WHERE userid = :userid ORDER BY Jahr DESC";
+    $stmtYears = $pdo->prepare($sqlYears);
+    $stmtYears->execute(['userid' => $userid]);
+    $jahre = $stmtYears->fetchAll(PDO::FETCH_COLUMN);
+
+    // Aktuelles Jahr als Standard
+    $jahrFilter = isset($_GET['jahr']) ? (int) $_GET['jahr'] : date("Y");
+
     require_once 'includes/header.php';
-    ?>   
+
+
+    ?>
 
     <div id="bestaende">
         <form id="bestaendeform">
             <div class="custom-container">
-               <header class="custom-header py-2 text-white">
+                <header class="custom-header py-2 text-white">
                     <div class="container-fluid">
                         <div class="row align-items-center">
-
                             <!-- Titel zentriert -->
                             <div class="col-12 text-center mb-2 mb-md-0">
                                 <h2 class="h4 mb-0">Kassenbuch - Bestände</h2>
                             </div>
-
                             <!-- Benutzerinfo + Logout -->
                             <div class="col-12 col-md-auto ms-md-auto text-center text-md-end">
                                 <!-- Auf kleinen Bildschirmen: eigene Zeile für E-Mail -->
@@ -185,52 +199,72 @@ if ($_SESSION['userid'] == "") {
                 echo '</div>';
                 echo '</div><br>';
 
-                // echo '<div class="btn-toolbar" role="toolbar" aria-label="Toolbar with button groups">';
-                // echo '<div class="btn-group" role="group" aria-label="First group">';
-                // echo '<a href="Chart.php" title="Chart anzeigen" class="btn btn-primary"><span><i class="fas fa-chart-bar"></i></span></a>';
-                // echo '</div>';
-                
-                // echo '<div class="btn-group me-0" role="group" aria-label="First group">';
-                // echo '<a href="Index.php" title="Zurück zur Hauptübersicht" class="btn btn-primary btn-sm"><span><i class="fa fa-arrow-left" aria-hidden="true"></i></span></a>';
-                // echo '</div>';
-                // echo '</div>';
-                // echo '</div><br>';
-                
                 ?>
                 <br>
-                <div class="custom-container mx-2">
-                    <table id="TableBestaende" class="display nowrap">
+                <!-- Jahresfilter -->
+                <form method="get" class="mb-3">
+                    <label for="jahr" class="form-label fw-bold mx-2">Jahr auswählen:</label>
+                    <select name="jahr" id="jahr" class="form-select w-auto d-inline-block"
+                        onchange="this.form.submit()">
+                        <option value="0" <?= $jahrFilter == 0 ? 'selected' : '' ?>>Alle Jahre</option>
+                        <?php foreach ($jahre as $jahr): ?>
+                            <option value="<?= $jahr ?>" <?= ($jahr == $jahrFilter) ? 'selected' : '' ?>><?= $jahr ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </form>
+
+                <h4 class="mb-3 mx-2">
+                    <?php
+                    if ($jahrFilter == 0) {
+                        echo "Alle Bestände";
+                    } else {
+                        echo "Bestände für das Jahr $jahrFilter";
+                    }
+                    ?>
+                </h4>
+                <div class="table-responsive mx-2" style="width: 100%;">
+                    <table id="TableBestaende" class="display nowrap table table-striped w-100">
                         <thead>
                             <tr>
                                 <th>Datum</th>
-                                <th style="text-align:right;">Einlagen</th>
-                                <th style="text-align:right;">Ausgaben</th>
-                                <th style="text-align:right;">Bestand</th>
-                                <th></th>
-
+                                <th style="text-align:right;width:25%;">Einlagen</th>
+                                <th style="text-align:right;width:25%;">Ausgaben</th>
+                                <th style="text-align:right;width:35%;">Bestand</th>
+                                <th style="text-align:center;">Aktionen</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php
                             $userid = $_SESSION['userid'];
-                            $sql = "SELECT * FROM bestaende WHERE userid = :userid ORDER BY Monat DESC";
-                            $stmt = $pdo->prepare($sql);
-                            $stmt->execute(['userid' => $userid]);
+                            // SQL-Abfrage je nach Filter
+                            if ($jahrFilter == 0) {
+                                $sql = "SELECT * FROM bestaende WHERE userid = :userid ORDER BY datum DESC";
+                                $stmt = $pdo->prepare($sql);
+                                $stmt->execute(['userid' => $userid]);
+                            } else {
+                                $sql = "SELECT * FROM bestaende WHERE userid = :userid AND YEAR(datum) = :jahr ORDER BY datum DESC";
+                                $stmt = $pdo->prepare($sql);
+                                $stmt->execute(['userid' => $userid, 'jahr' => $jahrFilter]);
+                            }
+
                             while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                                 $formattedDate = (new DateTime($row['datum']))->format('d.m.Y');
-
-                                $bestand = number_format($row['einlagen'] - $row['ausgaben'], 2, '.', '');
+                                $bestand = number_format($row['einlagen'] - $row['ausgaben'], 2, ',', '.');
 
                                 echo "<tr>
                                     <td>{$formattedDate}</td>
                                     <td style='text-align:right;'>{$row['einlagen']}</td>
                                     <td style='text-align:right;'>{$row['ausgaben']}</td>
                                     <td style='text-align:right;'>$bestand</td>
-                                    <td style='vertical-align: top; width:7%; white-space: nowrap;'>
-                                        <a href='EditBestand.php?id={$row['id']}' style='width:60px;' title='Bestand bearbeiten' class='btn btn-primary btn-sm'><i class='fa-solid fa-pen-to-square'></i></a>                                        
-                                        <a href='DeleteBestand.php?id={$row['id']}' data-id={$row['id']} style='width:60px;' title='Buchung löschen' class='btn btn-danger btn-sm delete-button'><i class='fa-solid fa-trash'></i></a>
-                                    </td>                                    
-                                </tr>";
+                                    <td style='white-space: nowrap;text-align:center;'>
+                                        <a href='EditBestand.php?id={$row['id']}' class='btn btn-primary btn-sm me-1'>
+                                            <i class='fa-solid fa-pen-to-square'></i>
+                                        </a>
+                                        <a href='DeleteBestand.php?id={$row['id']}' data-id='{$row['id']}' class='btn btn-danger btn-sm delete-button'>
+                                            <i class='fa-solid fa-trash'></i>
+                                        </a>
+                                    </td>
+                    </tr>";
                             }
                             ?>
                         </tbody>
@@ -271,6 +305,12 @@ if ($_SESSION['userid'] == "") {
                     </div>
                 </div>
         </form>
+
+        <!-- JS -->
+        <script src="js/jquery.min.js"></script>
+        <script src="js/bootstrap.bundle.min.js"></script>
+        <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+        <script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
 
         <script>
 

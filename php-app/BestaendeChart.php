@@ -1,7 +1,9 @@
 <?php
 ob_start();
 session_start();
-
+if ($_SESSION['userid'] == "") {
+    header('Location: Login.php'); // zum Loginformular
+}
 ?>
 
 <!DOCTYPE html>
@@ -17,174 +19,273 @@ session_start();
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.4.1/css/responsive.dataTables.min.css">
 
-    <!-- JS -->
-    <script src="js/jquery.min.js"></script>
-    <script src="js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
+    <style>
+        /* === Grundlayout === */
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+        }
 
+        /* Wrapper für Flex */
+        .wrapper {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* === Navbar & Header === */
+        .custom-header {
+            background: linear-gradient(90deg, #1e3c72, #2a5298);
+            color: #fff;
+            border-bottom: 2px solid #1b3a6d;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            border-radius: 0 0 12px 12px;
+        }
+
+        .custom-header h2 {
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        /* === Buttons === */
+        .btn {
+            border-radius: 30px;
+            font-size: 0.85rem;
+            padding: 0.45rem 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background-color: #2a5298;
+            border-color: #1e3c72;
+        }
+
+        .btn-primary:hover {
+            background-color: #1e3c72;
+        }
+
+        .btn-darkgreen {
+            background-color: #198754;
+            border-color: #146c43;
+        }
+
+        .btn-darkgreen:hover {
+            background-color: #146c43;
+        }
+
+        /* === Karten & Tabellen === */
+        .custom-container {
+            background-color: #fff;
+            border-radius: 12px;
+            /* padding: 20px; */
+            margin-top: 0px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        #TableBestaende {
+            width: 100%;
+            font-size: 0.9rem;
+        }
+
+        #TableBestaende tbody tr:hover {
+            background-color: #f1f5ff;
+        }
+
+        /* === Navbar Design === */
+        .navbar-custom {
+            background: linear-gradient(to right, #cce5f6, #e6f2fb);
+            border-bottom: 1px solid #b3d7f2;
+        }
+
+        .navbar-custom .navbar-brand,
+        .navbar-custom .nav-link {
+            color: #0c2c4a;
+            font-weight: 500;
+        }
+
+        .navbar-custom .nav-link:hover,
+        .navbar-custom .nav-link:focus {
+            color: #04588c;
+            text-decoration: underline;
+        }
+
+        /* === Modal === */
+        .modal-content {
+            border-radius: 12px;
+        }
+
+        .modal-header {
+            background-color: #0946c9ff;
+            color: #fff;
+            border-radius: 12px 12px 0 0;
+        }
+
+        /* === Toast === */
+        .toast-green {
+            background-color: #198754;
+            color: #fff;
+        }
+    </style>
 </head>
 
-<body>
-    <div class="topnav" id="myTopnav">
-        <a href="Index.php">Haupseite</a>
-        <a href="Buchungsarten.php">Buchungsarten</a>
-        <a class="active" href="Bestaende.php">Bestände</a>
-        <a href="Impressum.php">Impressum</a>
-        <a href="javascript:void(0);" class="icon" onclick="NavBarClick()">
-            <i class="fa fa-bars"></i>
-        </a>
-    </div>
 
-    <div id="chart">
-        <form id="chartform" method="post">
-            <div class="custom-container">
-                <div class="mt-0 p-5 bg-secondary text-white text-center rounded-bottom">
-                    <h1>Kassenbuch</h1>
-                    <p>Chart</p>
+
+
+<?php
+
+require 'db.php';
+$userid = (int) $_SESSION['userid'];
+$email = $_SESSION['email'] ?? '';
+
+// Monatsnamen
+$monatMapping = [
+    1 => "Januar",
+    2 => "Februar",
+    3 => "März",
+    4 => "April",
+    5 => "Mai",
+    6 => "Juni",
+    7 => "Juli",
+    8 => "August",
+    9 => "September",
+    10 => "Oktober",
+    11 => "November",
+    12 => "Dezember"
+];
+
+// Jahre für Dropdown
+$stmtYears = $pdo->prepare("SELECT DISTINCT YEAR(datum) AS jahr 
+                            FROM bestaende 
+                            WHERE userid = :uid 
+                            ORDER BY jahr DESC");
+$stmtYears->execute(['uid' => $userid]);
+$jahre = $stmtYears->fetchAll(PDO::FETCH_COLUMN);
+
+// Aktuelles Jahr auswählen
+$jahrSelected = date('Y');
+if (!empty($jahre))
+    $jahrSelected = (int) $jahre[0];
+
+// Anfangsdaten
+$einnahmen = array_fill(1, 12, 0.0);
+$ausgaben = array_fill(1, 12, 0.0);
+
+$sql = "SELECT MONTH(datum) AS m, SUM(einlagen) AS sum_einlagen, SUM(ausgaben) AS sum_ausgaben
+        FROM bestaende
+        WHERE userid = :uid AND YEAR(datum) = :jahr
+        GROUP BY MONTH(datum)
+        ORDER BY MONTH(datum)";
+$stmt = $pdo->prepare($sql);
+$stmt->execute(['uid' => $userid, 'jahr' => $jahrSelected]);
+while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    $m = (int) $row['m'];
+    $einnahmen[$m] = (float) $row['sum_einlagen'];
+    $ausgaben[$m] = (float) $row['sum_ausgaben'];
+}
+
+$labels = array_values($monatMapping);
+$einlagenWerte = array_values($einnahmen);
+$ausgabenWerte = array_values($ausgaben);
+?>
+
+<body>
+    <?php require_once 'includes/header.php'; ?>
+
+    <header class="custom-header py-2 text-white">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+
+                <!-- Titel zentriert -->
+                <div class="col-12 text-center mb-2 mb-md-0">
+                    <h2 class="h4 mb-0">Kassenbuch - Bestände - Chart</h2>
                 </div>
 
-                <?php
-                require 'db.php';
-
-                $email = $_SESSION['email'];
-                $userid = $_SESSION['userid'];
-
-                $monatMapping = [
-                    "1" => "Januar",
-                    "2" => "Februar",
-                    "3" => "März",
-                    "4" => "April",
-                    "5" => "Mai",
-                    "6" => "Juni",
-                    "7" => "Juli",
-                    "8" => "August",
-                    "9" => "September",
-                    "10" => "Oktober",
-                    "11" => "November",
-                    "12" => "Dezember"
-                ];
-
-                $einnahmen = [];
-                $ausgaben = [];
-
-                // Einlagen
-                $sqlEinlagen = "SELECT monat, einlagen FROM bestaende ORDER BY monat ASC";
-                $stmtEinlagen = $pdo->prepare($sqlEinlagen);
-                $stmtEinlagen->execute();
-
-                while ($row = $stmtEinlagen->fetch(PDO::FETCH_ASSOC)) {
-                    $monatName = $monatMapping[trim($row['monat'])] ?? null;
-                    if ($monatName) {
-                        $einnahmen[$monatName] = (float) $row['einlagen'];
-                    }
-                }
-
-                // Ausgaben
-                $sqlAusgaben = "SELECT monat, ausgaben FROM bestaende ORDER BY monat ASC";
-                $stmtAusgaben = $pdo->prepare($sqlAusgaben);
-                $stmtAusgaben->execute();
-
-                while ($row = $stmtAusgaben->fetch(PDO::FETCH_ASSOC)) {
-                    $monatName = $monatMapping[trim($row['monat'])] ?? null;
-                    if ($monatName) {
-                        $ausgaben[$monatName] = (float) $row['ausgaben'];
-                    }
-                }
-                $monate = array_values($monatMapping); // Monatsnamen
-                $einlagenWerte = array_map(function ($monat) use ($einnahmen) {
-                    return $einnahmen[$monat] ?? 0;
-                }, $monate);
-
-                $ausgabenWerte = array_map(function ($monat) use ($ausgaben) {
-                    return $ausgaben[$monat] ?? 0;
-                }, $monate);
-
-                ?>
-
-                <div class="container-fluid mt-3">
-                    <div class="row">
-                        <div class="col-12 text-end">
-                            <?php echo "<span>Angemeldet als: " . htmlspecialchars($email) . "</span>"; ?>
-                            <a class="btn btn-primary" title="Abmelden vom Kassenbuch" href="logout.php">
-                                <i class="fa fa-sign-out" aria-hidden="true"></i>
-                            </a>
-                        </div>
-                    </div>                   
-                    <div class="form-group row me-4">
-                        <div class="col-sm-offset-2 col-sm-10">
-                            <a href="Bestaende.php" title="Zurück zur Bestandsübersicht" class="btn btn-primary"><i
-                                    class="fa fa-arrow-left" aria-hidden="true"></i></a>
-                        </div>
+                <!-- Benutzerinfo + Logout -->
+                <div class="col-12 col-md-auto ms-md-auto text-center text-md-end">
+                    <!-- Auf kleinen Bildschirmen: eigene Zeile für E-Mail -->
+                    <div class="d-block d-md-inline mb-1 mb-md-0">
+                        <span class="me-2">Angemeldet als:
+                            <?= htmlspecialchars($_SESSION['email']) ?></span>
                     </div>
-                    <div class="form-group row me-4">
-                        <canvas id="myChart" style="width:100%;"></canvas>
-                    </div>
+                    <!-- Logout-Button -->
+                    <a class="btn btn-darkgreen btn-sm" title="Abmelden vom Webshop" href="logout.php">
+                        <i class="fa fa-sign-out" aria-hidden="true"></i> Ausloggen
+                    </a>
                 </div>
             </div>
-        </form>
+        </div>
+    </header>
 
-        <script>
-            var xValues = <?php echo json_encode($monate); ?>;
-            var yEinlagen = <?php echo json_encode($einlagenWerte); ?>;
-            var yAusgaben = <?php echo json_encode($ausgabenWerte); ?>;
+    <div class="container-fluid mt-3">
+        <!-- Erste Zeile: Zurück-Button -->
+        <div class="row mb-2">
+            <div class="col-auto">
+                <a href="Bestaende.php" class="btn btn-primary">
+                    <i class="fa fa-arrow-left"></i>
+                </a>
+            </div>
+        </div>
 
-            new Chart("myChart", {
-                type: "bar",
-                data: {
-                    labels: xValues,
-                    datasets: [
-                        {
-                            label: "Einlagen",
-                            backgroundColor: "green",
-                            data: yEinlagen,
-                        },
-                        {
-                            label: "Ausgaben",
-                            backgroundColor: "red",
-                            data: yAusgaben,
-                        },
-                    ],
-                },
-                options: {
-                    title: {
-                        display: true,
-                        text: "Einlagen und Ausgaben Jahresverlauf 2025",
-                        fontSize: 18 // Titelgröße
-                    },
-                    legend: {
-                        labels: {
-                            fontSize: 12 // Legendentext
-                        }
-                    },
-                    scales: {
-                        xAxes: [{
-                            barPercentage: 0.9,
-                            categoryPercentage: 0.9,
-                            ticks: {
-                                fontSize: 12 // Achsentext
-                            }
-                        }],
-                        yAxes: [{
-                            ticks: {
-                                beginAtZero: true,
-                                fontSize: 12
-                            }
-                        }]
-                    }
-                }
-            });
-        </script>
+        <!-- Zweite Zeile: Jahr + Dropdown in einer Linie -->
+        <div class="row align-items-center mb-3">
+            <div class="col-auto">
+                <label for="jahr" class="form-label mb-0">Jahr:</label>
+            </div>
+            <div class="col-auto">
+                <select id="jahr" class="form-select">
+                    <?php foreach ($jahre as $j) {
+                        $sel = ((int) $j === $jahrSelected) ? 'selected' : '';
+                        echo "<option value='$j' $sel>$j</option>";
+                    } ?>
+                </select>
+            </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="row">
+            <div class="col-12 chart-wrap">
+                <canvas id="myChart"></canvas>
+            </div>
+        </div>
     </div>
+
+
+    <script src="js/jquery.min.js"></script>
+    <script src="js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script>
+    <script>
+        var ctx = document.getElementById("myChart").getContext("2d");
+        var chart = new Chart(ctx, {
+            type: "bar",
+            data: {
+                labels: <?php echo json_encode($labels); ?>,
+                datasets: [
+                    { label: "Einlagen", backgroundColor: "rgba(25,135,84,0.7)", borderColor: "rgba(25,135,84,1)", data: <?php echo json_encode($einlagenWerte); ?> },
+                    { label: "Ausgaben", backgroundColor: "rgba(220,53,69,0.7)", borderColor: "rgba(220,53,69,1)", data: <?php echo json_encode($ausgabenWerte); ?> }
+                ]
+            },
+            options: {
+                title: { display: true, text: "Einlagen und Ausgaben – Jahresverlauf <?php echo $jahrSelected; ?>", fontSize: 18 },
+                scales: { xAxes: [{ barPercentage: 0.9, categoryPercentage: 0.9 }], yAxes: [{ ticks: { beginAtZero: true } }] }
+            }
+        });
+
+        $("#jahr").change(function () {
+            var jahr = $(this).val();
+            $.post("getChartData.php", { jahr: jahr }, function (data) {
+                chart.data.labels = data.monate;
+                chart.data.datasets[0].data = data.einlagen;
+                chart.data.datasets[1].data = data.ausgaben;
+                chart.options.title.text = "Einlagen und Ausgaben – Jahresverlauf " + jahr;
+                chart.update();
+            }, "json");
+        });
+    </script>
 </body>
 
 </html>
-<script>
-    function NavBarClick() {
-        var x = document.getElementById("myTopnav");
-        if (x.className === "topnav") {
-            x.className += " responsive";
-        } else {
-            x.className = "topnav";
-        }
-    }
-</script>
+<?php ob_end_flush(); ?>

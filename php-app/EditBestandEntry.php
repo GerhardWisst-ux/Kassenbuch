@@ -13,8 +13,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $userid = $_SESSION['userid'];
     $datum = $_POST['datum'];
     $ausgaben = $_POST['ausgaben'];
-    $einlagen = $_POST['einnahmen'];
-    $bestand = $_POST['bestand'];
+    $einlagen = $_POST['einlagen'];
+    $bestand = $_POST['einlagen'] - $_POST['ausgaben'];
 
     try {
         // Update-Statement
