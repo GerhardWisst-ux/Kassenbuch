@@ -1,3 +1,14 @@
+<?php
+ob_start();
+session_start();
+if (empty($_SESSION['userid'])) {
+    http_response_code(403);
+    echo json_encode(['error' => 'not authorized']);
+    header('Location: Login.php'); // zum Loginformular
+    exit;
+}
+?>
+
 <head>
   <title>Kassenbuch Hinzufügen Position</title>
   <meta charset="utf-8">
@@ -5,10 +16,7 @@
   <!-- CSS -->
   <link href="css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
-  <!-- JS -->
-  <script src="js/jquery.min.js"></script>
-  <script src="js/bootstrap.bundle.min.js"></script>
+ 
   <style>
     /* === Grundlayout === */
     html,
@@ -173,6 +181,9 @@
               class="fa fa-arrow-left" aria-hidden="true"></i></a>
         </div>
       </div>
-
     </div>
   </form>
+
+  <!-- JS -->
+  <script src="js/jquery.min.js"></script>
+  <script src="js/bootstrap.bundle.min.js"></script>

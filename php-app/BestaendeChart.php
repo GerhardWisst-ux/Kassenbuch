@@ -1,8 +1,11 @@
 <?php
 ob_start();
 session_start();
-if ($_SESSION['userid'] == "") {
+if (empty($_SESSION['userid'])) {
+    http_response_code(403);
+    echo json_encode(['error' => 'not authorized']);
     header('Location: Login.php'); // zum Loginformular
+    exit;
 }
 ?>
 
@@ -14,10 +17,11 @@ if ($_SESSION['userid'] == "") {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Kassenbuch Bestände Chart</title>
 
+    <!-- CSS -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.4.1/css/responsive.dataTables.min.css">
+    <link href="css/jquery.dataTables.min.css" rel="stylesheet">
+    <link href="css/responsive.dataTables.min" rel="stylesheet">
 
     <style>
         /* === Grundlayout === */
@@ -254,9 +258,11 @@ $ausgabenWerte = array_values($ausgaben);
     </div>
 
 
+    <!-- JS -->
     <script src="js/jquery.min.js"></script>
     <script src="js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script>
+    <script src="js/Chart.min.js"></script>
+
     <script>
         var ctx = document.getElementById("myChart").getContext("2d");
         var chart = new Chart(ctx, {

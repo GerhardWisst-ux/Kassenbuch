@@ -1,14 +1,22 @@
 <?php
 ob_start();
 session_start();
-if (!isset($_SESSION['userid']) || $_SESSION['userid'] == "") {
-    header('Location: Login.php'); // Zum Loginformular umleiten
-    exit; // Sicherstellen, dass kein weiterer Code ausgeführt wird
+if (empty($_SESSION['userid'])) {
+    http_response_code(403);
+    echo json_encode(['error' => 'not authorized']);
+    header('Location: Login.php'); // zum Loginformular
+    exit;
 }
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+require 'db.php';
+$userid = $_SESSION['userid'];
 ?>
 
 <!DOCTYPE html>
-<html>
+<html lang="de">
 
 <head>
     <meta charset="utf-8">
@@ -18,9 +26,8 @@ if (!isset($_SESSION['userid']) || $_SESSION['userid'] == "") {
     <!-- CSS -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.4.1/css/responsive.dataTables.min.css">
-
+    <link href="css/jquery.dataTables.min.css" rel="stylesheet">
+    <link href="css/responsive.dataTables.min" rel="stylesheet">
 
     <style>
         /* === Grundlayout === */
@@ -89,12 +96,12 @@ if (!isset($_SESSION['userid']) || $_SESSION['userid'] == "") {
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
         }
 
-        #TableBestaende {
+        #TableAuswertungen {
             width: 100%;
             font-size: 0.9rem;
         }
 
-        #TableBestaende tbody tr:hover {
+        #TableAuswertungen tbody tr:hover {
             background-color: #f1f5ff;
         }
 
@@ -132,6 +139,10 @@ if (!isset($_SESSION['userid']) || $_SESSION['userid'] == "") {
             background-color: #198754;
             color: #fff;
         }
+
+        #TableAuswertungen tbody tr:hover {
+            background-color: #f1f5ff;
+        }
     </style>
 </head>
 
@@ -144,199 +155,130 @@ if (!isset($_SESSION['userid']) || $_SESSION['userid'] == "") {
     $userid = $_SESSION['userid'];
 
     require_once 'includes/header.php';
+
     ?>
 
-
-    <div id="auswertungen">
-        <form id="auswertungenform">
-            <div class="auswertungen-container">
-                <header class="custom-header py-2 text-white">
-                    <div class="container-fluid">
-                        <div class="row align-items-center">
-
-                            <!-- Titel zentriert -->
-                            <div class="col-12 text-center mb-2 mb-md-0">
-                                <h2 class="h4 mb-0">Kassenbuch - Auswertungen</h2>
-                            </div>
-
-                            <!-- Benutzerinfo + Logout -->
-                            <div class="col-12 col-md-auto ms-md-auto text-center text-md-end">
-                                <!-- Auf kleinen Bildschirmen: eigene Zeile für E-Mail -->
-                                <div class="d-block d-md-inline mb-1 mb-md-0">
-                                    <span class="me-2">Angemeldet als:
-                                        <?= htmlspecialchars($_SESSION['email']) ?></span>
-                                </div>
-                                <!-- Logout-Button -->
-                                <a class="btn btn-darkgreen btn-sm" title="Abmelden vom Webshop" href="logout.php">
-                                    <i class="fa fa-sign-out" aria-hidden="true"></i> Ausloggen
-                                </a>
-                            </div>
-                        </div>
+    <div class="custom-container mx-2">
+        <header class="custom-header py-2 text-white">
+            <div class="container-fluid">
+                <div class="row align-items-center">
+                    <!-- Titel zentriert -->
+                    <div class="col-12 text-center mb-2 mb-md-0">
+                        <h2 class="h4 mb-0">Kassenbuch - Auswertungen</h2>
                     </div>
-                </header>
-                <?php
-
-                echo '<div class="btn-toolbar mt-2 mx-2" role="toolbar" aria-label="Toolbar with button groups">';
-                echo '<div class="btn-group" role="group" aria-label="First group">';
-                echo '<a href="Index.php" title="Zurück zur Hauptübersicht" class="btn btn-primary btn-sm me-4"><span><i class="fa fa-arrow-left"></i></span></a>';
-                echo '</div>';
-
-                echo '</div>';
-                echo '</div><br>';
-
-                // echo '<div class="btn-toolbar" role="toolbar" aria-label="Toolbar with button groups">';
-                // echo '<div class="btn-group" role="group" aria-label="First group">';
-                // echo '<a href="Chart.php" title="Chart anzeigen" class="btn btn-primary"><span><i class="fas fa-chart-bar"></i></span></a>';
-                // echo '</div>';
-                
-                // echo '<div class="btn-group me-0" role="group" aria-label="First group">';
-                // echo '<a href="Index.php" title="Zurück zur Hauptübersicht" class="btn btn-primary btn-sm"><span><i class="fa fa-arrow-left" aria-hidden="true"></i></span></a>';
-                // echo '</div>';
-                // echo '</div>';
-                // echo '</div><br>';
-                
-                ?>
-                <br>
-                <div class="custom-container mt-2 mx-2">
-                    <table id="TableBestaende" class="display nowrap">
-                        <thead>
-                            <tr>
-                                <th>Buchungsart</th>
-                                <th style="display:none;">Beschreibung</th>
-                                <th style="text-align:right;">Anzahl</th>
-                                <th style="text-align:right;">Gesamtbetrag</th>
-                                <th style="text-align:right;">Anteil</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php
-                            $sql = "WITH Gesamtsumme AS (
-                                    SELECT 
-                                        COALESCE(SUM(betrag), 1) AS gesamt_ausgabe
-                                    FROM 
-                                        buchungen
-                                    WHERE 
-                                        barkasse = 1 
-                                        AND typ = 'Ausgabe' 
-                                        AND userid = 1 
-                                        AND buchungsart > 0
-                                )
-                                SELECT 
-                                    COUNT(beschreibung) AS anzahl_beschreibungen,
-                                    beschreibung, 
-                                    vonan,
-                                    SUM(betrag) AS gesamt_betrag,
-                                    ROUND(SUM(betrag) / (SELECT gesamt_ausgabe FROM Gesamtsumme) * 100, 2) AS anteil
-                                FROM 
-                                    buchungen
-                                WHERE 
-                                    barkasse = 1 
-                                    AND typ = 'Ausgabe'
-                                    AND userid = 1
-                                    AND buchungsart > 0
-                                GROUP BY 
-                                    buchungsart, vonan
-                                ORDER BY 
-                                    anteil DESC";
-
-
-
-                            $stmt = $pdo->prepare($sql);
-                            //$stmt->execute(['userid' => $userid]);
-                            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-                            try {
-                                $stmt = $pdo->prepare($sql);
-                                $stmt->execute();
-                                while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                                    echo "<tr>
-                                            <td>" . htmlspecialchars($row['vonan']) . "</td>
-                                            <td>" . htmlspecialchars($row['beschreibung']) . "</td>
-                                            <td style='text-align:right'>" . htmlspecialchars($row['anzahl_beschreibungen']) . "</td>
-                                            <td style='text-align:right'>" . htmlspecialchars($row['gesamt_betrag']) . "</td>
-                                            <td style='text-align:right'>" . htmlspecialchars($row['anteil']) . "%</td>
-                                        </tr>";
-                                }
-                            } catch (PDOException $e) {
-                                echo "SQL-Fehler: " . $e->getMessage();
-                            }
-
-                            ?>
-                        </tbody>
-                    </table>
+                    <!-- Benutzerinfo + Logout -->
+                    <div class="col-12 col-md-auto ms-md-auto text-center text-md-end">
+                        <!-- Auf kleinen Bildschirmen: eigene Zeile für E-Mail -->
+                        <div class="d-block d-md-inline mb-1 mb-md-0">
+                            <span class="me-2">Angemeldet als:
+                                <?= htmlspecialchars($_SESSION['email']) ?></span>
+                        </div>
+                        <!-- Logout-Button -->
+                        <a class="btn btn-darkgreen btn-sm" title="Abmelden vom Webshop" href="logout.php">
+                            <i class="fa fa-sign-out" aria-hidden="true"></i> Ausloggen
+                        </a>
+                    </div>
                 </div>
-        </form>
+            </div>
+        </header>
+        <div class="container-fluid mt-4">
+            <a href="Index.php" class="btn btn-primary btn-sm mb-3"><i class="fa fa-arrow-left"></i></a>
 
-        <!-- JS -->
-        <script src="js/jquery.min.js"></script>
-        <script src="js/bootstrap.bundle.min.js"></script>
-        <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-        <script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
+            <table id="TableAuswertungen" class="display nowrap">
+                <thead>
+                    <tr>
+                        <th>Buchungstyp</th>
+                        <th>Buchungsart</th>
+                        <th style="text-align:right;">Anzahl</th>
+                        <th style="text-align:right;">Gesamtbetrag</th>
+                        <th style="text-align:right;">Anteil</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    $sql = "WITH Gesamtausgaben AS (
+                        SELECT SUM(betrag) AS gesamt_ausgaben
+                        FROM buchungen
+                        WHERE barkasse = 1
+                          AND typ = 'Ausgabe'
+                          AND userid = :userid
+                    )
+                    SELECT 
+                        b.typ AS buchungstyp,
+                        b.buchungsart AS buchungsart,
+                        COUNT(*) AS anzahl,
+                        SUM(b.betrag) AS gesamt_betrag,
+                        CASE 
+                            WHEN b.typ = 'Ausgabe' THEN 
+                                ROUND(SUM(b.betrag) / (SELECT gesamt_ausgaben FROM Gesamtausgaben) * 100, 2)
+                            ELSE 
+                                0
+                        END AS anteil
+                    FROM buchungen b
+                    LEFT JOIN buchungsarten ba ON b.buchungsart = ba.id
+                    WHERE b.barkasse = 1
+                      AND b.typ = 'Ausgabe'
+                      AND b.userid = :userid
+                    GROUP BY b.typ, b.buchungsart
+                    ORDER BY anteil DESC, b.betrag DESC";
 
-        <script>
+                    $stmt = $pdo->prepare($sql);
+                    $stmt->execute(['userid' => $userid]);
 
-            $(document).ready(function () {
-                let deleteId = null; // Speichert die ID für die Löschung
+                    $gesamtBetrag = 0;
+                    $gesamtAnteil = 0;
 
-                $('.delete-button').on('click', function (event) {
-                    event.preventDefault();
-                    deleteId = $(this).data('id'); // Hole die ID aus dem Button-Datenattribut
-                    $('#confirmDeleteModal').modal('show'); // Zeige das Modal an
-                });
-
-                $('#confirmDeleteBtn').on('click', function () {
-                    if (deleteId) {
-                        // Dynamisches Formular erstellen und absenden
-                        const form = $('<form>', {
-                            action: 'DeleteBestand.php',
-                            method: 'POST'
-                        }).append($('<input>', {
-                            type: 'hidden',
-                            name: 'id',
-                            value: deleteId
-                        }));
-
-                        $('body').append(form);
-                        form.submit();
-                    }
-                    $('#confirmDeleteModal').modal('hide'); // Schließe das Modal
-
-                    // Zeige den Toast an
-                    var toast = new bootstrap.Toast($('#deleteToast')[0]);
-                    toast.show();
-                });
-            });
-
-            function NavBarClick() {
-                var x = document.getElementById("myTopnav");
-                if (x.className === "topnav") {
-                    x.className += " responsive";
-                } else {
-                    x.className = "topnav";
-                }
-            }
-
-            $(document).ready(function () {
-                $('#TableBestaende').DataTable({
-                    language: {
-                        url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/de-DE.json"
-                    },
-                    responsive: true,
-                    pageLength: 50,
-                    autoWidth: false,
-                    columnDefs: [
-                        {
-                            targets: 1,
-                            className: "dt-body-nowrap" // Keine Zeilenumbrüche
+                    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                        $gesamtBetrag += $row['gesamt_betrag'];
+                        if ($row['buchungstyp'] === 'Ausgabe') {
+                            $gesamtAnteil += $row['anteil'];
                         }
-                    ]
-                });
+
+                        echo "<tr>
+                    <td>" . htmlspecialchars($row['buchungstyp']) . "</td>
+                    <td>" . htmlspecialchars($row['buchungsart'] ?? 'Unbekannt') . "</td>
+                    <td style='text-align:right'>" . number_format($row['anzahl'], 0, ',', '.') . "</td>
+                    <td style='text-align:right'>" . number_format($row['gesamt_betrag'], 2, ',', '.') . " €</td>
+                    <td style='text-align:right'>" . number_format($row['anteil'], 2, ',', '.') . " %</td>
+                </tr>";
+                    }
+                    ?>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th colspan="2" style="text-align:right;">Gesamt:</th>
+                        <th></th>
+                        <th style="text-align:right;"><?= number_format($gesamtBetrag, 2, ',', '.') ?> €</th>
+                        <th style="text-align:right;"><?= number_format($gesamtAnteil, 2, ',', '.') ?> %</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+
+    <!-- JS -->
+    <script src="js/jquery.min.js"></script>
+    <script src="js/bootstrap.bundle.min.js"></script>
+    <script src="js/jquery.dataTables.min.js"></script>
+    <script src="js/dataTables.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            $('#TableAuswertungen').DataTable({
+                language: { url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/de-DE.json" },
+                responsive: true,
+                pageLength: 50,
+                autoWidth: false,
+                footerCallback: function (row, data, start, end, display) {
+                    var api = this.api();
+                    // Optional: Summen live berechnen, wenn Paging aktiv ist
+                }
             });
-        </script>
+        });
+    </script>
 
 </body>
 
 </html>
-<?php
-ob_end_flush();
-?>
+<?php ob_end_flush(); ?>

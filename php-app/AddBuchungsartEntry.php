@@ -1,42 +1,135 @@
-<head>
-  <title>Kassenbuch Hinzufügen Buchungsart</title>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- CSS -->
-  <link href="css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<?php
+declare(strict_types=1);
 
-  <!-- JS -->
-  <script src="js/jquery.min.js"></script>
-  <script src="js/bootstrap.bundle.min.js"></script>
-</head>
+/*
+ * Sicherheits-Header (früh senden)
+ * Hinweis: Passe die CSP an, falls du externe Skripte/Styles brauchst.
+ */
+header('Content-Type: text/html; charset=UTF-8');
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header("Referrer-Policy: no-referrer-when-downgrade");
+header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; form-action 'self'; base-uri 'self';");
 
-<body>
-  <?php
+/* Sichere Session-Cookies (vor session_start) */
+session_set_cookie_params([
+    'httponly' => true,
+    'secure'   => true,     // nur unter HTTPS aktivieren
+    'samesite' => 'Strict'
+]);
+session_start();
 
-  require 'db.php';
-  session_start();
+/* DB laden (PDO im Exception-Modus empfohlen) */
+require 'db.php';
+// Optional, falls noch nicht global gesetzt:
+if (method_exists($pdo, 'setAttribute')) {
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+}
 
+/* Nur POST zulassen */
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    exit('Nur POST erlaubt.');
+}
 
-  if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $buchungsart = $_POST['buchungsart'];
-    if ($_POST['dauerbuchung'] == null)
-      $dauerbuchung = 0;
-    else
-      $dauerbuchung = $_POST['dauerbuchung'];
-    
-    $created_at = $_POST['created_at'];
-    $updated_at = $_POST['updated_at'];
-    $userid = $_SESSION['userid'];
+/* CSRF prüfen */
+if (
+    empty($_POST['csrf_token']) ||
+    empty($_SESSION['csrf_token']) ||
+    !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])
+) {
+    http_response_code(403);
+    exit('CSRF-Token ungültig.');
+}
 
-    $sql = "INSERT INTO buchungsarten (Buchungsart, Dauerbuchung, created_at, updated_at, userid) VALUES (:buchungsart, :dauerbuchung, :created_at, :updated_at, :userid )";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute(['buchungsart' => $buchungsart, 'dauerbuchung' => $dauerbuchung, 'created_at' => $created_at, 'updated_at' => $updated_at, 'userid' => $userid]);
+/* Nutzerprüfung */
+$userid = $_SESSION['userid'] ?? null;
+if (empty($userid) || !ctype_digit((string)$userid)) {
+    http_response_code(401);
+    exit('Nicht angemeldet.');
+}
 
-    echo "Eintrag hinzugefügt!";
-    sleep(3);
-    header('Location: Buchungsarten.php'); // Zurück zur Übersicht
-  
-  }
-  ?>
-</body>
+/* Eingaben einlesen & normalisieren */
+$buchungsart   = isset($_POST['buchungsart']) ? trim((string)$_POST['buchungsart']) : '';
+$dauerbuchung  = !empty($_POST['dauerbuchung']) ? 1 : 0;
+
+/* Validierung: Buchungsart
+   - Länge 1..64
+   - Erlaubt: Buchstaben (inkl. Umlaute), Ziffern, Leerzeichen, - _ . /
+   - Unicode-fähig
+*/
+if ($buchungsart === '') {
+    http_response_code(422);
+    exit('Buchungsart darf nicht leer sein.');
+}
+
+if (mb_strlen($buchungsart, 'UTF-8') > 64) {
+    http_response_code(422);
+    exit('Buchungsart ist zu lang (max. 64 Zeichen).');
+}
+
+if (!preg_match('/^[\p{L}\p{N}\s\-\._\/]{1,64}$/u', $buchungsart)) {
+    http_response_code(422);
+    exit('Buchungsart enthält unzulässige Zeichen.');
+}
+
+/* Datum für created/updated besser aus der DB (UTC) beziehen */
+try {
+    // Optional: Transaktion, falls du später mehr Logik ergänzen willst
+    $pdo->beginTransaction();
+
+    // Mandantenbezogene Duplikatsprüfung (pro userid)
+    $check = $pdo->prepare(
+        "SELECT COUNT(*) 
+           FROM buchungsarten 
+          WHERE buchungsart = :ba AND userid = :uid"
+    );
+    $check->execute([
+        ':ba'  => $buchungsart,
+        ':uid' => (int)$userid
+    ]);
+    $exists = (int)$check->fetchColumn() > 0;
+
+    if ($exists) {
+        // Kein Echo mit Details – saubere UX per Redirect mit Status
+        $pdo->rollBack();
+        header('Location: Buchungsarten.php?exists=1', true, 303);
+        exit;
+    }
+
+    // Insert – Timestamps aus DB (UTC)
+    $stmt = $pdo->prepare("
+        INSERT INTO buchungsarten (buchungsart, Dauerbuchung, created_at, updated_at, userid)
+        VALUES (:ba, :dauer, UTC_DATE(), UTC_DATE(), :uid)
+    ");
+    $stmt->execute([
+        ':ba'    => $buchungsart,
+        ':dauer' => $dauerbuchung,
+        ':uid'   => (int)$userid
+    ]);
+
+    $pdo->commit();
+
+    // CSRF-Token nach erfolgreichem POST optional rotieren
+    unset($_SESSION['csrf_token']);
+
+    // Post/Redirect/Get – Erfolg
+    header('Location: Buchungsarten.php?success=1', true, 303);
+    exit;
+} catch (Throwable $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+    // Deduplizierung per Unique-Constraint abfangen (siehe Empfehlung unten)
+    if ($e instanceof PDOException && $e->getCode() === '23000') {
+        // Eindeutiger Konflikt (Duplicate Key)
+        error_log('Duplicate buchungsart: ' . $buchungsart . ' user ' . $userid);
+        header('Location: Buchungsarten.php?exists=1', true, 303);
+        exit;
+    }
+
+    // Generisch loggen & generische Fehlermeldung
+    error_log('Buchungsart-Insert-Fehler: ' . $e->getMessage());
+    http_response_code(500);
+    exit('Ein Fehler ist aufgetreten. Bitte später erneut versuchen.');
+}

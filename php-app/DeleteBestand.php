@@ -1,34 +1,64 @@
-<head>
-  <title>Kassenbuch Bestände - Position löschen</title>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- CSS -->
-  <link href="css/bootstrap.min.css" rel="stylesheet">
+<?php
+declare(strict_types=1);
 
-  <!-- JS -->
-  <script src="js/jquery.min.js"></script>
-  <script src="js/bootstrap.bundle.min.js"></script>
-</head>
+/*
+ * Sicherheits-Header (früh senden)
+ * Hinweis: Passe die CSP an, falls du externe Skripte/Styles brauchst.
+ */
+header('Content-Type: text/html; charset=UTF-8');
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header("Referrer-Policy: no-referrer-when-downgrade");
+header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; form-action 'self'; base-uri 'self';");
 
-<body>
-  
-  <?php
-  require 'db.php';
-  session_start();
-  
-  if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
-    $id = intval($_POST['id']);
-    $sql = "DELETE FROM bestaende WHERE id = :id";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute(['id' => $id]);        
-    echo "Kassenbuch Bestände - Position " . $id . " wurde gelöscht!";
-    sleep(1);
-    header('Location: Bestaende.php'); 
-    
-  } else {
-    echo "Ungültige Anfrage.";
-  }
+/* Sichere Session-Cookies (vor session_start) */
+session_set_cookie_params([
+    'httponly' => true,
+    'secure'   => true,     // nur unter HTTPS aktivieren
+    'samesite' => 'Strict'
+]);
+session_start();
 
+/* DB laden (PDO im Exception-Modus empfohlen) */
+require 'db.php';
+// Optional, falls noch nicht global gesetzt:
+if (method_exists($pdo, 'setAttribute')) {
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+}
 
-  ?>
-</body>
+/* Nur POST zulassen */
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    exit('Nur POST erlaubt.');
+}
+
+/* CSRF prüfen */
+if (
+    empty($_POST['csrf_token']) ||
+    empty($_SESSION['csrf_token']) ||
+    !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])
+) {
+    http_response_code(403);
+    exit('CSRF-Token ungültig.');
+}
+
+/* Nutzerprüfung */
+$userid = $_SESSION['userid'] ?? null;
+if (empty($userid) || !ctype_digit((string)$userid)) {
+    http_response_code(401);
+    exit('Nicht angemeldet.');
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
+  $id = intval($_POST['id']);
+  $sql = "DELETE FROM bestaende WHERE id = :id";
+  $stmt = $pdo->prepare($sql);
+  $stmt->execute(['id' => $id]);
+  echo "Kassenbuch Bestände - Position " . $id . " wurde gelöscht!";
+  sleep(1);
+  header('Location: Bestaende.php');
+
+} else {
+  echo "Ungültige Anfrage.";
+}
+?>

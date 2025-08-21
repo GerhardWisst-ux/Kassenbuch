@@ -1,10 +1,11 @@
 <?php
-require 'db.php';
+ob_start();
 session_start();
-
-if (!isset($_SESSION['userid'])) {
-    header('Location: Login.php'); 
-    exit();
+if (empty($_SESSION['userid'])) {
+    http_response_code(403);
+    echo json_encode(['error' => 'not authorized']);
+    header('Location: Login.php'); // zum Loginformular
+    exit;
 }
 
 $userid = $_SESSION['userid'];

@@ -1,9 +1,15 @@
 <?php
 ob_start();
 session_start();
-if ($_SESSION['userid'] == "") {
+if (empty($_SESSION['userid'])) {
+  http_response_code(403);
+  echo json_encode(['error' => 'not authorized']);
   header('Location: Login.php'); // zum Loginformular
+  exit;
 }
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 ?>
 
 <!DOCTYPE html>
@@ -17,8 +23,8 @@ if ($_SESSION['userid'] == "") {
   <!-- CSS -->
   <link href="css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
-  <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.4.1/css/responsive.dataTables.min.css">
+  <link href="css/jquery.dataTables.min.css" rel="stylesheet">
+  <link href="css/responsive.dataTables.min" rel="stylesheet">
 
   <style>
     /* === Grundlayout === */
@@ -254,8 +260,8 @@ if ($_SESSION['userid'] == "") {
     <!-- JS -->
     <script src="js/jquery.min.js"></script>
     <script src="js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
+    <script src="js/jquery.dataTables.min.js"></script>
+    <script src="js/dataTables.min.js"></script>
 
     <script>
       $(document).ready(function () {

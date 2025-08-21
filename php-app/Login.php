@@ -133,10 +133,6 @@ error_reporting(E_ALL);
     
     $_SESSION['userid'] = "";
 
-    ini_set('display_errors', 1);
-    ini_set('display_startup_errors', 1);
-    error_reporting(E_ALL);
-
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email = filter_var(trim($_POST['email']), FILTER_SANITIZE_EMAIL);
         $passwort = trim($_POST['passwort']);
@@ -210,7 +206,6 @@ error_reporting(E_ALL);
             </div>
         </div>
     </div>
-
 
     <!-- Optional: Bootstrap JS -->
     <script src="../assets/js/bootstrap.bundle.min.js"></script>

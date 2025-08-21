@@ -4,6 +4,9 @@ session_start();
 if ($_SESSION['userid'] == "") {
   header('Location: Login.php'); // zum Loginformular
 }
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 ?>
 
 <!DOCTYPE html>
@@ -17,8 +20,8 @@ if ($_SESSION['userid'] == "") {
   <!-- CSS -->
   <link href="css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
-  <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.4.1/css/responsive.dataTables.min.css">
+  <link href="css/jquery.dataTables.min.css" rel="stylesheet">
+  <link href="css/responsive.dataTables.min.css" rel="stylesheet">
 
   <style>
     /* === Grundlayout === */
@@ -213,19 +216,19 @@ if ($_SESSION['userid'] == "") {
         $stmt = $pdo->prepare($sql);
         $stmt->execute(['userid' => $userid]);
 
-        echo '<form method="GET" action="" style="display: flex; flex-direction: column; gap: 10px;">';
+        echo '<form method="GET" action="" style="class="d-flex mb-2" style="gap: 20px;" flex-direction: column; gap: 10px;">';
 
-        // Erste Zeile: Labels
-        echo '<div id="divLabels" style="display: flex; justify-content: space-between; width: 25%;">';
-        echo '<label for="monat" class="label me-4 mx-2" style="width: 300px; text-align: left;">Bewegungen im Monat:</label>';
-        echo '<label for="anfangsbestand" style="width: 200px; text-align: left;">Anfangsbestand:</label>';
+        // Erste Zeile: Labels        
+        echo '<div id="divLabels" class="d-flex mb-2 mx-2" style="gap: 20px;">';
+        echo '<label for="monat" class="form-label mb-0" style="width: 200px;">Bewegungen im Monat:</label>';
+        echo '<label for="anfangsbestand" class="form-label mb-0" style="width: 200px;">Anfangsbestand:</label>';
         echo '</div>';
 
         // Zweite Zeile: Eingabefelder
-        echo '<div id="divInputs" style="display: flex; justify-content: space-between; width: 30%;">';
+        echo '<div id="divInputs" class="d-flex mb-3 mx-2" style="gap: 20px;">';
 
         // Dropdown für Bewegungen im Monat
-        echo '<select id="monat" name="monat" class="form-control me-4 mx-2" style="width: 200px;" onchange="this.form.submit()">';
+        echo '<select id="monat" name="monat" class="form-control" style="width: 200px;" onchange="this.form.submit()">';
 
         // Option "Alle Monate" nur anzeigen, wenn wir das brauchen
         echo '<option value="">Alle Monate</option>';
@@ -247,63 +250,92 @@ if ($_SESSION['userid'] == "") {
         ];
 
         // Bestimmen, welcher Monat ausgewählt sein soll
-        $selectedMonth = isset($_GET['monat']) && !empty($_GET['monat']) ? $_GET['monat'] : $currentMonth;
+        if (isset($_GET['monat'])) {
+          $selectedMonth = $_GET['monat']; // kann leer sein
+        } else {
+          $selectedMonth = $currentMonth; // nur beim ersten Laden
+        }
 
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
           $monat = $row['monat'];
           $monatNum = (new DateTime($monat . '-01'))->format('n'); // Monatsnummer
           $monatFormatted = $monatNames[$monatNum] . ' ' . (new DateTime($monat . '-01'))->format('Y');
-
           $selected = ($selectedMonth === $monat) ? 'selected' : '';
           echo "<option value=\"$monat\" $selected>$monatFormatted</option>";
         }
 
-        echo '</select><br>';
-
+        echo '</select>';
 
         // Wenn ein Monat ausgewählt wurde, dann filtern wir die Buchungen
-        $monatFilter = $selectedMonth; // Aus der Dropdown-Logik
-        $monatNumFilter = (new DateTime($monatFilter . '-01'))->format('n'); // 'n' gibt die Monatszahl zurück
-        
+        if (!empty($selectedMonth)) {
+          $monatFilter = $selectedMonth;
+          $monatNumFilter = (new DateTime($monatFilter . '-01'))->format('n');
+          $yearFilter = substr($monatFilter, 0, 4);
+        } else {
+          $monatFilter = '';
+        }
+
         if ($monatFilter <> '')
           $yearFilter = substr($monatFilter, 0, 4);
 
+        $stmtAB = null; // Initialisierung
+        
         if ($monatFilter <> '') {
           $startDatum = $monatFilter . "-01";
-          $endDatum = date("Y-m-t", strtotime($startDatum)); // Letzter Tag des Monats
+          $endDatum = date("Y-m-t", strtotime($startDatum));
+
+          // Buchungen für gewählten Monat
           $sql = "SELECT * FROM buchungen 
-            WHERE datum BETWEEN :startDatum AND :endDatum 
-            AND userid = :userid 
-            AND barkasse = 1 
-            ORDER BY datum DESC";
+        WHERE datum BETWEEN :startDatum AND :endDatum 
+        AND userid = :userid 
+        AND barkasse = 1 
+        ORDER BY datum DESC";
           $stmt = $pdo->prepare($sql);
           $stmt->execute(['startDatum' => $startDatum, 'endDatum' => $endDatum, 'userid' => $userid]);
 
-          $sql = "SELECT * FROM bestaende WHERE  DATE_FORMAT(datum, '%Y-%m') = :monat AND Year(datum) = :year AND userid = :userid ORDER BY datum DESC";
-          $stmtAB = $pdo->prepare($sql);
-          $stmtAB->execute(['year' => $yearFilter, 'monat' => $monatFilter, 'userid' => $userid]);
+          // Vormonat berechnen
+          $vorMonat = date("Y-m", strtotime("-1 month", strtotime($startDatum)));
+
+          // Endbestand des Vormonats holen
+          $sql = "SELECT bestand FROM bestaende
+            WHERE DATE_FORMAT(datum, '%Y-%m') = :vormonat
+            AND userid = :userid
+            ORDER BY datum DESC
+            LIMIT 1";
+          $stmtVB = $pdo->prepare($sql);
+          $stmtVB->execute(['vormonat' => $vorMonat, 'userid' => $userid]);
+          $anfangsbestand = $stmtVB->fetchColumn() ?: 0;
 
         } else {
-          //Wenn kein Monat ausgewählt wurde, alle Buchungen anzeigen
-          $sql = "SELECT * FROM buchungen WHERE userid = :userid and barkasse = 1 ORDER BY datum DESC";
+          // Alle Buchungen
+          $sql = "SELECT * FROM buchungen 
+        WHERE userid = :userid 
+        AND barkasse = 1 
+        ORDER BY datum DESC";
           $stmt = $pdo->prepare($sql);
           $stmt->execute(['userid' => $userid]);
 
-          $currentMonth = '';
+          $monatFilter = '';
+          $anfangsbestand = 0;
         }
 
+        //echo $anfangsbestand;
 
-        // echo $sql;        
-        
-        while ($row = $stmtAB->fetch(PDO::FETCH_ASSOC)) {
-          // Textfeld für Anfangsbestand
-          $Anfangsbestand = $row['einlagen'];
-          echo '<input class="form-control" type="text" name="anfangsbestand" id="anfangsbestand" value="' . number_format($row['bestand'], 2, '.', '') . ' €" style="width: 200px; text-align:right;" step="0.01" disabled>';
+
+        // Nur ausgeben, wenn $stmtAB existiert und erfolgreich ausgeführt wurde
+        if ($anfangsbestand <> 0) {
+          
+            echo '<input class="form-control text-end" type="text" name="anfangsbestand" id="anfangsbestand" value="'
+              . number_format($anfangsbestand, 2, ',', '.')
+              . ' €" style="width: 200px;" step="0.01" disabled>';
+          
+        } else {
+          // Optional: Wenn kein Monat gewählt, Anfangsbestand 0 anzeigen
+          echo '<input class="form-control text-end" type="text" name="anfangsbestand" id="anfangsbestand" value="0,00 €" style="width: 200px;" step="0.01" disabled>';
         }
-
+        echo '</div>'; // Ende divInputs        
         echo '</div>';
         echo '</div>';
-
 
         ?>
         <br>
@@ -367,7 +399,6 @@ if ($_SESSION['userid'] == "") {
 
           //echo $monatFilter;
           if ($monatFilter <> '') {
-
             $sql = "SELECT COUNT(*) AS anzahl FROM buchungen WHERE userid = :userid and barkasse = 1 AND Year(datum) = :year AND MONTH(datum) = :monat";
             $stmt = $pdo->prepare($sql);
             $stmt->execute(['year' => 2025, 'monat' => $monatNumFilter, 'userid' => $userid]);
@@ -387,7 +418,7 @@ if ($_SESSION['userid'] == "") {
                     FROM buchungen
                     WHERE Year(datum) = :year AND MONTH(datum) = :monat and userid = :userid and barkasse =1 ";
             $stmt = $pdo->prepare($sql);
-            $stmt->execute(['year' => 2025, 'monat' => $monatNumFilter, 'userid' => $userid]);
+            $stmt->execute(['year' => date('Y'), 'monat' => $monatNumFilter, 'userid' => $userid]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
           } else {
@@ -397,40 +428,46 @@ if ($_SESSION['userid'] == "") {
             $stmt = $pdo->prepare($sql);
             $stmt->execute(['userid' => $userid]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
-
           }
 
-          $saldo = $result['einlagen'] - $result['ausgaben'];
+          $einlagen = (float) ($result['einlagen'] ?? 0);
+          $ausgaben = (float) ($result['ausgaben'] ?? 0);
+          $saldo = $anfangsbestand + $einlagen - $ausgaben;
+          $anzahl = (int) ($resultCount['anzahl'] ?? 0);
 
           echo '<div class="col-md-5">';
 
           // Anzahl Buchungen
           echo '<div class="form-group row me-2">
-            <div style="vertical-align: top;" class="col-3">Anzahl Buchungen:</div>
-            <div style="text-align:right;vertical-align: top;" class="col-9 col-md-3">' . number_format($resultCount['anzahl'], 0, '.', '.') . '</div>
+              <div style="vertical-align: top;" class="col-3">Anzahl Buchungen:</div>
+              <div style="text-align:right;vertical-align: top;" class="col-9 col-md-3">' . number_format($anzahl, 0, '.', '.') . '</div>
+          </div>';
+
+          // Anfangsbestand
+          echo '<div class="form-group row me-2">
+              <div style="vertical-align: top;" class="col-3">Anfangsbestand:</div>
+              <div style="text-align:right;vertical-align: top;" class="col-9 col-md-3">' . number_format($anfangsbestand, 2, '.', '.') . ' €</div>
           </div>';
 
           // Einnahmen
           echo '<div class="form-group row me-2">
-            <div style="vertical-align: top;" class="col-3">Einlagen:</div>
-            <div style="text-align:right;vertical-align: top;" class="col-9 col-md-3">' . number_format($result['einlagen'], 2, '.', '.') . ' €</div>
+              <div style="vertical-align: top;" class="col-3">Einlagen:</div>
+              <div style="text-align:right;vertical-align: top;" class="col-9 col-md-3">' . number_format($einlagen, 2, '.', '.') . ' €</div>
           </div>';
 
           // Ausgaben
           echo '<div class="form-group row me-2">
-            <div style="vertical-align: top;" class="col-3">Ausgaben:</div>
-            <div style="text-align:right;vertical-align: top;" class="col-9 col-md-3">' . number_format($result['ausgaben'], 2, '.', '.') . ' €</div>
+              <div style="vertical-align: top;" class="col-3">Ausgaben:</div>
+              <div style="text-align:right;vertical-align: top;" class="col-9 col-md-3">' . number_format($ausgaben, 2, '.', '.') . ' €</div>
           </div>';
 
           // Saldo
           echo '<div class="form-group row me-2">
-            <div style="vertical-align: top;" class="col-3"><b>Neuer Bestand:</b></div>
-            <div style="text-align:right;vertical-align: top;" class="col-9 col-md-3"><b>' . number_format($saldo, 2, '.', '.') . ' €</b></div>
+              <div style="vertical-align: top;" class="col-3"><b>Neuer Bestand:</b></div>
+              <div style="text-align:right;vertical-align: top;" class="col-9 col-md-3"><b>' . number_format($saldo, 2, '.', '.') . ' €</b></div>
           </div>';
 
           echo '</div>';
-
-          $ausgaben = number_format($result['ausgaben'], 2, '.', ',');
 
           // // // Update Bestände
           // if ($monatFilter <> '') {
@@ -534,8 +571,8 @@ if ($_SESSION['userid'] == "") {
     <!-- JS -->
     <script src="js/jquery.min.js"></script>
     <script src="js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
+    <script src="js/jquery.dataTables.min.js"></script>
+    <script src="js/dataTables.min.js"></script>
 
     <script>
       $(document).ready(function () {

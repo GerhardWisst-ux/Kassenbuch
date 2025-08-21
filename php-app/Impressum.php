@@ -14,7 +14,6 @@ if ($_SESSION['userid'] == "") {
 }
 require_once 'db.php';
 
-
 ?>
 
 <!DOCTYPE html>
@@ -25,11 +24,7 @@ require_once 'db.php';
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Kassenbuch - Impressum</title>
   <link href="css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
-  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
-  <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.4.1/css/responsive.dataTables.min.css">
-
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"> 
 
  <style>
         /* === Grundlayout === */
@@ -195,7 +190,7 @@ require_once 'db.php';
                     </p>
                     <p class="me-4" style="text-align:left" style="text-align:left">
                     <h3 class="me-4" style="text-align:left">Allgemeine Angaben</h3>
-                    <p class="me-4" style="text-align:left"><b>Internet:</b> <a href="www.Kassenbuch.de"
+                    <p class="me-4" style="text-align:left"><b>Internet:</b> <a href="http://www.Kassenbuch.de"
                             target="_blank">www.Kassenbuch.de</a></p>
 
                     <p class="me-4" style="text-align:left" style="text-align:left"><b>Name des
@@ -253,9 +248,7 @@ require_once 'db.php';
     </div>
   </div>
   <script src="js/jquery.min.js"></script>
-  <script src="js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-  <script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
+  <script src="js/bootstrap.bundle.min.js"></script>  
   <script>
     function NavBarClick() {
       var x = document.getElementById("myTopnav");

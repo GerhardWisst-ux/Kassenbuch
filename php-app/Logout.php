@@ -5,10 +5,6 @@
     <!-- CSS -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
-    <!-- JS -->
-    <script src="js/jquery.min.js"></script>
-    <script src="js/bootstrap.bundle.min.js"></script>
 </head>
 
 <body>
@@ -31,8 +27,11 @@
         </script>
     </head>
 
-    <body>
-        <!-- <p>Logout erfolgreich. Du wirst nun auf die Loginseite weitergeleitet...</p> -->
-    </body>
 
-    </html>
+    <!-- <p>Logout erfolgreich. Du wirst nun auf die Loginseite weitergeleitet...</p> -->
+</body>
+<!-- JS -->
+<script src="js/jquery.min.js"></script>
+<script src="js/bootstrap.bundle.min.js"></script>
+
+</html>

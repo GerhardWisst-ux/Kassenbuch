@@ -1,66 +1,110 @@
 <?php
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; form-action 'self'; base-uri 'self';");
 
-require 'db.php';
+session_set_cookie_params([
+    'httponly' => true,
+    'secure'   => true,
+    'samesite' => 'Strict'
+]);
 session_start();
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+require 'db.php';
 
-    // print_r($_POST);  
-
-    $userid = $_SESSION['userid'];
-    $datum = $_POST['datum'];
-    $vonan = ""; //isset($_POST['custom_vonan']) ? $_POST['custom_vonan'] : $_POST['vonan'];
-    $beschreibung = htmlspecialchars($_POST['beschreibung'], ENT_QUOTES, 'UTF-8');
-    $betrag = $_POST['betrag'];
-    $buchungart_id = $_POST['buchungart_id'];
-    $typ = $_POST['typ'];
-
-
-    try {
-        $pdo->beginTransaction();
-        
-        $sql = "select Buchungsart from Buchungsarten where id = :buchungsart";
-
-        echo $sql;
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([
-            'buchungsart' => $buchungart_id,
-        ]);
-
-      
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $vonan = $row['Buchungsart'];
-        }
-      
-        // Einfügen in die Tabelle
-        $sql = "INSERT INTO buchungen (datum, vonan, beschreibung, betrag, typ, userid,barkasse, buchungsart) 
-                VALUES (:datum, :vonan, :beschreibung, :betrag, :typ, :userid, :barkasse, :buchungsart)";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([
-            'datum' => $datum,
-            'vonan' => $vonan,
-            'beschreibung' => $beschreibung,
-            'betrag' => $betrag,
-            'typ' => $typ,
-            'buchungsart' => $buchungart_id,
-            'barkasse' => 1,
-            'userid' => $userid,
-        ]);
-
-        $last_id = str_pad($pdo->lastInsertId(), 4, 0, STR_PAD_LEFT);
-
-        $sql = "UPDATE buchungen SET belegnr = CONCAT('RE', YEAR(CURDATE()), '21-', :last_id) WHERE id = :last_id";
-        $stmtReNr = $pdo->prepare($sql);
-        $stmtReNr->execute(['last_id' => $last_id]);
-
-        $pdo->commit();
-
-        echo "Position hinzugefügt!";
-        header('Location: Index.php');
-        exit();
-    } catch (PDOException $e) {
-        $pdo->rollback();
-        echo "Error!: " . $e->getMessage() . "</br>";
-    }
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    exit('Nur POST erlaubt.');
 }
-?>
+
+// CSRF prüfen
+if (!isset($_POST['csrf_token'], $_SESSION['csrf_token']) ||
+    !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+    http_response_code(403);
+    exit('CSRF-Token ungültig.');
+}
+
+// Eingaben
+$userid         = $_SESSION['userid'] ?? null;
+$datum          = $_POST['datum'] ?? '';
+$typ            = $_POST['typ'] ?? '';
+$betragRaw      = $_POST['betrag'] ?? '';
+$buchungart_id  = $_POST['buchungart_id'] ?? '';
+$beschreibung   = $_POST['beschreibung'] ?? '';
+$customInput    = $_POST['custom_buchungsart'] ?? '';
+
+// Validierung
+if (empty($userid) || !ctype_digit((string)$userid)) {
+    exit('Nicht angemeldet.');
+}
+
+$d = DateTime::createFromFormat('Y-m-d', $datum);
+if (!$d || $d->format('Y-m-d') !== $datum) {
+    exit('Ungültiges Datum.');
+}
+
+$betragNorm = str_replace([','], ['.'], trim($betragRaw));
+if (!is_numeric($betragNorm)) {
+    exit('Ungültiger Betrag.');
+}
+$betrag = (float)$betragNorm;
+
+$allowedTyp = ['Einlage', 'Ausgabe'];
+if (!in_array($typ, $allowedTyp, true)) {
+    exit('Ungültiger Typ.');
+}
+
+try {
+    $pdo->beginTransaction();
+
+    if ($buchungart_id === 'custom' && $customInput !== '') {
+        $vonan = $customInput;
+    } else {
+        if (!ctype_digit($buchungart_id)) {
+            throw new RuntimeException('Ungültige Buchungsart-ID.');
+        }
+        $stmt = $pdo->prepare("SELECT Buchungsart FROM Buchungsarten WHERE id = :id AND userid = :userid");
+        $stmt->execute([':id' => $buchungart_id, ':userid' => $userid]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) {
+            throw new RuntimeException('Buchungsart nicht gefunden.');
+        }
+        $vonan = $row['Buchungsart'];
+    }
+
+    $stmt = $pdo->prepare("
+        INSERT INTO buchungen (datum, vonan, beschreibung, betrag, typ, userid, barkasse, buchungsart)
+        VALUES (:datum, :vonan, :beschreibung, :betrag, :typ, :userid, 1, :buchungsart)
+    ");
+    $stmt->execute([
+        ':datum'       => $datum,
+        ':vonan'       => $vonan,
+        ':beschreibung'=> $beschreibung,
+        ':betrag'      => $betrag,
+        ':typ'         => $typ,
+        ':userid'      => (int)$userid,
+        ':buchungsart' => $vonan
+    ]);
+
+    $lastIdInt = (int)$pdo->lastInsertId();
+    $numStr = str_pad((string)$lastIdInt, 4, '0', STR_PAD_LEFT);
+
+    $stmtRe = $pdo->prepare("
+        UPDATE buchungen
+        SET belegnr = CONCAT('RE', YEAR(CURDATE()), '21-', :numStr)
+        WHERE id = :id
+    ");
+    $stmtRe->execute([':numStr' => $numStr, ':id' => $lastIdInt]);
+
+    $pdo->commit();
+
+    header('Location: Index.php', true, 303);
+    exit();
+} catch (Throwable $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+    error_log('Buchung-Fehler: ' . $e->getMessage());
+    http_response_code(500);
+    exit('Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
+}

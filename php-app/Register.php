@@ -1,3 +1,8 @@
+<?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+?>
 <html>
 
 <head>
@@ -9,7 +14,7 @@
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
-   <style>
+    <style>
         /* === Grundlayout === */
         html,
         body {
@@ -167,7 +172,29 @@
             } else {
                 $passwort_hash = password_hash($passwort, PASSWORD_DEFAULT);
                 $statement = $pdo->prepare("INSERT INTO users (email, passwort) VALUES (:email, :passwort)");
-                $result = $statement->execute(['email' => $email, 'passwort' => $passwort_hash]);
+                $result = $statement->execute([
+                    'email' => $email,
+                    'passwort' => $passwort_hash
+                ]);
+
+                if ($result) {
+                    // ID des gerade eingefügten Datensatzes
+                    $newUserId = $pdo->lastInsertId();
+                    echo "Neue User-ID: " . $newUserId;
+                } else {
+                    echo "Fehler beim Einfügen!";
+                }
+
+                // Standardbuchungsarten anlegen für neuen Benutzer
+                $buchungsarten = ["_Diveres", "ALDI SUED", "Essen" , "Einlage", "LIDL"];
+                $stmt = $pdo->prepare("
+                        INSERT INTO buchungsarten (buchungsart, Dauerbuchung, created_at, updated_at, userid)
+                        VALUES (?, ?, ?, ?, ?)
+                    ");
+
+                foreach ($buchungsarten as $art) {
+                    $stmt->execute([$art, false, date('Y-m-d'), null, $newUserId]);
+                }
 
                 if ($result) {
                     header("Location: Login.php");
@@ -194,24 +221,27 @@
                             <div class="card-body">
                                 <div class="mb-3">
                                     <label for="email" class="text-dark">Benutzer:</label>
-                                    <input type="email" name="email" id="email" class="form-control"
-                                        placeholder="E-Mail eingeben" required>
+                                    <input type="email" name="email" id="email" class="form-control" required
+                                        value="<?= htmlspecialchars($_POST['email'] ?? '') ?>"
+                                        placeholder="Benutzer eingeben">
                                 </div>
                                 <div class="mb-3">
                                     <label for="passwort" class="form-label">Passwort:</label>
                                     <input type="password" name="passwort" id="passwort" class="form-control" required
+                                        value="<?= htmlspecialchars($_POST['passwort'] ?? '') ?>"
                                         placeholder="Passwort eingeben">
                                 </div>
 
                                 <div class="mb-3">
                                     <label for="passwort2" class="form-label">Passwort bestätigen:</label>
                                     <input type="password" name="passwort2" id="passwort2" class="form-control" required
+                                        value="<?= htmlspecialchars($_POST['passwort2'] ?? '') ?>"
                                         placeholder="Passwort erneut eingeben">
                                 </div>
                                 <br>
                                 <div class="mb-3">
-                                    <button type="submit" style="width: 100%;" class="btn bg-primary text-white rounded-pill" name="register"
-                                        id="register">
+                                    <button type="submit" style="width: 100%;"
+                                        class="btn bg-primary text-white rounded-pill" name="register" id="register">
                                         Speichern
                                     </button>
                                 </div>

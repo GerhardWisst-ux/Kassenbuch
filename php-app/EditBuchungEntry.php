@@ -1,6 +1,53 @@
 <?php
-require 'db.php';
+declare(strict_types=1);
+
+/*
+ * Sicherheits-Header (früh senden)
+ * Hinweis: Passe die CSP an, falls du externe Skripte/Styles brauchst.
+ */
+header('Content-Type: text/html; charset=UTF-8');
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header("Referrer-Policy: no-referrer-when-downgrade");
+header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; form-action 'self'; base-uri 'self';");
+
+/* Sichere Session-Cookies (vor session_start) */
+session_set_cookie_params([
+    'httponly' => true,
+    'secure'   => true,     // nur unter HTTPS aktivieren
+    'samesite' => 'Strict'
+]);
 session_start();
+
+/* DB laden (PDO im Exception-Modus empfohlen) */
+require 'db.php';
+// Optional, falls noch nicht global gesetzt:
+if (method_exists($pdo, 'setAttribute')) {
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+}
+
+/* Nur POST zulassen */
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    exit('Nur POST erlaubt.');
+}
+
+/* CSRF prüfen */
+if (
+    empty($_POST['csrf_token']) ||
+    empty($_SESSION['csrf_token']) ||
+    !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])
+) {
+    http_response_code(403);
+    exit('CSRF-Token ungültig.');
+}
+
+/* Nutzerprüfung */
+$userid = $_SESSION['userid'] ?? null;
+if (empty($userid) || !ctype_digit((string)$userid)) {
+    http_response_code(401);
+    exit('Nicht angemeldet.');
+}
 
 // Prüfen, ob die ID gesetzt ist
 if (!isset($_SESSION['id'])) {
@@ -10,17 +57,18 @@ if (!isset($_SESSION['id'])) {
 
 $id = $_SESSION['id'];
 
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $userid = $_SESSION['userid'];
     $beschreibung = htmlspecialchars($_POST['beschreibung'], ENT_QUOTES, 'UTF-8');
     $typ = htmlspecialchars($_POST['typ'], ENT_QUOTES, 'UTF-8');
     $datum = $_POST['datum'];
     $barkasse = 1; // 0 oder 1 in DB
-    $betrag = $_POST['betrag'];
+    $betrag = $_POST['betrag'];    
     $buchungart_id = $_POST['buchungart_id'];
 
     try {
-        // 1️⃣ Buchungsart abrufen
+        // Buchungsart abrufen
         $sql = "SELECT Buchungsart FROM Buchungsarten WHERE id = :buchungart_id";
         $stmt = $pdo->prepare($sql);
         $stmt->execute(['buchungart_id' => $buchungart_id]);
@@ -32,7 +80,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $vonan = ''; // Falls keine Buchungsart gefunden
         }
 
-        // 2️⃣ Update in die Buchungen
+       // echo $vonan;
+
+        // Update in die Buchungen
         $sql = "UPDATE buchungen 
                 SET vonan = :vonan, 
                     beschreibung = :beschreibung, 
@@ -51,15 +101,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'typ' => $typ,
             'datum' => $datum,
             'barkasse' => $barkasse,
-            'buchungsart' => $buchungart_id,
+            'buchungsart' => $vonan,
             'betrag' => $betrag,
             'userid' => $userid,
         ]);
 
-        // 3️⃣ Erfolgsmeldung setzen
+        // Erfolgsmeldung setzen
         $_SESSION['success_message'] = "Die Buchung wurde erfolgreich gespeichert.";
 
-        // 4️⃣ Auf Referrer oder Fallback weiterleiten
+        // Auf Referrer oder Fallback weiterleiten
         if (isset($_SERVER['HTTP_REFERER'])) {
             header('Location: ' . $_SERVER['HTTP_REFERER']);
             exit;
