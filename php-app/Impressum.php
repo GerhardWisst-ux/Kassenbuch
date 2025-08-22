@@ -190,8 +190,8 @@ require_once 'db.php';
                     </p>
                     <p class="me-4" style="text-align:left" style="text-align:left">
                     <h3 class="me-4" style="text-align:left">Allgemeine Angaben</h3>
-                    <p class="me-4" style="text-align:left"><b>Internet:</b> <a href="http://www.Kassenbuch.de"
-                            target="_blank">www.Kassenbuch.de</a></p>
+                    <p class="me-4" style="text-align:left"><b>Internet:</b> <a href="http://www.kassenbuch-wisst.de"
+                            target="_blank">www.kassenbuch-wisst.de</a></p>
 
                     <p class="me-4" style="text-align:left" style="text-align:left"><b>Name des
                             Diensteanbieters:</b> EDV Beratung Wißt Einzelunternehmen</>

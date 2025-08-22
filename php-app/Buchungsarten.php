@@ -1,15 +1,23 @@
 <?php
 ob_start();
+session_set_cookie_params([
+  'httponly' => true,
+  'secure' => true,  // Nur bei HTTPS
+  'samesite' => 'Strict'
+]);
 session_start();
-if (empty($_SESSION['userid'])) {
-  http_response_code(403);
-  echo json_encode(['error' => 'not authorized']);
+if ($_SESSION['userid'] == "") {
   header('Location: Login.php'); // zum Loginformular
-  exit;
 }
+
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
+
+// CSRF-Token erzeugen
+if (empty($_SESSION['csrf_token'])) {
+  $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
 ?>
 
 <!DOCTYPE html>
@@ -20,121 +28,21 @@ error_reporting(E_ALL);
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Kassenbuch Buchungsarten</title>
 
+
   <!-- CSS -->
   <link href="css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <link href="css/jquery.dataTables.min.css" rel="stylesheet">
-  <link href="css/responsive.dataTables.min" rel="stylesheet">
-
+  <link href="css/responsive.dataTables.min.css" rel="stylesheet">
+  <link href="css/style.css" rel="stylesheet">
   <style>
-    /* === Grundlayout === */
-    html,
-    body {
-      height: 100%;
-      margin: 0;
-      background-color: #f8f9fa;
-      font-family: 'Segoe UI', Tahoma, sans-serif;
-    }
-
-    /* Wrapper für Flex */
-    .wrapper {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    /* === Navbar & Header === */
-    .custom-header {
-      background: linear-gradient(90deg, #1e3c72, #2a5298);
-      color: #fff;
-      border-bottom: 2px solid #1b3a6d;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-      border-radius: 0 0 12px 12px;
-    }
-
-    .custom-header h2 {
-      font-weight: 600;
-      letter-spacing: 0.5px;
-    }
-
-    /* === Buttons === */
-    .btn {
-      border-radius: 30px;
-      font-size: 0.85rem;
-      padding: 0.45rem 0.9rem;
-      font-weight: 500;
-      transition: all 0.3s ease;
-    }
-
-    .btn-primary {
-      background-color: #2a5298;
-      border-color: #1e3c72;
-    }
-
-    .btn-primary:hover {
-      background-color: #1e3c72;
-    }
-
-    .btn-darkgreen {
-      background-color: #198754;
-      border-color: #146c43;
-    }
-
-    .btn-darkgreen:hover {
-      background-color: #146c43;
-    }
-
-    /* === Karten & Tabellen === */
-    .custom-container {
-      background-color: #fff;
-      border-radius: 12px;
-      /* padding: 20px; */
-      margin-top: 0px;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-    }
-
-    #TableBestaende {
+    #TableBuchungsarten {
       width: 100%;
       font-size: 0.9rem;
     }
 
-    #TableBestaende tbody tr:hover {
+    #TableBuchungsarten tbody tr:hover {
       background-color: #f1f5ff;
-    }
-
-    /* === Navbar Design === */
-    .navbar-custom {
-      background: linear-gradient(to right, #cce5f6, #e6f2fb);
-      border-bottom: 1px solid #b3d7f2;
-    }
-
-    .navbar-custom .navbar-brand,
-    .navbar-custom .nav-link {
-      color: #0c2c4a;
-      font-weight: 500;
-    }
-
-    .navbar-custom .nav-link:hover,
-    .navbar-custom .nav-link:focus {
-      color: #04588c;
-      text-decoration: underline;
-    }
-
-    /* === Modal === */
-    .modal-content {
-      border-radius: 12px;
-    }
-
-    .modal-header {
-      background-color: #0946c9ff;
-      color: #fff;
-      border-radius: 12px 12px 0 0;
-    }
-
-    /* === Toast === */
-    .toast-green {
-      background-color: #198754;
-      color: #fff;
     }
   </style>
 </head>
@@ -148,15 +56,16 @@ error_reporting(E_ALL);
   $userid = $_SESSION['userid'];
 
   require_once 'includes/header.php';
+
   ?>
 
   <div id="buchungsarten">
     <form id="buchungsartenform">
+      <input type="hidden" id="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
       <div class="custom-container">
         <header class="custom-header py-2 text-white">
           <div class="container-fluid">
             <div class="row align-items-center">
-
               <!-- Titel zentriert -->
               <div class="col-12 text-center mb-2 mb-md-0">
                 <h2 class="h4 mb-0">Kassenbuch - Buchungsarten</h2>
@@ -262,6 +171,7 @@ error_reporting(E_ALL);
     <script src="js/bootstrap.bundle.min.js"></script>
     <script src="js/jquery.dataTables.min.js"></script>
     <script src="js/dataTables.min.js"></script>
+    <script src="js/dataTables.responsive.min.js"></script>
 
     <script>
       $(document).ready(function () {
@@ -275,7 +185,6 @@ error_reporting(E_ALL);
 
         $('#confirmDeleteBtn').on('click', function () {
           if (deleteId) {
-            // Dynamisches Formular erstellen und absenden
             const form = $('<form>', {
               action: 'DeleteBuchungsart.php',
               method: 'POST'
@@ -283,18 +192,22 @@ error_reporting(E_ALL);
               type: 'hidden',
               name: 'id',
               value: deleteId
+            })).append($('<input>', {
+              type: 'hidden',
+              name: 'csrf_token',
+              value: $('#csrf_token').val() // <- Das Session-Token wird übernommen
             }));
 
             $('body').append(form);
             form.submit();
           }
-          $('#confirmDeleteModal').modal('hide'); // Schließe das Modal
+          $('#confirmDeleteModal').modal('hide');
 
-          // Zeige den Toast an
           var toast = new bootstrap.Toast($('#deleteToast')[0]);
           toast.show();
         });
       });
+
 
       function NavBarClick() {
         var x = document.getElementById("myTopnav");
@@ -307,18 +220,23 @@ error_reporting(E_ALL);
 
       $(document).ready(function () {
         $('#TableBuchungsarten').DataTable({
-          language: {
-            url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/de-DE.json"
-          },
-          responsive: true,
-          pageLength: 25,
-          autoWidth: false,
-          columnDefs: [
-            {
-              targets: 1, // Dauerbuchung
-              className: "dt-body-nowrap" // Keine Zeilenumbrüche
+          language: { url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/de-DE.json" },
+          responsive: {
+            details: {
+              display: $.fn.dataTable.Responsive.display.modal({
+                header: function (row) {
+                  var data = row.data();
+                  return 'Details zu ' + data[1];
+                }
+              }),
+              renderer: $.fn.dataTable.Responsive.renderer.tableAll({
+                tableClass: 'table'
+              })
             }
-          ]
+          },
+          scrollX: false,
+          pageLength: 50,
+          autoWidth: false
         });
       });
     </script>

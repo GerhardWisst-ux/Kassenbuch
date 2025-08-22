@@ -34,9 +34,10 @@ error_reporting(E_ALL);
         .custom-header {
             background: linear-gradient(90deg, #1e3c72, #2a5298);
             color: #fff;
+            height: 40px;
             border-bottom: 2px solid #1b3a6d;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-            border-radius: 0 0 12px 12px;
+            border-radius: 1px 1px 1px 1px;
         }
 
         .custom-header h2 {
@@ -45,7 +46,8 @@ error_reporting(E_ALL);
         }
 
         /* === Buttons === */
-        .btn {
+        .btn-custom {
+            background-color: #1e3c72 !important;
             border-radius: 30px;
             font-size: 0.85rem;
             padding: 0.45rem 0.9rem;
@@ -53,23 +55,16 @@ error_reporting(E_ALL);
             transition: all 0.3s ease;
         }
 
-        .btn-primary {
-            background-color: #2a5298;
-            border-color: #1e3c72;
+        .btn-primary-custom {
+            color: linear-gradient(90deg, #1e3c72, #2a5298) !important;
+            background-color: #1e3c72 !important;
+            border-color: #1e3c72 !important;
         }
 
-        .btn-primary:hover {
-            background-color: #1e3c72;
+        .btn-primary-custom:hover {
+            background-color: #1e3c72 !important;
         }
 
-        .btn-darkgreen {
-            background-color: #198754;
-            border-color: #146c43;
-        }
-
-        .btn-darkgreen:hover {
-            background-color: #146c43;
-        }
 
         /* === Karten & Tabellen === */
         .custom-container {
@@ -80,14 +75,6 @@ error_reporting(E_ALL);
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
         }
 
-        #TableBestaende {
-            width: 100%;
-            font-size: 0.9rem;
-        }
-
-        #TableBestaende tbody tr:hover {
-            background-color: #f1f5ff;
-        }
 
         /* === Navbar Design === */
         .navbar-custom {
@@ -117,12 +104,6 @@ error_reporting(E_ALL);
             color: #fff;
             border-radius: 12px 12px 0 0;
         }
-
-        /* === Toast === */
-        .toast-green {
-            background-color: #198754;
-            color: #fff;
-        }
     </style>
 </head>
 
@@ -148,6 +129,11 @@ error_reporting(E_ALL);
                 if ($user !== false && password_verify($passwort, $user['passwort'])) {
                     $_SESSION['userid'] = $user['id'];
                     $_SESSION['email'] = $user['email'];
+                    if ($user && password_verify($passwort, $user['passwort'])) {
+                        $_SESSION['2fa_user'] = $user['id']; // Temporäre Session
+                        header("Location: twofactor.php");
+                        exit();
+                    }
                     // Redirect nur, wenn Bedingung erreicht
                     header("Location: Index.php");
                     exit();
@@ -162,54 +148,55 @@ error_reporting(E_ALL);
     ?>
 
     <!-- Inhalt mit Login-Form -->
-<body>
-    <div class="container mt-5">
-        <div class="row justify-content-center">
-            <div class="col-md-6">
-                <div class="card shadow-lg border-0">
-                    <div class="card-header bg-primary text-white text-center">
-                        <h4 class="mb-0">Kassenbuch Login</h4>
-                    </div>
 
-                    <div class="card-body">
-                        <form method="post" action="" class="needs-validation" novalidate>
+    <body>
+        <div class="container mt-5">
+            <div class="row justify-content-center">
+                <div class="col-md-6">
+                    <div class="card shadow-lg border-0">
+                        <div class="custom-header bg-primary text-white text-center">
+                            <h4 class="mb-0">Kassenbuch Login</h4>
+                        </div>
 
-                            <div class="mb-3">
-                                <label for="email" class="form-label">Benutzer:</label>
-                                <input type="text" name="email" id="email" required class="form-control"
-                                    placeholder="Benutzer eingeben">
-                            </div>
+                        <div class="card-body">
+                            <form method="post" action="" class="needs-validation" novalidate>
 
-                            <div class="mb-3">
-                                <label for="passwort" class="form-label">Passwort:</label>
-                                <input type="password" name="passwort" id="passwort" required class="form-control"
-                                    placeholder="Passwort eingeben">
-                            </div>
-
-                            <?php if (!empty($errorMessage)): ?>
-                                <div class="alert alert-danger">
-                                    <?= htmlspecialchars($errorMessage) ?>
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Benutzer:</label>
+                                    <input type="text" name="email" id="email" required class="form-control"
+                                        placeholder="Benutzer eingeben">
                                 </div>
-                            <?php endif; ?>
 
-                            <div class="d-grid">
-                                <button type="submit" class="btn bg-primary text-white rounded-pill">Anmelden</button>
-                            </div>
+                                <div class="mb-3">
+                                    <label for="passwort" class="form-label">Passwort:</label>
+                                    <input type="password" name="passwort" id="passwort" required class="form-control"
+                                        placeholder="Passwort eingeben">
+                                </div>
 
-                            <div class="text-center mt-3">
-                                <a href="register.php" class="text-decoration-none">Noch kein Konto? Jetzt
-                                    registrieren</a>
-                            </div>
-                        </form>
+                                <?php if (!empty($errorMessage)): ?>
+                                    <div class="alert alert-danger">
+                                        <?= htmlspecialchars($errorMessage) ?>
+                                    </div>
+                                <?php endif; ?>
+
+                                <div class="d-grid">
+                                    <button type="submit" class="btn-custom text-white rounded-pill">Anmelden</button>
+                                </div>
+
+                                <div class="text-center mt-3">
+                                    <a href="register.php" class="text-decoration-none">Noch kein Konto? Jetzt
+                                        registrieren</a>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Optional: Bootstrap JS -->
-    <script src="../assets/js/bootstrap.bundle.min.js"></script>
-</body>
+        <!-- Optional: Bootstrap JS -->
+        <script src="../assets/js/bootstrap.bundle.min.js"></script>
+    </body>
 
 </html>
 <?php ob_end_flush(); ?>

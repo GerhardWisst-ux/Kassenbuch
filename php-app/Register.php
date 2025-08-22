@@ -2,6 +2,8 @@
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
+use RobThree\Auth\TwoFactorAuth;
+use RobThree\Auth\Providers\Qr\GoogleChartsQRCodeProvider;
 ?>
 <html>
 
@@ -35,9 +37,10 @@ error_reporting(E_ALL);
         .custom-header {
             background: linear-gradient(90deg, #1e3c72, #2a5298);
             color: #fff;
+            height: 40px;
             border-bottom: 2px solid #1b3a6d;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-            border-radius: 0 0 12px 12px;
+            border-radius: 1px 1px 1px 1px;
         }
 
         .custom-header h2 {
@@ -46,7 +49,8 @@ error_reporting(E_ALL);
         }
 
         /* === Buttons === */
-        .btn {
+        .btn-custom {
+            background-color: #1e3c72 !important;
             border-radius: 30px;
             font-size: 0.85rem;
             padding: 0.45rem 0.9rem;
@@ -54,23 +58,16 @@ error_reporting(E_ALL);
             transition: all 0.3s ease;
         }
 
-        .btn-primary {
-            background-color: #2a5298;
-            border-color: #1e3c72;
+        .btn-primary-custom {
+            color: linear-gradient(90deg, #1e3c72, #2a5298) !important;
+            background-color: #1e3c72 !important;
+            border-color: #1e3c72 !important;
         }
 
-        .btn-primary:hover {
-            background-color: #1e3c72;
+        .btn-primary-custom:hover {
+            background-color: #1e3c72 !important;
         }
 
-        .btn-darkgreen {
-            background-color: #198754;
-            border-color: #146c43;
-        }
-
-        .btn-darkgreen:hover {
-            background-color: #146c43;
-        }
 
         /* === Karten & Tabellen === */
         .custom-container {
@@ -81,14 +78,6 @@ error_reporting(E_ALL);
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
         }
 
-        #TableBestaende {
-            width: 100%;
-            font-size: 0.9rem;
-        }
-
-        #TableBestaende tbody tr:hover {
-            background-color: #f1f5ff;
-        }
 
         /* === Navbar Design === */
         .navbar-custom {
@@ -118,17 +107,10 @@ error_reporting(E_ALL);
             color: #fff;
             border-radius: 12px 12px 0 0;
         }
-
-        /* === Toast === */
-        .toast-green {
-            background-color: #198754;
-            color: #fff;
-        }
     </style>
 </head>
 
 <body>
-
     <?php
     if (headers_sent()) {
         die("Headers wurden bereits gesendet.");
@@ -186,7 +168,7 @@ error_reporting(E_ALL);
                 }
 
                 // Standardbuchungsarten anlegen für neuen Benutzer
-                $buchungsarten = ["_Diveres", "ALDI SUED", "Essen" , "Einlage", "LIDL"];
+                $buchungsarten = ["_Diveres", "ALDI SUED", "Essen", "Einlage", "LIDL"];
                 $stmt = $pdo->prepare("
                         INSERT INTO buchungsarten (buchungsart, Dauerbuchung, created_at, updated_at, userid)
                         VALUES (?, ?, ?, ?, ?)
@@ -195,6 +177,27 @@ error_reporting(E_ALL);
                 foreach ($buchungsarten as $art) {
                     $stmt->execute([$art, false, date('Y-m-d'), null, $newUserId]);
                 }
+
+                require_once '../vendor/autoload.php';
+
+                $qrProvider = new GoogleChartsQRCodeProvider();
+                $tfa = new TwoFactorAuth($qrProvider);
+
+                // Secret generieren
+                $secret = $tfa->createSecret();
+
+                // QR-Code als Data URI
+                $qrCodeUrl = $tfa->getQRCodeImageAsDataUri('Kassenbuch', $secret);
+
+                // Secret speichern
+                $updateStmt = $pdo->prepare("UPDATE users SET twofactor_secret = :secret WHERE id = :id");
+                $updateStmt->execute(['secret' => $secret, 'id' => $newUserId]);
+
+                // QR-Code für Google Authenticator anzeigen
+                $qrCodeUrl = $tfa->getQRCodeImageAsDataUri('Kassenbuch', $secret);
+                echo "<p>Scanne diesen QR-Code mit deiner Authenticator-App:</p>";
+                echo "<img src='$qrCodeUrl' alt='QR-Code'>";
+                echo "<p>ODER Code manuell eingeben: <b>$secret</b></p>";
 
                 if ($result) {
                     header("Location: Login.php");
@@ -215,7 +218,7 @@ error_reporting(E_ALL);
                 <div class="row justify-content-center">
                     <div class="col-md-6">
                         <div class="card shadow-lg border-0">
-                            <div class="card-header bg-primary text-white text-center">
+                            <div class="custom-header bg-primary text-white text-center">
                                 <h4 class="mb-0">Kassenbuch Registrierung</h4>
                             </div>
                             <div class="card-body">
@@ -241,7 +244,7 @@ error_reporting(E_ALL);
                                 <br>
                                 <div class="mb-3">
                                     <button type="submit" style="width: 100%;"
-                                        class="btn bg-primary text-white rounded-pill" name="register" id="register">
+                                        class="btn-custom text-white rounded-pill" name=" register" id="register">
                                         Speichern
                                     </button>
                                 </div>

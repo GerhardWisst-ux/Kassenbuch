@@ -90,12 +90,12 @@ error_reporting(E_ALL);
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
     }
 
-    #TableBestaende {
+    #TableBuchungen {
       width: 100%;
       font-size: 0.9rem;
     }
 
-    #TableBestaende tbody tr:hover {
+    #TableBuchungen tbody tr:hover {
       background-color: #f1f5ff;
     }
 
@@ -149,10 +149,16 @@ error_reporting(E_ALL);
   $userid = $_SESSION['userid'];
 
   require_once 'includes/header.php';
+
+  // CSRF-Token erzeugen
+  if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+  }
   ?>
 
   <div id="index">
     <form id="indexform">
+      <input type="hidden" id="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
       <div class="custom-container">
         <header class="custom-header py-2 text-white">
           <div class="container-fluid">
@@ -320,15 +326,15 @@ error_reporting(E_ALL);
         }
 
         //echo $anfangsbestand;
-
+        
 
         // Nur ausgeben, wenn $stmtAB existiert und erfolgreich ausgeführt wurde
         if ($anfangsbestand <> 0) {
-          
-            echo '<input class="form-control text-end" type="text" name="anfangsbestand" id="anfangsbestand" value="'
-              . number_format($anfangsbestand, 2, ',', '.')
-              . ' €" style="width: 200px;" step="0.01" disabled>';
-          
+
+          echo '<input class="form-control text-end" type="text" name="anfangsbestand" id="anfangsbestand" value="'
+            . number_format($anfangsbestand, 2, ',', '.')
+            . ' €" style="width: 200px;" step="0.01" disabled>';
+
         } else {
           // Optional: Wenn kein Monat gewählt, Anfangsbestand 0 anzeigen
           echo '<input class="form-control text-end" type="text" name="anfangsbestand" id="anfangsbestand" value="0,00 €" style="width: 200px;" step="0.01" disabled>';
@@ -339,8 +345,8 @@ error_reporting(E_ALL);
 
         ?>
         <br>
-        <div class="custom-container mx-2">
-          <table id="TableBuchungen" class="display nowrap me-4">
+        <div class="table-responsive mx-2">
+          <table id="TableBuchungen" class="table table-striped nowrap" style="width:100%">
             <thead>
               <tr>
                 <th>Datum</th>
@@ -401,10 +407,9 @@ error_reporting(E_ALL);
           if ($monatFilter <> '') {
             $sql = "SELECT COUNT(*) AS anzahl FROM buchungen WHERE userid = :userid and barkasse = 1 AND Year(datum) = :year AND MONTH(datum) = :monat";
             $stmt = $pdo->prepare($sql);
-            $stmt->execute(['year' => 2025, 'monat' => $monatNumFilter, 'userid' => $userid]);
+            $stmt->execute(['year' => $yearFilter, 'monat' => $monatNumFilter, 'userid' => $userid]);
             $resultCount = $stmt->fetch(PDO::FETCH_ASSOC);
           } else {
-
             $sql = "SELECT COUNT(*) AS anzahl FROM buchungen WHERE userid = :userid and barkasse = 1";
             $stmt = $pdo->prepare($sql);
             $stmt->execute(['userid' => $userid]);
@@ -418,7 +423,7 @@ error_reporting(E_ALL);
                     FROM buchungen
                     WHERE Year(datum) = :year AND MONTH(datum) = :monat and userid = :userid and barkasse =1 ";
             $stmt = $pdo->prepare($sql);
-            $stmt->execute(['year' => date('Y'), 'monat' => $monatNumFilter, 'userid' => $userid]);
+            $stmt->execute(['year' => $yearFilter, 'monat' => $monatNumFilter, 'userid' => $userid]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
           } else {
@@ -573,6 +578,7 @@ error_reporting(E_ALL);
     <script src="js/bootstrap.bundle.min.js"></script>
     <script src="js/jquery.dataTables.min.js"></script>
     <script src="js/dataTables.min.js"></script>
+    <script src="js/dataTables.responsive.min.js"></script>
 
     <script>
       $(document).ready(function () {
@@ -595,6 +601,10 @@ error_reporting(E_ALL);
               type: 'hidden',
               name: 'id',
               value: deleteId
+            })).append($('<input>', {
+              type: 'hidden',
+              name: 'csrf_token',
+              value: $('#csrf_token').val() // <- Das Session-Token wird übernommen
             }));
 
             $('body').append(form);
@@ -619,18 +629,23 @@ error_reporting(E_ALL);
 
       $(document).ready(function () {
         $('#TableBuchungen').DataTable({
-          language: {
-            url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/de-DE.json"
-          },
-          responsive: true,
-          pageLength: 50,
-          autoWidth: false,
-          columnDefs: [
-            {
-              targets: 1, // Dauerbuchung
-              className: "dt-body-nowrap" // Keine Zeilenumbrüche
+          language: { url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/de-DE.json" },
+          responsive: {
+            details: {
+              display: $.fn.dataTable.Responsive.display.modal({
+                header: function (row) {
+                  var data = row.data();
+                  return 'Details zu ' + data[1];
+                }
+              }),
+              renderer: $.fn.dataTable.Responsive.renderer.tableAll({
+                tableClass: 'table'
+              })
             }
-          ]
+          },
+          scrollX: false,
+          pageLength: 50,
+          autoWidth: false
         });
       });
     </script>
