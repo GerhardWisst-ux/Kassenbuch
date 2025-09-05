@@ -9,7 +9,7 @@ error_reporting(E_ALL);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kassenbuch Login</title>
+    <title>CashControl Login</title>
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
@@ -75,7 +75,6 @@ error_reporting(E_ALL);
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
         }
 
-
         /* === Navbar Design === */
         .navbar-custom {
             background: linear-gradient(to right, #cce5f6, #e6f2fb);
@@ -124,21 +123,30 @@ error_reporting(E_ALL);
             try {
                 $statement = $pdo->prepare("SELECT * FROM users WHERE email = :email");
                 $statement->execute(['email' => $email]);
+                
                 $user = $statement->fetch();
+                $email = trim($_POST['email']);
+                $password = trim($_POST['passwort']);
 
-                if ($user !== false && password_verify($passwort, $user['passwort'])) {
-                    $_SESSION['userid'] = $user['id'];
-                    $_SESSION['email'] = $user['email'];
-                    if ($user && password_verify($passwort, $user['passwort'])) {
-                        $_SESSION['2fa_user'] = $user['id']; // Temporäre Session
+                $stmt = $pdo->prepare("SELECT id, email, passwort, freigeschaltet FROM users WHERE email = :email");
+                $stmt->execute(['email' => $email]);
+                $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($user && password_verify($password, $user['passwort'])) {
+                    if ((int) $user['freigeschaltet'] === 1) {
+                        // Direkt einloggen
+                        $_SESSION['userid'] = $user['id'];
+                        $_SESSION['email'] = $user['email'];
+                        header("Location: Index.php");
+                        exit;
+                    } else {
+                        // 2FA erforderlich
+                        $_SESSION['2fa_user'] = $user['id'];
                         header("Location: twofactor.php");
-                        exit();
+                        exit;
                     }
-                    // Redirect nur, wenn Bedingung erreicht
-                    header("Location: Index.php");
-                    exit();
                 } else {
-                    $errorMessage = "E-Mail oder Passwort war ungültig.";
+                    $error = "E-Mail oder Passwort ist falsch!";
                 }
             } catch (PDOException $e) {
                 $errorMessage = "Datenbankfehler: " . $e->getMessage();
@@ -155,7 +163,7 @@ error_reporting(E_ALL);
                 <div class="col-md-6">
                     <div class="card shadow-lg border-0">
                         <div class="custom-header bg-primary text-white text-center">
-                            <h4 class="mb-0">Kassenbuch Login</h4>
+                            <h4 class="mb-0">CashControl Login</h4>
                         </div>
 
                         <div class="card-body">

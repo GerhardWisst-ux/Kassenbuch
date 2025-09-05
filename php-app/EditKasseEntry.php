@@ -51,44 +51,46 @@ if (empty($userid) || !ctype_digit((string) $userid)) {
 
 $id = $_SESSION['id'];
 
+print_r($_POST);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $userid = $_SESSION['userid'];
-    $buchungsart = htmlspecialchars($_POST['buchungsart'], ENT_QUOTES, 'UTF-8');
-    $mwst = htmlspecialchars($_POST['mwst'], ENT_QUOTES, 'UTF-8');
-    $dauerbuchung = filter_var($_POST['dauerbuchung'], FILTER_VALIDATE_BOOLEAN);
-    $mwst_ermaessigt = filter_var($_POST['mwst_ermaessigt'], FILTER_VALIDATE_BOOLEAN);
-    $updated_at = date('Y-m-d H:i:s');
+    $kasse = htmlspecialchars($_POST['kasse'], ENT_QUOTES, 'UTF-8');
+    $kontonummer = htmlspecialchars($_POST['kontonummer'], ENT_QUOTES, 'UTF-8');
+    $anfangsbestand = htmlspecialchars($_POST['anfangsbestand'], ENT_QUOTES, 'UTF-8');    
+    $checkminus = filter_var($_POST['checkminus'], FILTER_VALIDATE_BOOLEAN);
+    $datumab = htmlspecialchars($_POST['datumab'], ENT_QUOTES, 'UTF-8');
 
     try {
         // Update-Statement
-        $sql = "UPDATE buchungsarten 
-                SET buchungsart = :buchungsart, 
-                    mwst = :mwst, 
-                    mwst_ermaessigt = :mwst_ermaessigt, 
-                    dauerbuchung = :dauerbuchung, 
-                    updated_at = :updated_at,                 
+        $sql = "UPDATE kasse 
+                SET kasse = :kasse, 
+                    anfangsbestand = :anfangsbestand, 
+                    checkminus = :checkminus, 
+                    kontonummer = :kontonummer, 
+                    datumab = :datumab,                 
                     userid = :userid 
                 WHERE id = :id";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
             'id' => $id,
-            'buchungsart' => $buchungsart,
-            'mwst' => $mwst,
-            'mwst_ermaessigt' => $mwst_ermaessigt,
-            'dauerbuchung' => $dauerbuchung,
-            'updated_at' => $updated_at,
+            'kasse' => $kasse,
+            'anfangsbestand' => $anfangsbestand,
+            'checkminus' => $checkminus,
+            'kontonummer' => $kontonummer,
+            'datumab' => $datumab,
             'userid' => $userid,
         ]);
 
         //echo "Position mit der ID" . $id . " wurde upgedatet!";
         // Erfolgsmeldung setzen
-        $_SESSION['success_message'] = "Die Buchungsart wurde erfolgreich gespeichert.";
+        $_SESSION['success_message'] = "Die Kasse wurde erfolgreich gespeichert.";
 
         if (isset($_SERVER['HTTP_REFERER'])) {
             header('Location: ' . $_SERVER['HTTP_REFERER']);
             exit;
         } else {
-            header('Location: Buchungsarten.php'); // Fallback, falls kein Referrer vorhanden
+            header('Location: Index.php'); // Fallback, falls kein Referrer vorhanden
             exit;
         }
     } catch (PDOException $e) {

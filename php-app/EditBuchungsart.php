@@ -25,7 +25,7 @@ if (empty($_SESSION['csrf_token'])) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kassenbuch Buchungsart bearbeiten</title>
+  <title>CashControl Buchungsart bearbeiten</title>
 
   <link href="css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -84,7 +84,7 @@ if (empty($_SESSION['csrf_token'])) {
 
         <!-- Titel zentriert -->
         <div class="col-12 text-center mb-2 mb-md-0">
-          <h2 class="h4 mb-0">Kassenbuch - Buchungsart bearbeiten</h2>
+          <h2 class="h4 mb-0">CashControl - Buchungsart bearbeiten</h2>
         </div>
 
         <!-- Benutzerinfo + Logout -->
@@ -115,6 +115,29 @@ if (empty($_SESSION['csrf_token'])) {
                 value="<?= htmlspecialchars($result['buchungsart']) ?>" required>
             </div>
           </div>
+
+          <!-- MWST -->
+          <div class="mb-3 row">
+            <label for="mwst" class="col-sm-2 col-form-label text-dark">MwSt:</label>
+            <div class="col-sm-1 d-flex align-items-center">
+              <input class="form-control" type="number" id="mwst" name="mwst" step="0.01"
+                value="<?= isset($result['mwst_ermaessigt']) && $result['mwst_ermaessigt'] == 1 ? '1.07' : '1.19' ?>"
+                required>
+            </div>
+          </div>
+
+          <!-- MWST Ermässigt -->
+          <div class="mb-3 row">
+            <label for="mwst_ermaessigt" class="col-sm-2 col-form-label text-dark">MwSt ermässigt:</label>
+            <div class="col-sm-10 d-flex align-items-center">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="mwst_ermaessigt" name="mwst_ermaessigt" value="1"
+                  <?= isset($result['mwst_ermaessigt']) && $result['mwst_ermaessigt'] == 1 ? 'checked' : '' ?>>
+                <label class="form-check-label" for="mwst_ermaessigt"></label>
+              </div>
+            </div>
+          </div>
+
           <!-- Dauerbuchung -->
           <div class="mb-3 row">
             <label for="dauerbuchung" class="col-sm-2 col-form-label text-dark">Dauerbuchung:</label>
@@ -203,4 +226,16 @@ if (empty($_SESSION['csrf_token'])) {
       // Debug-Ausgabe
       console.log("Aktueller Wert:", select.value || "Keiner ausgewählt");
     }
+  </script>
+  <script>
+    const mwstInput = document.getElementById('mwst');
+    const mwstErmaessigtCheckbox = document.getElementById('mwst_ermaessigt');
+
+    // Funktion, um MwSt automatisch zu setzen
+    function updateMwst() {
+      mwstInput.value = mwstErmaessigtCheckbox.checked ? '1.07' : '1.19';
+    }
+
+    // Eventlistener hinzufügen
+    mwstErmaessigtCheckbox.addEventListener('change', updateMwst);
   </script>

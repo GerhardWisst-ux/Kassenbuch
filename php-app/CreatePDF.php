@@ -7,7 +7,7 @@ $userid = $_SESSION['userid'];
 $monatFilter = isset($_GET['monat']) ? $_GET['monat'] : '';
 $AB = 0;
 $kassen_nummer = $userid;
-$kassenbuch_datum = date("d.m.Y");
+$CashControl_datum = date("d.m.Y");
 $lieferdatum = date("d.m.Y");
 $pdfAuthor = "EDV Beratung Wißt";
 
@@ -18,14 +18,14 @@ if (!file_exists('Images/Cash.png')) {
 }
 
 
-$kassenbuch_header = '
+$CashControl_header = '
 <img src="Images/Cash.png">
 ';
 
-$kassenbuch_empfaenger = 'Firma: Testfirma GmbH, Im Neuen Berg 32, 70327 Stuttgart';
-$kassenbuch_empfaenger = "<b>" . htmlspecialchars($kassenbuch_empfaenger, ENT_QUOTES, 'UTF-8') . "</b>";
+$CashControl_empfaenger = 'Firma: Testfirma GmbH, Im Neuen Berg 32, 70327 Stuttgart';
+$CashControl_empfaenger = "<b>" . htmlspecialchars($CashControl_empfaenger, ENT_QUOTES, 'UTF-8') . "</b>";
 
-// $kassenbuch_footer = "Dieses PDF Dokument wurde mit dem Kassenbuch erstellt";
+// $CashControl_footer = "Dieses PDF Dokument wurde mit dem CashControl erstellt";
 
 // Wenn kein Monat ausgewählt wurde, alle Buchungen anzeigen
 $startDatum = $monatFilter . "-01";
@@ -40,7 +40,7 @@ $stmt->execute(['startDatum' => $startDatum, 'endDatum' => $endDatum, 'userid' =
 
 $umsatzsteuer = 0.0; 
 
-$pdfName = "Kassenbuch_Auszug_".$kassen_nummer.".pdf";
+$pdfName = "CashControl_Auszug_".$kassen_nummer.".pdf";
 
 // TCPDF Library laden
 if (!file_exists('tcpdf/tcpdf.php')) {
@@ -60,7 +60,7 @@ class MYPDF extends TCPDF {
         $this->SetX(15); // Verschiebung nach rechts
 
         // Text für die Fußzeile
-        $footerText = 'Dieses PDF Dokument wurde mit dem Kassenbuch erstellt';        
+        $footerText = 'Dieses PDF Dokument wurde mit dem CashControl erstellt';        
 
         // Text rechtsbündig ausgeben
         $this->Cell(0, 10, $footerText, 0, false, 'L', 0, '', 0, false, 'T', 'M');
@@ -78,12 +78,12 @@ $pdf = new MYPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8',
 $pdf->Cell($pdf->SetCreator(PDF_CREATOR));
 
 $pdf->SetAuthor($pdfAuthor);
-$pdf->SetTitle('Kassenbuch Kassennummer' . $kassen_nummer);
-$pdf->SetSubject('Kassenbuch ' . $kassen_nummer);
+$pdf->SetTitle('CashControl Kassennummer' . $kassen_nummer);
+$pdf->SetSubject('CashControl ' . $kassen_nummer);
 
 // Header-Daten setzen
 $pdf->SetX(-15); // Verschiebung nach rechts
-$pdf->SetHeaderData('', 0, '', 'Kassenbuch', array(0, 0, 0), array(0, 0, 0));
+$pdf->SetHeaderData('', 0, '', 'CashControl', array(0, 0, 0), array(0, 0, 0));
 
 // Logo linksbündig setzen
 $pdf->Image('', 0, PDF_MARGIN_TOP);
@@ -114,8 +114,8 @@ $pdf->setImageScale(PDF_IMAGE_SCALE_RATIO);
 $pdf->AddPage();
 // Header
 $pdf->writeHTML("<table style='width: 100%;'><tr>
-    <td>".nl2br(trim($kassenbuch_header))."</td>
-    <td style='text-align: right'>Kassennummer: $kassen_nummer<br>Datum: $kassenbuch_datum<br></td>
+    <td>".nl2br(trim($CashControl_header))."</td>
+    <td style='text-align: right'>Kassennummer: $kassen_nummer<br>Datum: $CashControl_datum<br></td>
 </tr></table>", true, false, true, false, 'R');
 
 $monat = isset($_GET['monat']) ? $_GET['monat'] : date('Y-m'); // Fallback zu aktuellem Monat
@@ -125,13 +125,12 @@ list($jahr, $monatNummer) = explode('-', $monat);
 $monatName = strftime('%B', mktime(0, 0, 0, $monatNummer, 10)); // Übersetzung des Monatsnamens
 
 
-
 // SQL-Abfrage zur Bestandsabfrage
 $sql = "SELECT * FROM bestaende 
 WHERE MONTH(datum) = :monat AND YEAR(datum) = :year AND userid = :userid 
 ORDER BY datum DESC";
 $stmtAB = $pdo->prepare($sql);
-$stmtAB->execute(['year' => $jahr, 'monat' => $monatNummer, 'userid' => $userid]);
+$stmtAB->execute(['year' => $jahr, 'monat' => $monatNummer - 1, 'userid' => $userid]);
 
 while ($row = $stmtAB->fetch(PDO::FETCH_ASSOC)) {
     // Anfangsbestand auslesen und formatieren
@@ -145,8 +144,8 @@ while ($row = $stmtAB->fetch(PDO::FETCH_ASSOC)) {
 
 $html = <<<EOF
 <div>
-<b><span style='font-size:1.0em; font-weight: bold;'>Kassenbuch (Barkasse) Monat $monatNummer/$jahr</span></b><br>
-<b>$kassenbuch_empfaenger</b><br><br>
+<b><span style='font-size:1.0em; font-weight: bold;'>CashControl (Barkasse) Monat $monatNummer/$jahr</span></b><br>
+<b>$CashControl_empfaenger</b><br><br>
 $htmlAnfangsbestand
 EOF;
 

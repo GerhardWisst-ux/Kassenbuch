@@ -64,7 +64,7 @@ $id = (int)$_POST['id'];
 
 /* Löschaktion ausführen */
 try {
-    $stmt = $pdo->prepare("DELETE FROM bestaende WHERE id = :id");
+    $stmt = $pdo->prepare("DELETE FROM kasse WHERE id = :id");
     $stmt->bindValue(':id', $id, PDO::PARAM_INT);
     $stmt->execute();
 
@@ -73,13 +73,13 @@ try {
     file_put_contents(__DIR__ . '/delete.log', $log, FILE_APPEND);
 
     /* Ausgabe für Benutzer (escaped) */
-    echo "CashControl Bestände - Position " . htmlspecialchars((string)$id, ENT_QUOTES, 'UTF-8') . " wurde gelöscht!";
+    echo "CashControl Kasse " . htmlspecialchars((string)$id, ENT_QUOTES, 'UTF-8') . " wurde gelöscht!";
 
     /* CSRF-Token nach Verwendung erneuern */
     unset($_SESSION['csrf_token']);
 
     /* Weiterleitung */
-    header('Location: Bestaende.php');
+    header('Location: Index.php');
     exit;
 
 } catch (PDOException $e) {

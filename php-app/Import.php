@@ -10,7 +10,7 @@ if (empty($_SESSION['userid'])) {
 ?>
 
 <head>
-  <title>Kassenbuch Hinzufügen Position</title>
+  <title>CashControl Hinzufügen Position</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- CSS -->
@@ -37,7 +37,7 @@ if (empty($_SESSION['userid'])) {
         <div class="row align-items-center">
           <!-- Titel zentriert -->
           <div class="col-12 text-center mb-2 mb-md-0">
-            <h2 class="h4 mb-0">Kassenbuch - Import</h2>
+            <h2 class="h4 mb-0">CashControl - Import</h2>
           </div>
 
           <!-- Benutzerinfo + Logout -->

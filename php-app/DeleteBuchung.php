@@ -57,7 +57,7 @@ if (empty($userid) || !ctype_digit((string)$userid)) {
     $sql = "DELETE FROM buchungen WHERE id = :id";
     $stmt = $pdo->prepare($sql);
     $stmt->execute(['id' => $id]);
-    echo "Kassenbuch Buchungen - Position " . $id . " wurde gelöscht!";
+    echo "CashControl Buchungen - Position " . $id . " wurde gelöscht!";
     sleep(1);
     header('Location: Index.php'); // Zurück zur Übersicht
   

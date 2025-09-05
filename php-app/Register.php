@@ -11,7 +11,7 @@ use RobThree\Auth\Providers\Qr\GoogleChartsQRCodeProvider;
 
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Kassenbuch Registrierung </title>
+    <title>CashControl Registrierung </title>
 
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -187,14 +187,14 @@ use RobThree\Auth\Providers\Qr\GoogleChartsQRCodeProvider;
                 $secret = $tfa->createSecret();
 
                 // QR-Code als Data URI
-                $qrCodeUrl = $tfa->getQRCodeImageAsDataUri('Kassenbuch', $secret);
+                $qrCodeUrl = $tfa->getQRCodeImageAsDataUri('CashControl', $secret);
 
                 // Secret speichern
                 $updateStmt = $pdo->prepare("UPDATE users SET twofactor_secret = :secret WHERE id = :id");
                 $updateStmt->execute(['secret' => $secret, 'id' => $newUserId]);
 
                 // QR-Code für Google Authenticator anzeigen
-                $qrCodeUrl = $tfa->getQRCodeImageAsDataUri('Kassenbuch', $secret);
+                $qrCodeUrl = $tfa->getQRCodeImageAsDataUri('CashControl', $secret);
                 echo "<p>Scanne diesen QR-Code mit deiner Authenticator-App:</p>";
                 echo "<img src='$qrCodeUrl' alt='QR-Code'>";
                 echo "<p>ODER Code manuell eingeben: <b>$secret</b></p>";
@@ -219,7 +219,7 @@ use RobThree\Auth\Providers\Qr\GoogleChartsQRCodeProvider;
                     <div class="col-md-6">
                         <div class="card shadow-lg border-0">
                             <div class="custom-header bg-primary text-white text-center">
-                                <h4 class="mb-0">Kassenbuch Registrierung</h4>
+                                <h4 class="mb-0">CashControl Registrierung</h4>
                             </div>
                             <div class="card-body">
                                 <div class="mb-3">

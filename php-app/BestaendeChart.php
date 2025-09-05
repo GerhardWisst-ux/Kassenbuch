@@ -15,7 +15,7 @@ if (empty($_SESSION['userid'])) {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Kassenbuch Bestände Chart</title>
+    <title>CashControl Bestände Chart</title>
 
     <!-- CSS -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
@@ -92,7 +92,7 @@ $ausgabenWerte = array_values($ausgaben);
 
                 <!-- Titel zentriert -->
                 <div class="col-12 text-center mb-2 mb-md-0">
-                    <h2 class="h4 mb-0">Kassenbuch - Bestände - Chart</h2>
+                    <h2 class="h4 mb-0">CashControl - Bestände - Chart</h2>
                 </div>
 
                 <!-- Benutzerinfo + Logout -->

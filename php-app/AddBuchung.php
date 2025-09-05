@@ -18,13 +18,11 @@ if ($_SESSION['userid'] == "") {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Kassenbuch Position hinzufügen</title>
+    <title>CashControl Position hinzufügen</title>
 
     <!-- CSS -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="css/jquery.dataTables.min.css" rel="stylesheet">
-    <link href="css/responsive.dataTables.min.css" rel="stylesheet">
     <link href="css/style.css" rel="stylesheet">
 
 </head>
@@ -39,6 +37,7 @@ if ($_SESSION['userid'] == "") {
 
     require 'db.php';
     $userid = $_SESSION['userid'] ?? null;
+    $kassennummer = $_SESSION['kassennummer'] ?? null;
 
     if (!$userid) {
         header('Location: Login.php');
@@ -55,10 +54,23 @@ if ($_SESSION['userid'] == "") {
 
     <header class="custom-header py-2 text-white">
         <div class="container-fluid">
+            <?php
+            $sql = "SELECT * FROM kasse WHERE userid = :userid AND id = :kassennummer";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([
+                'userid' => $userid,
+                'kassennummer' => $kassennummer
+            ]);
+
+            $kasse = null;
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $kasse = $row['kasse'];
+            }
+            ?>
             <div class="row align-items-center">
                 <!-- Titel zentriert -->
                 <div class="col-12 text-center mb-2 mb-md-0">
-                    <h2 class="h4 mb-0">Kassenbuch Position hinzufügen</h2>
+                    <h2 class="h2 mb-0"><?php echo htmlspecialchars($kasse); ?> - Buchung hinzufügen</h2>
                 </div>
                 <!-- Benutzerinfo + Logout -->
                 <div class="col-12 col-md-auto ms-md-auto text-center text-md-end">
@@ -81,10 +93,37 @@ if ($_SESSION['userid'] == "") {
             <input type="hidden" name="csrf_token"
                 value="<?= htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8') ?>">
 
+            <?php
+
+            $stmtBestand = $pdo->prepare("
+            SELECT bestand 
+            FROM bestaende 
+            WHERE kassennummer = :kassennummer 
+              AND userid = :userid
+            ORDER BY datum DESC
+            LIMIT 1
+        ");
+            $stmtBestand->execute([
+                ':kassennummer' => $kassennummer,
+                ':userid' => $userid
+            ]);
+            $aktuellerBestand = $stmtBestand->fetchColumn();
+
+            ?>
+            <div class="form-group row me-4">
+                <label class="col-sm-2 col-form-label text-dark">Aktueller Bestand:</label>
+                <div class="col-sm-1">
+                    <div class="input-group">
+                        <input class="form-control" type="text" name="aktuellerbestand" value="<?= $aktuellerBestand ?>"
+                            disabled>
+                        <span class="input-group-text">€</span>
+                    </div>
+                </div>
+            </div>
             <div class="mb-3 row">
                 <label class="col-sm-2 col-form-label">Datum:</label>
                 <div class="col-sm-4">
-                    <input class="form-control" type="date" name="datum" required>
+                    <input class="form-control" type="date" id="datum" name="datum" required>
                 </div>
             </div>
 
@@ -98,12 +137,19 @@ if ($_SESSION['userid'] == "") {
                 </div>
             </div>
 
-            <div class="mb-3 row">
-                <label class="col-sm-2 col-form-label">Betrag:</label>
-                <div class="col-sm-4">
-                    <input class="form-control" type="number" name="betrag" step="0.01" required>
-                </div>
+          <div class="mb-3 row">
+          <label for="betrag" class="col-sm-2 col-form-label text-dark">Betrag:</label>
+          <div class="col-sm-1">
+            <div class="input-group">
+              <input class="form-control" type="number" step="0.01" id="betrag" name="betrag" required
+                data-bestand="<?= $aktuellerBestand ?>"                >
+              <span class="input-group-text">€</span>
             </div>
+            <small id="betragWarnung" class="text-danger fw-bold" style="display:none;">
+              Betrag überschreitet den aktuellen Bestand!
+            </small>
+          </div>
+        </div>
 
             <div class="mb-3 row">
                 <label class="col-sm-2 col-form-label">Buchungsart:</label>
@@ -131,7 +177,7 @@ if ($_SESSION['userid'] == "") {
 
             <div class="mb-3">
                 <button class="btn btn-primary" type="submit"><i class="fas fa-save"></i></button>
-                <a href="Index.php" class="btn btn-primary"><i class="fa fa-arrow-left"></i></a>
+                <a href="Buchungen.php" class="btn btn-primary"><i class="fa fa-arrow-left"></i></a>
             </div>
         </form>
     </div>
@@ -143,6 +189,24 @@ if ($_SESSION['userid'] == "") {
 <script src="js/bootstrap.bundle.min.js"></script>
 
 <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const betragInput = document.getElementById("betrag");
+        const warnung = document.getElementById("betragWarnung");
+        const bestand = parseFloat(betragInput.getAttribute("data-bestand"));
+        const typ = document.getElementById("typ");
+
+        betragInput.addEventListener("input", function () {
+            const wert = parseFloat(this.value);
+            if (!isNaN(wert) && wert > bestand && typ.value === "Ausgabe") {
+                warnung.style.display = "block";
+                betragInput.classList.add("is-invalid");
+            } else {
+                warnung.style.display = "none";
+                betragInput.classList.remove("is-invalid");
+            }
+        });
+    });
+
     // Heutiges Datum automatisch setzen
     document.addEventListener("DOMContentLoaded", function () {
         const today = new Date();
@@ -187,8 +251,8 @@ if ($_SESSION['userid'] == "") {
             Label.classList.remove('d-none');
         }
 
-        // Debug-Ausgabe
-        console.log("Aktueller Wert:", select.value || "Keiner ausgewählt");
+        // // Debug-Ausgabe
+        // console.log("Aktueller Wert:", select.value || "Keiner ausgewählt");
     }
 </script>
 

@@ -51,7 +51,10 @@ if (empty($userid) || !ctype_digit((string)$userid)) {
 
 /* Eingaben einlesen & normalisieren */
 $buchungsart   = isset($_POST['buchungsart']) ? trim((string)$_POST['buchungsart']) : '';
+$mwst   = isset($_POST['mwst']) ? trim((string)$_POST['mwst']) : '';
 $dauerbuchung  = !empty($_POST['dauerbuchung']) ? 1 : 0;
+$mwst_ermaessigt  = !empty($_POST['mwst_ermaessigt']) ? 1 : 0;
+$kassennummer   = $_SESSION['kassennummer'] ?? 1;
 
 /* Validierung: Buchungsart
    - Länge 1..64
@@ -72,6 +75,8 @@ if (!preg_match('/^[\p{L}\p{N}\s\-\._\/]{1,64}$/u', $buchungsart)) {
     http_response_code(422);
     exit('Buchungsart enthält unzulässige Zeichen.');
 }
+
+print_r($_POST);
 
 /* Datum für created/updated besser aus der DB (UTC) beziehen */
 try {
@@ -99,13 +104,16 @@ try {
 
     // Insert – Timestamps aus DB (UTC)
     $stmt = $pdo->prepare("
-        INSERT INTO buchungsarten (buchungsart, Dauerbuchung, created_at, updated_at, userid)
-        VALUES (:ba, :dauer, UTC_DATE(), UTC_DATE(), :uid)
+        INSERT INTO buchungsarten (buchungsart, Dauerbuchung, mwst_ermaessigt, mwst, created_at, updated_at, userid, kassennummer)
+        VALUES (:ba, :dauer, :mwst, :mwst_ermaessigt, UTC_DATE(), UTC_DATE(), :uid, :kassennummer)
     ");
     $stmt->execute([
         ':ba'    => $buchungsart,
+        ':mwst'  => $mwst,
+        ':mwst_ermaessigt'  => $mwst_ermaessigt,
         ':dauer' => $dauerbuchung,
-        ':uid'   => (int)$userid
+        ':uid'   => (int)$userid,
+        ':kassennummer'   => (int)$kassennummer
     ]);
 
     $pdo->commit();

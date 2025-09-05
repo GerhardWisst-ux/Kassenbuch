@@ -8,6 +8,8 @@ if (empty($_SESSION['userid'])) {
     exit;
 }
 
+require 'db.php';
+
 $userid = $_SESSION['userid'];
 $email = $_SESSION['email'];
 
@@ -21,11 +23,10 @@ ob_clean();
 
 header('Content-Type: text/csv');
 if ($type === 'monat') {
-    header('Content-Disposition: attachment; filename="Kassenbuch_Buchungen_' . $monat . '-' . $jahr . ' '  . $email . '.csv"');
+    header('Content-Disposition: attachment; filename="CashControl_Buchungen_' . $monat . '-' . $jahr . ' ' . $email . '.csv"');
+} else {
+    header('Content-Disposition: attachment; filename="CashControl_Buchungen_' . $jahr . ' ' . $email . '.csv"');
 }
-else {
-    header('Content-Disposition: attachment; filename="Kassenbuch_Buchungen_' . $jahr . ' ' . $email . '.csv"');
-}    
 
 $output = fopen('php://output', 'w');
 

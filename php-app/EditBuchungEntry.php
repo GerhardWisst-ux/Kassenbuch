@@ -14,7 +14,7 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-sr
 /* Sichere Session-Cookies (vor session_start) */
 session_set_cookie_params([
     'httponly' => true,
-    'secure'   => true,     // nur unter HTTPS aktivieren
+    'secure' => true,     // nur unter HTTPS aktivieren
     'samesite' => 'Strict'
 ]);
 session_start();
@@ -44,7 +44,7 @@ if (
 
 /* Nutzerprüfung */
 $userid = $_SESSION['userid'] ?? null;
-if (empty($userid) || !ctype_digit((string)$userid)) {
+if (empty($userid) || !ctype_digit((string) $userid)) {
     http_response_code(401);
     exit('Nicht angemeldet.');
 }
@@ -56,18 +56,63 @@ if (!isset($_SESSION['id'])) {
 }
 
 $id = $_SESSION['id'];
-
+$kassennummer = $_SESSION['kassennummer'] ?? null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+
+
     $userid = $_SESSION['userid'];
+    $kassennummer = $_SESSION['kassennummer'] ?? 1;
     $beschreibung = htmlspecialchars($_POST['beschreibung'], ENT_QUOTES, 'UTF-8');
     $typ = htmlspecialchars($_POST['typ'], ENT_QUOTES, 'UTF-8');
     $datum = $_POST['datum'];
     $barkasse = 1; // 0 oder 1 in DB
-    $betrag = $_POST['betrag'];    
+    $betrag = $_POST['betrag'];
     $buchungart_id = $_POST['buchungart_id'];
 
     try {
+
+        // Checkminus aus DB holen
+        $checkStmt = $pdo->prepare("SELECT Checkminus FROM kasse WHERE id = :kassennummer AND userid = :userid LIMIT 1");
+        $checkStmt->execute(['kassennummer' => $kassennummer, 'userid' => $userid]);
+        $checkminus = (int) ($checkStmt->fetchColumn() ?? 0); // Standard 0
+
+        $stmtBestand = $pdo->prepare("
+                                        SELECT bestand 
+                                        FROM bestaende 
+                                        WHERE kassennummer = :kassennummer 
+                                        AND userid = :userid
+                                        ORDER BY datum DESC
+                                        LIMIT 1
+                                    ");
+        $stmtBestand->execute([
+            ':kassennummer' => $kassennummer,
+            ':userid' => $userid
+        ]);
+
+        $aktuellerBestand = (float) $stmtBestand->fetchColumn(); // <-- hier in float umwandeln
+
+        // Betrag in float umwandeln
+        $betrag = (float) $_POST['betrag'];
+
+        // Checkminus abrufen
+        $checkStmt = $pdo->prepare("SELECT Checkminus FROM kasse WHERE id = :kassennummer AND userid = :userid LIMIT 1");
+        $checkStmt->execute([
+            ':kassennummer' => $kassennummer,
+            ':userid' => $userid
+        ]);
+
+        $checkminus = (int) ($checkStmt->fetchColumn() ?? 0);
+       
+        // Prüfen, ob Buchung möglich ist
+        if ($typ === "Ausgabe" && $checkminus === 0 && $betrag > $aktuellerBestand) {
+            $_SESSION['error_message'] = "Die Buchung ist nicht möglich: Betrag " . number_format($betrag, 2, ',', ' ') . " überschreitet den aktuellen Bestand von € "
+                . number_format($aktuellerBestand, 2, ',', ' ');
+            header('Location: ' . $_SERVER['HTTP_REFERER']);
+            exit;
+        }
+        
         // Buchungsart abrufen
         $sql = "SELECT Buchungsart FROM Buchungsarten WHERE id = :buchungart_id";
         $stmt = $pdo->prepare($sql);
@@ -80,12 +125,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $vonan = ''; // Falls keine Buchungsart gefunden
         }
 
-       // echo $vonan;
-
         // Update in die Buchungen
         $sql = "UPDATE buchungen 
                 SET vonan = :vonan, 
                     beschreibung = :beschreibung, 
+                    kassennummer = :kassennummer, 
                     typ = :typ, 
                     datum = :datum,   
                     barkasse = :barkasse,
@@ -98,6 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'id' => $id,
             'vonan' => $vonan,
             'beschreibung' => $beschreibung,
+            'kassennummer' => $kassennummer,
             'typ' => $typ,
             'datum' => $datum,
             'barkasse' => $barkasse,

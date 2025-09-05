@@ -84,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
   file_put_contents(__DIR__ . '/delete.log', $log, FILE_APPEND);
 
   /* Ausgabe für Benutzer (escaped) */
-  echo "Kassenbuch Bestände - Position " . htmlspecialchars((string) $id, ENT_QUOTES, 'UTF-8') . " wurde gelöscht!";
+  echo "CashControl Bestände - Position " . htmlspecialchars((string) $id, ENT_QUOTES, 'UTF-8') . " wurde gelöscht!";
 
   /* CSRF-Token nach Verwendung erneuern */
   unset($_SESSION['csrf_token']);

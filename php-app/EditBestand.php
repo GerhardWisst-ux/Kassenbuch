@@ -16,7 +16,7 @@ if ($_SESSION['userid'] == "") {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kassenbuch Bestand bearbeiten</title>
+  <title>CashControl Bestand bearbeiten</title>
 
   <!-- CSS -->
   <link href="css/bootstrap.min.css" rel="stylesheet">
@@ -82,7 +82,7 @@ if ($_SESSION['userid'] == "") {
 
         <!-- Titel zentriert -->
         <div class="col-12 text-center mb-2 mb-md-0">
-          <h2 class="h4 mb-0">Kassenbuch - Bestand bearbeiten</h2>
+          <h2 class="h4 mb-0">CashControl - Bestand bearbeiten</h2>
         </div>
 
         <!-- Benutzerinfo + Logout -->
@@ -118,28 +118,35 @@ if ($_SESSION['userid'] == "") {
           $isPast = isset($result['datum']) && strtotime($result['datum']) < strtotime(date('Y-m-d'));
           $bestand = number_format($result['einlagen'] - $result['ausgaben'], 2, '.', '');
           ?>
-          <div class="form-group row">
+         <div class="form-group row">
             <label class="col-sm-2 col-form-label text-dark">Einlagen:</label>
             <div class="col-sm-1">
-              <input id="einlagen" class="form-control text-end" type="text" name="einlagen"
+              <div class="input-group">
+                <input id="einlagen" class="form-control text-end" type="text" name="einlagen"
                 value="<?= htmlspecialchars($result['einlagen']) ?>">
+              <span class="input-group-text">€</span>
+              </div>
             </div>
           </div>
-
+          
           <div class="form-group row">
             <label class="col-sm-2 col-form-label text-dark">Ausgaben:</label>
             <div class="col-sm-1">
-              <input id="ausgaben" class="form-control text-end" type="text" name="ausgaben"
+              <div class="input-group">
+                <input id="ausgaben" class="form-control text-end" type="text" name="ausgaben"
                 value="<?= htmlspecialchars($result['ausgaben']) ?>">
+              <span class="input-group-text">€</span>
+              </div>
             </div>
           </div>
-
-
           <div class="form-group row">
             <label class="col-sm-2 col-form-label text-dark">Bestand:</label>
             <div class="col-sm-1">
-              <input id="bestand" class="form-control text-end" type="text" name="bestand"
-                value="<?= htmlspecialchars($bestand) ?>" <?= $isPast ? 'readonly' : '' ?>>
+              <div class="input-group">
+                <input id="bestand" class="form-control text-end" type="text" name="bestand"
+                value="<?= htmlspecialchars($result['bestand']) ?>">
+              <span class="input-group-text">€</span>
+              </div>
             </div>
           </div>
 

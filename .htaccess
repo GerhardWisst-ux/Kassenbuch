@@ -1,0 +1,14 @@
+RewriteEngine On
+
+# Keine Endlosschleife für eigene Fehlerseiten
+RewriteCond %{REQUEST_URI} !^/Cash/php-app//includes/404\.php$
+RewriteCond %{REQUEST_URI} !^/Cash/php-app//includes/403\.php$
+
+# Optional: Router
+#RewriteCond %{REQUEST_FILENAME} !-f
+#RewriteCond %{REQUEST_FILENAME} !-d
+#RewriteRule ^ index.php [L]
+
+# Eigene Fehlerseiten mit vollständigem Pfad (inkl. Unterordner!)
+ErrorDocument 404 /Cash/php-app/includes/404.php
+ErrorDocument 403 /Cash/php-app/includes/403.php

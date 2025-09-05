@@ -1,576 +1,264 @@
-<?php
-ob_start();
-session_start();
-if ($_SESSION['userid'] == "") {
-  header('Location: Login.php'); // zum Loginformular
-}
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-?>
-
 <!DOCTYPE html>
 <html>
 
+<?php
+ob_start();
+
+session_start();
+if ($_SESSION['userid'] == "") {
+    header('Location: Login.php'); // zum Loginformular
+}
+
+// CSRF-Token erzeugen
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+?>
+
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kassenbuch Buchungen</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CashControl - Kassenübersicht</title>
 
-  <!-- CSS -->
-  <link href="css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-  <link href="css/jquery.dataTables.min.css" rel="stylesheet">
-  <link href="css/responsive.dataTables.min.css" rel="stylesheet">
+    <!-- CSS -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="css/jquery.dataTables.min.css" rel="stylesheet">
+    <link href="css/responsive.dataTables.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
 
-  <style>
-    /* === Grundlayout === */
-    html,
-    body {
-      height: 100%;
-      margin: 0;
-      background-color: #f8f9fa;
-      font-family: 'Segoe UI', Tahoma, sans-serif;
-    }
+    <style>
+        /* Hover-Effekt für Cards */
+        < !-- Hover Effekt -->.card-hover {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
 
-    /* Wrapper für Flex */
-    .wrapper {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    /* === Navbar & Header === */
-    .custom-header {
-      background: linear-gradient(90deg, #1e3c72, #2a5298);
-      color: #fff;
-      border-bottom: 2px solid #1b3a6d;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-      border-radius: 0 0 12px 12px;
-    }
-
-    .custom-header h2 {
-      font-weight: 600;
-      letter-spacing: 0.5px;
-    }
-
-    /* === Buttons === */
-    .btn {
-      border-radius: 30px;
-      font-size: 0.85rem;
-      padding: 0.45rem 0.9rem;
-      font-weight: 500;
-      transition: all 0.3s ease;
-    }
-
-    .btn-primary {
-      background-color: #2a5298;
-      border-color: #1e3c72;
-    }
-
-    .btn-primary:hover {
-      background-color: #1e3c72;
-    }
-
-    .btn-darkgreen {
-      background-color: #198754;
-      border-color: #146c43;
-    }
-
-    .btn-darkgreen:hover {
-      background-color: #146c43;
-    }
-
-    /* === Karten & Tabellen === */
-    .custom-container {
-      background-color: #fff;
-      border-radius: 12px;
-      /* padding: 20px; */
-      margin-top: 0px;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-    }
-
-    #TableBuchungen {
-      width: 100%;
-      font-size: 0.9rem;
-    }
-
-    #TableBuchungen tbody tr:hover {
-      background-color: #f1f5ff;
-    }
-
-    /* === Navbar Design === */
-    .navbar-custom {
-      background: linear-gradient(to right, #cce5f6, #e6f2fb);
-      border-bottom: 1px solid #b3d7f2;
-    }
-
-    .navbar-custom .navbar-brand,
-    .navbar-custom .nav-link {
-      color: #0c2c4a;
-      font-weight: 500;
-    }
-
-    .navbar-custom .nav-link:hover,
-    .navbar-custom .nav-link:focus {
-      color: #04588c;
-      text-decoration: underline;
-    }
-
-    /* === Modal === */
-    .modal-content {
-      border-radius: 12px;
-    }
-
-    .modal-header {
-      background-color: #0946c9ff;
-      color: #fff;
-      border-radius: 12px 12px 0 0;
-    }
-
-    /* === Toast === */
-    .toast-green {
-      background-color: #198754;
-      color: #fff;
-    }
-  </style>
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.3);
+        }
+    </style>
 </head>
 
 <body>
 
-  <?php
+    <?php
+    require 'db.php';
+    $email = $_SESSION['email'];
+    $userid = $_SESSION['userid'] ?? null;
+    $_SESSION['kassennummer'] = null;
+    require_once 'includes/header.php';
+    require_once 'includes/bestaende_berechnen.php';
+    ?>
 
-  require 'db.php';
-  $Anfangsbestand = 0;
-  $yearFilter = date("Y");
+    <div id="kasse">
+        <form id="kasseform" method="get">
+            <input type="hidden" id="csrf_token" name="csrf_token"
+                value="<?= htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8') ?>">
+            <header class="custom-header py-2 text-white">
+                <div class="container-fluid">
+                    <div class="row align-items-center">
 
-  $monatNumFilter = 0;
-  $email = $_SESSION['email'];
-  $userid = $_SESSION['userid'];
+                        <!-- Titel zentriert -->
+                        <div class="col-12 text-center mb-2 mb-md-0">
+                            <h2 class="h4 mb-0">CashControl - Kassenübersicht</h2>
+                        </div>
 
-  require_once 'includes/header.php';
-
-  // CSRF-Token erzeugen
-  if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-  }
-  ?>
-
-  <div id="index">
-    <form id="indexform">
-      <input type="hidden" id="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-      <div class="custom-container">
-        <header class="custom-header py-2 text-white">
-          <div class="container-fluid">
-            <div class="row align-items-center">
-
-              <!-- Titel zentriert -->
-              <div class="col-12 text-center mb-2 mb-md-0">
-                <h2 class="h4 mb-0">Kassenbuch - Buchungen</h2>
-              </div>
-
-              <!-- Benutzerinfo + Logout -->
-              <div class="col-12 col-md-auto ms-md-auto text-center text-md-end">
-                <!-- Auf kleinen Bildschirmen: eigene Zeile für E-Mail -->
-                <div class="d-block d-md-inline mb-1 mb-md-0">
-                  <span class="me-2">Angemeldet als:
-                    <?= htmlspecialchars($_SESSION['email']) ?></span>
+                        <!-- Benutzerinfo + Logout -->
+                        <div class="col-12 col-md-auto ms-md-auto text-center text-md-end">
+                            <!-- Auf kleinen Bildschirmen: eigene Zeile für E-Mail -->
+                            <div class="d-block d-md-inline mb-1 mb-md-0">
+                                <span class="me-2">Angemeldet als: <?= htmlspecialchars($_SESSION['email']) ?></span>
+                            </div>
+                            <!-- Logout-Button -->
+                            <a class="btn btn-darkgreen btn-sm" title="Abmelden vom Webshop" href="logout.php">
+                                <i class="fa fa-sign-out" aria-hidden="true"></i> Ausloggen
+                            </a>
+                        </div>
+                    </div>
                 </div>
-                <!-- Logout-Button -->
-                <a class="btn btn-darkgreen btn-sm" title="Abmelden vom Webshop" href="logout.php">
-                  <i class="fa fa-sign-out" aria-hidden="true"></i> Ausloggen
-                </a>
-              </div>
+            </header>
+            <?php
+
+            echo '<div class="btn-toolbar mx-2 mt-2" role="toolbar" aria-label="Toolbar with button groups">';
+            echo '<div class="btn-group" role="group" aria-label="First group">';
+            echo '<a href="Addkasse.php" title="Kasse hinzufügen" class="btn btn-primary btn-sm me-4"><span><i class="fa fa-plus" aria-hidden="true"></i></span></a>';
+            echo '</div>';
+            echo '</div><br>';
+
+            ?>
+            <div class="row g-3 position-relative">
+                <?php
+                // Alle Kassen für den Benutzer
+                $sql = "SELECT * FROM kasse WHERE userid = :userid";
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute(['userid' => $userid]);
+
+                while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+
+                    $jahr = date('Y');
+
+                    $result = berechneBestaende($pdo, $userid, $row['id'], $jahr);
+
+                    $kassenId = $row['id'];
+                    $formattedDate = (new DateTime($row['datumab']))->format('d.m.Y');
+                    $anfangsbestand = (float) $row['anfangsbestand'];
+                    $anfangsbestandFormatted = number_format($anfangsbestand, 2, ',', '.') . ' €';
+
+                    // Letzten Bestand aus bestaende holen
+                    $stmtBestand = $pdo->prepare("
+                                        SELECT bestand 
+                                        FROM bestaende 
+                                        WHERE kassennummer = :kassennummer 
+                                        AND userid = :userid
+                                        AND bestand > 0
+                                        ORDER BY datum DESC
+                                        LIMIT 1
+                                    ");
+                    $stmtBestand->execute([
+                        ':kassennummer' => $kassenId,
+                        ':userid' => $userid
+                    ]);
+                    $aktuellerBestand = $stmtBestand->fetchColumn();
+                    $aktuellerBestandFormatted = $aktuellerBestand !== false
+                        ? number_format((float) $aktuellerBestand, 2, ',', '.') . ' €'
+                        : '-';
+
+                    // Badge für Kasse minus mit Tooltip
+                    $checkminusBadge = $row['checkminus'] == 1
+                        ? '<span class="badge bg-danger" data-bs-toggle="tooltip" title="Kasse kann ins Minus gehen">Ja</span>'
+                        : '<span class="badge bg-success" data-bs-toggle="tooltip" title="Kasse darf nicht ins Minus gehen">Nein</span>';
+
+                    // Header-Farbe je nach Anfangsbestand
+                    if ($aktuellerBestand >= 200) {
+                        $headerClass = 'bg-success text-white';
+                    } elseif ($aktuellerBestand >= 100) {
+                        $headerClass = 'bg-warning text-dark';
+                    } else {
+                        $headerClass = 'bg-danger text-white';
+                    }
+
+                    // Kritisches Label bei < 200 €
+                    $kritischLabel = $aktuellerBestand < 100
+                        ? '<span class="position-absolute top-0 end-0 m-2 px-2 py-1 bg-danger text-white rounded-pill small" title="Bestand sehr niedrig!">KRITISCH</span>'
+                        : '';
+
+                    echo "
+        <div class='col-sm-6 col-md-4 col-lg-3 position-relative'>
+            <div class='card shadow-sm d-flex h-100 flex-column card-hover'>
+                {$kritischLabel}
+                <div class='card-header {$headerClass} py-2 px-3'>
+                    <h6 class='mb-0'>{$row['kasse']}</h6>
+                </div>
+                <div class='card-body py-2 px-3 flex-grow-1'>
+                    <p class='card-text mb-1'>
+                        <strong>Kontonummer:</strong> {$row['kontonummer']}
+                    </p>
+                    <p class='card-text mb-1'>
+                        <strong>Datum ab:</strong> {$formattedDate}
+                    </p>
+                    <p class='card-text mb-1'>
+                        <strong>Anfangsbestand:</strong> {$anfangsbestandFormatted}
+                    </p>
+                    <p class='card-text mb-1'>
+                        <strong>Aktueller Bestand:</strong> {$aktuellerBestandFormatted}
+                    </p>
+                  
+                    <p class='card-text mb-0'>
+                        <strong>Kasse minus:</strong> {$checkminusBadge}
+                    </p>
+                </div>
+                <div class='card-footer bg-light py-2 px-3 d-flex justify-content-end'>
+                    <a href='Editkasse.php?id={$row['id']}' 
+                       class='btn btn-primary btn-sm me-2' title='Kasse bearbeiten'>
+                       <i class='fa-solid fa-pen-to-square'></i>
+                    </a>
+                    <a href='Buchungen.php?kassennummer={$row['id']}' 
+                       class='btn btn-secondary btn-sm me-2' title='Buchungen ansehen'>
+                       <i class='fa-solid fa-ticket'></i>
+                    </a>
+                    <a href='DeleteKasse.php?id={$row['id']}' 
+                       data-id='{$row['id']}' 
+                       class='btn btn-danger btn-sm delete-button' title='Kasse löschen'>
+                       <i class='fa-solid fa-trash'></i>
+                    </a>
+                </div>
             </div>
-          </div>
-        </header>
-        <?php
+        </div>";
+                }
+                ?>
+            </div>
 
-        echo '<div class="btn-toolbar mt-2 mb-2 mx-2" role="toolbar" aria-label="Toolbar with button groups">';
-        echo '<div class="btn-group" role="group" aria-label="First group">';
-        echo '<a href="AddBuchung.php" title="Position hinzufügen" class="btn btn-primary btn-sm me-4"><span><i class="fa fa-plus" aria-hidden="true"></i></span></a>';
-        echo '</div>';
 
-        // Export und Import Buttons in einen flexiblen Container für kleine Bildschirmauflösung
-        echo '<div class="d-flex flex-nowrap">';
-        echo '<div class="btn-group me-1" role="group" aria-label="Second group">';
-        echo '<a href="#" data-bs-toggle="modal" data-bs-target="#exportModal" title="Export Buchungen in CSV-Datei" class="btn btn-primary btn-sm">
-              <i class="fa-solid fa-file-export"></i></a>';
-        echo '</div>';
-        echo '<div class="btn-group me-1" role="group" aria-label="Third group">';
-        echo '<a href="Import.php" title="Import Buchungen in CSV-Datei" class="btn btn-primary btn-sm"><span><i class="fa-solid fa-file-import"></i></span></a>';
-        echo '</div>';
-        echo '<div class="btn-group me-2" role="group" aria-label="First group">';
-        if (isset($_GET['monat']) && !empty($_GET['monat'])) {
-          echo '<a href="CreatePDF.php?monat=' . htmlspecialchars($_GET['monat']) . '" title="PDF erzeugen" class="btn btn-primary btn-sm">
-              <span><i class="fa-solid fa-file-pdf"></i></span>
-            </a>';
-        }
-        echo '</div>';
-        echo '</div>';
-        echo '</div>';
 
-        // Abrufen der verfügbaren Monate
-        // Aktueller Monat im Format YYYY-MM
-        $currentMonth = date('Y-m');
 
-        // Abrufen der verfügbaren Monate
-        $sql = "SELECT DISTINCT DATE_FORMAT(datum, '%Y-%m') AS monat 
-        FROM buchungen 
-        WHERE Userid = :userid 
-        ORDER BY datum DESC, Day(datum) DESC";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute(['userid' => $userid]);
+            <!-- Hover Effekt -->
+            <style>
+                .card-hover {
+                    transition: transform 0.2s ease, box-shadow 0.2s ease;
+                }
 
-        echo '<form method="GET" action="" style="class="d-flex mb-2" style="gap: 20px;" flex-direction: column; gap: 10px;">';
+                .card-hover:hover {
+                    transform: translateY(-5px);
+                    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.3);
+                }
+            </style>
 
-        // Erste Zeile: Labels        
-        echo '<div id="divLabels" class="d-flex mb-2 mx-2" style="gap: 20px;">';
-        echo '<label for="monat" class="form-label mb-0" style="width: 200px;">Bewegungen im Monat:</label>';
-        echo '<label for="anfangsbestand" class="form-label mb-0" style="width: 200px;">Anfangsbestand:</label>';
-        echo '</div>';
+            <!-- Bootstrap Tooltip aktivieren -->
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+                    tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                        new bootstrap.Tooltip(tooltipTriggerEl)
+                    });
+                });
+            </script>
 
-        // Zweite Zeile: Eingabefelder
-        echo '<div id="divInputs" class="d-flex mb-3 mx-2" style="gap: 20px;">';
 
-        // Dropdown für Bewegungen im Monat
-        echo '<select id="monat" name="monat" class="form-control" style="width: 200px;" onchange="this.form.submit()">';
+        </form>
+    </div>
+    <!-- Bootstrap Tooltip aktivieren -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                new bootstrap.Tooltip(tooltipTriggerEl)
+            });
+        });
+    </script>
 
-        // Option "Alle Monate" nur anzeigen, wenn wir das brauchen
-        echo '<option value="">Alle Monate</option>';
-
-        // Deutsche Monatsnamen
-        $monatNames = [
-          1 => 'Januar',
-          2 => 'Februar',
-          3 => 'März',
-          4 => 'April',
-          5 => 'Mai',
-          6 => 'Juni',
-          7 => 'Juli',
-          8 => 'August',
-          9 => 'September',
-          10 => 'Oktober',
-          11 => 'November',
-          12 => 'Dezember'
-        ];
-
-        // Bestimmen, welcher Monat ausgewählt sein soll
-        if (isset($_GET['monat'])) {
-          $selectedMonth = $_GET['monat']; // kann leer sein
-        } else {
-          $selectedMonth = $currentMonth; // nur beim ersten Laden
-        }
-
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-          $monat = $row['monat'];
-          $monatNum = (new DateTime($monat . '-01'))->format('n'); // Monatsnummer
-          $monatFormatted = $monatNames[$monatNum] . ' ' . (new DateTime($monat . '-01'))->format('Y');
-          $selected = ($selectedMonth === $monat) ? 'selected' : '';
-          echo "<option value=\"$monat\" $selected>$monatFormatted</option>";
-        }
-
-        echo '</select>';
-
-        // Wenn ein Monat ausgewählt wurde, dann filtern wir die Buchungen
-        if (!empty($selectedMonth)) {
-          $monatFilter = $selectedMonth;
-          $monatNumFilter = (new DateTime($monatFilter . '-01'))->format('n');
-          $yearFilter = substr($monatFilter, 0, 4);
-        } else {
-          $monatFilter = '';
-        }
-
-        if ($monatFilter <> '')
-          $yearFilter = substr($monatFilter, 0, 4);
-
-        $stmtAB = null; // Initialisierung
-        
-        if ($monatFilter <> '') {
-          $startDatum = $monatFilter . "-01";
-          $endDatum = date("Y-m-t", strtotime($startDatum));
-
-          // Buchungen für gewählten Monat
-          $sql = "SELECT * FROM buchungen 
-        WHERE datum BETWEEN :startDatum AND :endDatum 
-        AND userid = :userid 
-        AND barkasse = 1 
-        ORDER BY datum DESC";
-          $stmt = $pdo->prepare($sql);
-          $stmt->execute(['startDatum' => $startDatum, 'endDatum' => $endDatum, 'userid' => $userid]);
-
-          // Vormonat berechnen
-          $vorMonat = date("Y-m", strtotime("-1 month", strtotime($startDatum)));
-
-          // Endbestand des Vormonats holen
-          $sql = "SELECT bestand FROM bestaende
-            WHERE DATE_FORMAT(datum, '%Y-%m') = :vormonat
-            AND userid = :userid
-            ORDER BY datum DESC
-            LIMIT 1";
-          $stmtVB = $pdo->prepare($sql);
-          $stmtVB->execute(['vormonat' => $vorMonat, 'userid' => $userid]);
-          $anfangsbestand = $stmtVB->fetchColumn() ?: 0;
-
-        } else {
-          // Alle Buchungen
-          $sql = "SELECT * FROM buchungen 
-        WHERE userid = :userid 
-        AND barkasse = 1 
-        ORDER BY datum DESC";
-          $stmt = $pdo->prepare($sql);
-          $stmt->execute(['userid' => $userid]);
-
-          $monatFilter = '';
-          $anfangsbestand = 0;
-        }
-
-        //echo $anfangsbestand;
-        
-
-        // Nur ausgeben, wenn $stmtAB existiert und erfolgreich ausgeführt wurde
-        if ($anfangsbestand <> 0) {
-
-          echo '<input class="form-control text-end" type="text" name="anfangsbestand" id="anfangsbestand" value="'
-            . number_format($anfangsbestand, 2, ',', '.')
-            . ' €" style="width: 200px;" step="0.01" disabled>';
-
-        } else {
-          // Optional: Wenn kein Monat gewählt, Anfangsbestand 0 anzeigen
-          echo '<input class="form-control text-end" type="text" name="anfangsbestand" id="anfangsbestand" value="0,00 €" style="width: 200px;" step="0.01" disabled>';
-        }
-        echo '</div>'; // Ende divInputs        
-        echo '</div>';
-        echo '</div>';
-
-        ?>
-        <br>
-        <div class="table-responsive mx-2">
-          <table id="TableBuchungen" class="table table-striped nowrap" style="width:100%">
-            <thead>
-              <tr>
-                <th>Datum</th>
-                <th class='visible-column'>Typ</th>
-                <th class='visible-column'>Beleg-Nr</th>
-                <th class='betrag-right'>Betrag</th>
-                <th>Beschreibung</th>
-                <th class='visible-column'>Verwendungszweck</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php
-
-              while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                // Datum ins deutsche Format umwandeln
-                $formattedDate = (new DateTime($row['datum']))->format('d.m.Y');
-
-                echo "<tr>
-                
-                  <td style='vertical-align: top; width:7%;' >{$formattedDate}</td>
-                  <td style='vertical-align: top; width:7%;' class='visible-column'>{$row['typ']}</td>
-                  <td style='vertical-align: top; width:10%;' class='visible-column'>{$row['belegnr']}</td>
-                  <td style='vertical-align: top; width:7%; text-align:right; white-space: nowrap;'>" . number_format($row['betrag'], 2, '.', ',') . " €</td>
-                  <td style='vertical-align: top; width:20%;' >{$row['vonan']}</td>
-                  <td style='vertical-align: top; width:50%;' class='visible-column'>{$row['beschreibung']}</td>
-                  <td style='vertical-align: top; width:7%; white-space: nowrap;'>
-                      <a href='EditBuchung.php?id={$row['id']}' style='width:60px;' title='Buchung bearbeiten' class='btn btn-primary btn-sm'><i class='fa-solid fa-pen-to-square'></i></a> 
-                      <a href='DeleteBuchung.php?id={$row['id']}' data-id={$row['id']} style='width:60px;' title='Buchung löschen' class='btn btn-danger btn-sm delete-button'><i class='fa-solid fa-trash'></i></a>
-                  </td>
-                  </tr>";
-              }
-              ?>
-            </tbody>
-          </table>
-
-          <div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-              <div class="modal-content">
+    <!-- Bootstrap Modal -->
+    <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
                 <div class="modal-header">
-                  <h5 class="modal-title" id="exportModalLabel">Export auswählen</h5>
-                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title" id="confirmDeleteModalLabel">Löschbestätigung</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
                 </div>
                 <div class="modal-body">
-                  <p>Bitte wählen Sie, ob der Export nach Monat oder Jahr erfolgen soll:</p>
+                    Möchten Sie diese Kasse mit allen Positionen wirklich löschen?
                 </div>
                 <div class="modal-footer">
-                  <a href="Export.php?type=monat" class="btn btn-primary">Monat</a>
-                  <a href="Export.php?type=jahr" class="btn btn-secondary">Jahr</a>
-                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Löschen</button>
                 </div>
-              </div>
             </div>
-          </div>
-          <?php
-
-          //echo $monatFilter;
-          if ($monatFilter <> '') {
-            $sql = "SELECT COUNT(*) AS anzahl FROM buchungen WHERE userid = :userid and barkasse = 1 AND Year(datum) = :year AND MONTH(datum) = :monat";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute(['year' => $yearFilter, 'monat' => $monatNumFilter, 'userid' => $userid]);
-            $resultCount = $stmt->fetch(PDO::FETCH_ASSOC);
-          } else {
-            $sql = "SELECT COUNT(*) AS anzahl FROM buchungen WHERE userid = :userid and barkasse = 1";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute(['userid' => $userid]);
-            $resultCount = $stmt->fetch(PDO::FETCH_ASSOC);
-          }
-
-          // Summen für den ausgewählten Monat
-          if ($monatFilter <> '') {
-            $sql = "SELECT SUM(CASE WHEN typ = 'Einlage' THEN betrag ELSE 0 END) AS einlagen,
-                    SUM(CASE WHEN typ = 'Ausgabe' THEN betrag ELSE 0 END) AS ausgaben
-                    FROM buchungen
-                    WHERE Year(datum) = :year AND MONTH(datum) = :monat and userid = :userid and barkasse =1 ";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute(['year' => $yearFilter, 'monat' => $monatNumFilter, 'userid' => $userid]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-
-          } else {
-            $sql = "SELECT SUM(CASE WHEN typ = 'Einlage' THEN betrag ELSE 0 END) AS einlagen,
-                    SUM(CASE WHEN typ = 'Ausgabe' THEN betrag ELSE 0 END) AS ausgaben
-                    FROM buchungen WHERE userid = :userid and barkasse = 1";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute(['userid' => $userid]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-          }
-
-          $einlagen = (float) ($result['einlagen'] ?? 0);
-          $ausgaben = (float) ($result['ausgaben'] ?? 0);
-          $saldo = $anfangsbestand + $einlagen - $ausgaben;
-          $anzahl = (int) ($resultCount['anzahl'] ?? 0);
-
-          echo '<div class="col-md-5">';
-
-          // Anzahl Buchungen
-          echo '<div class="form-group row me-2">
-              <div style="vertical-align: top;" class="col-3">Anzahl Buchungen:</div>
-              <div style="text-align:right;vertical-align: top;" class="col-9 col-md-3">' . number_format($anzahl, 0, '.', '.') . '</div>
-          </div>';
-
-          // Anfangsbestand
-          echo '<div class="form-group row me-2">
-              <div style="vertical-align: top;" class="col-3">Anfangsbestand:</div>
-              <div style="text-align:right;vertical-align: top;" class="col-9 col-md-3">' . number_format($anfangsbestand, 2, '.', '.') . ' €</div>
-          </div>';
-
-          // Einnahmen
-          echo '<div class="form-group row me-2">
-              <div style="vertical-align: top;" class="col-3">Einlagen:</div>
-              <div style="text-align:right;vertical-align: top;" class="col-9 col-md-3">' . number_format($einlagen, 2, '.', '.') . ' €</div>
-          </div>';
-
-          // Ausgaben
-          echo '<div class="form-group row me-2">
-              <div style="vertical-align: top;" class="col-3">Ausgaben:</div>
-              <div style="text-align:right;vertical-align: top;" class="col-9 col-md-3">' . number_format($ausgaben, 2, '.', '.') . ' €</div>
-          </div>';
-
-          // Saldo
-          echo '<div class="form-group row me-2">
-              <div style="vertical-align: top;" class="col-3"><b>Neuer Bestand:</b></div>
-              <div style="text-align:right;vertical-align: top;" class="col-9 col-md-3"><b>' . number_format($saldo, 2, '.', '.') . ' €</b></div>
-          </div>';
-
-          echo '</div>';
-
-          // // // Update Bestände
-          // if ($monatFilter <> '') {
-          //   $sqlBestaende = "UPDATE bestaende  SET ausgaben = :ausgaben, einlagen = :einlagen WHERE monat = :monat AND  userid = :userid AND Year(datum) = :year";
-          //   $stmtBestaende = $pdo->prepare($sqlBestaende);
-          //   $stmtBestaende->execute(['ausgaben' => $ausgaben, 'einlagen' => $result['einlagen'], 'userid' => $userid, 'monat' => $monatNumFilter, 'year' => 2025]);
-          // }
-          
-          $format = "txt"; //Moeglichkeiten: csv und txt
-          
-          $datum_zeit = date("d.m.Y H:i:s");
-          $ip = $_SERVER["REMOTE_ADDR"];
-          $site = $_SERVER['REQUEST_URI'];
-          $browser = $_SERVER["HTTP_USER_AGENT"];
-
-          $monate = array(1 => "Januar", 2 => "Februar", 3 => "Maerz", 4 => "April", 5 => "Mai", 6 => "Juni", 7 => "Juli", 8 => "August", 9 => "September", 10 => "Oktober", 11 => "November", 12 => "Dezember");
-          $monat = date("n");
-          $jahr = date("y");
-
-          $dateiname = "logs/log_" . $monate[$monat] . "_$jahr.$format";
-
-          $header = array("Datum", "IP", "Seite", "Browser");
-          $infos = array($datum_zeit, $ip, $site, $browser);
-
-          if ($format == "csv") {
-            $eintrag = '"' . implode('", "', $infos) . '"';
-          } else {
-            $eintrag = implode("\t", $infos);
-          }
-
-          $write_header = !file_exists($dateiname);
-
-          $datei = fopen($dateiname, "a");
-
-          if ($write_header) {
-            if ($format == "csv") {
-              $header_line = '"' . implode('", "', $header) . '"';
-            } else {
-              $header_line = implode("\t", $header);
-            }
-
-            fputs($datei, $header_line . "\n");
-          }
-
-          fputs($datei, $eintrag . "\n");
-          fclose($datei);
-
-          // Sicherstellen, dass die Datei existiert
-          $file = __DIR__ . "/counter.txt";
-          if (!file_exists($file)) {
-            file_put_contents($file, "0");
-          }
-
-          // Dateiinhalt lesen und in Integer umwandeln
-          $counterstand = intval(file_get_contents($file));
-
-          // Prüfen, ob die Session-Variable gesetzt ist
-          if (!isset($_SESSION['counter_ip'])) {
-            $counterstand++;
-            file_put_contents($file, $counterstand);
-
-            $_SESSION['counter_ip'] = true;
-          }
-          ?>
-
-
         </div>
-        <!-- Bootstrap Modal -->
-        <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel"
-          aria-hidden="true">
-          <div class="modal-dialog">
-            <div class="modal-content">
-              <div class="modal-header">
-                <h5 class="modal-title" id="confirmDeleteModalLabel">Löschbestätigung</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
-              </div>
-              <div class="modal-body">
-                Möchten Sie diese Buchung wirklich löschen?
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Löschen</button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- Toast -->
-        <div class="toast-container position-fixed top-0 end-0 p-3">
-          <div id="deleteToast" class="toast toast-green" role="alert" aria-live="assertive" aria-atomic="true">
+    </div>
+    <!-- Toast -->
+    <div class="toast-container position-fixed top-0 end-0 p-3">
+        <div id="deleteToast" class="toast toast-green" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="toast-header">
-              <strong class="me-auto">Benachrichtigung</strong>
-              <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                <strong class="me-auto">Benachrichtigung</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
             <div class="toast-body">
-              Buchung wurde gelöscht.
+                Kasse wurde gelöscht.
             </div>
-          </div>
         </div>
+    </div>
     </form>
 
     <!-- JS -->
@@ -581,79 +269,72 @@ error_reporting(E_ALL);
     <script src="js/dataTables.responsive.min.js"></script>
 
     <script>
-      $(document).ready(function () {
-        let deleteId = null; // Speichert die ID für die Löschung
+        $(document).ready(function () {
+            let deleteId = null; // Speichert die ID für die Löschung
 
-        $('.delete-button').on('click', function (event) {
-          event.preventDefault();
-          deleteId = $(this).data('id'); // Hole die ID aus dem Button-Datenattribut          
-          //alert(deleteId);
-          $('#confirmDeleteModal').modal('show'); // Zeige das Modal an
-        });
+            $('.delete-button').on('click', function (event) {
+                event.preventDefault();
+                deleteId = $(this).data('id'); // Hole die ID aus dem Button-Datenattribut
+                //alert(deleteId);
+                $('#confirmDeleteModal').modal('show'); // Zeige das Modal an
+            });
 
-        $('#confirmDeleteBtn').on('click', function () {
-          if (deleteId) {
-            // Dynamisches Formular erstellen und absenden
-            const form = $('<form>', {
-              action: 'DeleteBuchung.php',
-              method: 'POST'
-            }).append($('<input>', {
-              type: 'hidden',
-              name: 'id',
-              value: deleteId
-            })).append($('<input>', {
-              type: 'hidden',
-              name: 'csrf_token',
-              value: $('#csrf_token').val() // <- Das Session-Token wird übernommen
-            }));
+            $('#confirmDeleteBtn').on('click', function () {
+                if (deleteId) {
+                    const form = $('<form>', {
+                        action: 'Deletekasse.php',
+                        method: 'POST'
+                    }).append($('<input>', {
+                        type: 'hidden',
+                        name: 'id',
+                        value: deleteId
+                    })).append($('<input>', {
+                        type: 'hidden',
+                        name: 'csrf_token',
+                        value: $('#csrf_token').val() // <- Das Session-Token wird übernommen
+                    }));
 
-            $('body').append(form);
-            form.submit();
-          }
-          $('#confirmDeleteModal').modal('hide'); // Schließe das Modal
-
-          // Zeige den Toast an
-          var toast = new bootstrap.Toast($('#deleteToast')[0]);
-          toast.show();
-        });
-      });
-
-      function NavBarClick() {
-        var x = document.getElementById("myTopnav");
-        if (x.className === "topnav") {
-          x.className += " responsive";
-        } else {
-          x.className = "topnav";
-        }
-      }
-
-      $(document).ready(function () {
-        $('#TableBuchungen').DataTable({
-          language: { url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/de-DE.json" },
-          responsive: {
-            details: {
-              display: $.fn.dataTable.Responsive.display.modal({
-                header: function (row) {
-                  var data = row.data();
-                  return 'Details zu ' + data[1];
+                    $('body').append(form);
+                    form.submit();
                 }
-              }),
-              renderer: $.fn.dataTable.Responsive.renderer.tableAll({
-                tableClass: 'table'
-              })
-            }
-          },
-          scrollX: false,
-          pageLength: 50,
-          autoWidth: false
-        });
-      });
-    </script>
+                $('#confirmDeleteModal').modal('hide');
 
+                var toast = new bootstrap.Toast($('#deleteToast')[0]);
+                toast.show();
+            });
+        });
+
+        function NavBarClick() {
+            var x = document.getElementById("myTopnav");
+            if (x.className === "topnav") {
+                x.className += " responsive";
+            } else {
+                x.className = "topnav";
+            }
+        }
+
+        $(document).ready(function () {
+            $('#TableKassen').DataTable({
+                language: { url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/de-DE.json" },
+                responsive: {
+                    details: {
+                        display: $.fn.dataTable.Responsive.display.modal({
+                            header: function (row) {
+                                var data = row.data();
+                                return 'Details zu ' + data[1];
+                            }
+                        }),
+                        renderer: $.fn.dataTable.Responsive.renderer.tableAll({
+                            tableClass: 'table'
+                        })
+                    }
+                },
+                scrollX: false,
+                pageLength: 50,
+                autoWidth: false
+            });
+        });
+    </script>
 </body>
 
 </html>
-
-<?php
-ob_end_flush();
-?>

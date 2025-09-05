@@ -2,36 +2,104 @@
 ob_start();
 session_start();
 if (empty($_SESSION['userid'])) {
-    http_response_code(403);
-    echo json_encode(['error' => 'not authorized']);
-    header('Location: Login.php'); // zum Loginformular
+    header('Location: Login.php');
     exit;
 }
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
 
 require 'db.php';
 $userid = $_SESSION['userid'];
-?>
+$email = $_SESSION['email'];
+$kassennummer = $_SESSION['kassennummer'] ?? null;
+//echo $kassennummer;
 
+// Monatsnamen auf Deutsch
+$monate_de = [
+    '01' => 'Januar',
+    '02' => 'Februar',
+    '03' => 'März',
+    '04' => 'April',
+    '05' => 'Mai',
+    '06' => 'Juni',
+    '07' => 'Juli',
+    '08' => 'August',
+    '09' => 'September',
+    '10' => 'Oktober',
+    '11' => 'November',
+    '12' => 'Dezember'
+];
+
+// ausgewählter Monat
+$selectedMonat = $_GET['monat'] ?? '';
+
+// Alle Monate für Dropdown
+$stmtMonate = $pdo->prepare("
+    SELECT DISTINCT DATE_FORMAT(datum,'%Y-%m') AS monat
+    FROM buchungen
+    WHERE userid=:userid
+    AND kassennummer = :kassennummer
+    ORDER BY datum DESC
+");
+$stmtMonate->execute([
+    'userid' => $userid,
+    'kassennummer' => $kassennummer
+]);
+$monate = $stmtMonate->fetchAll(PDO::FETCH_COLUMN);
+
+// Bedingungen für SQL (jetzt eindeutig mit Tabellennamen)
+$where = "b.barkasse=1 AND b.typ='Ausgabe' AND b.kassennummer = :kassennummer AND b.userid=:userid";
+$params = [
+    'userid' => $userid,
+    'kassennummer' => $kassennummer
+];
+
+if ($selectedMonat !== '') {
+    $where .= " AND DATE_FORMAT(b.datum,'%Y-%m')=:monat";
+    $params['monat'] = $selectedMonat;
+}
+
+// Gesamtausgaben berechnen (nur für selektierte Buchungen)
+$sqlGesamt = "SELECT SUM(b.betrag) AS gesamt FROM buchungen b WHERE $where";
+$stmt = $pdo->prepare($sqlGesamt);
+$stmt->execute($params);
+$gesamt = $stmt->fetchColumn();
+$gesamt = $gesamt ?? 0;
+
+// Buchungen nach Buchungsart gruppiert
+$sql = "
+SELECT 
+    COALESCE(ba.buchungsart,b.buchungsart) AS buchungsart,
+    COUNT(*) AS anzahl,
+    SUM(b.betrag) AS gesamt_betrag,
+    CASE WHEN :gesamt>0 THEN ROUND(SUM(b.betrag)/:gesamt*100,2) ELSE 0 END AS anteil
+FROM buchungen b
+LEFT JOIN buchungsarten ba ON b.buchungsart=ba.id
+WHERE $where
+GROUP BY buchungsart
+ORDER BY anteil DESC
+";
+$params['gesamt'] = $gesamt;
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
+$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Summen für Fußzeile
+$sumBetrag = array_sum(array_column($rows, 'gesamt_betrag'));
+$sumAnteil = array_sum(array_column($rows, 'anteil'));
+?>
 <!DOCTYPE html>
 <html lang="de">
 
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Kassenbuch Auswertungen</title>
-
-    <!-- CSS -->
+    <title>CashControl Auswertungen</title>
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="css/jquery.dataTables.min.css" rel="stylesheet">
     <link href="css/responsive.dataTables.min.css" rel="stylesheet">
     <link href="css/style.css" rel="stylesheet">
-
     <style>
-       
         #TableAuswertungen {
             width: 100%;
             font-size: 0.9rem;
@@ -39,50 +107,78 @@ $userid = $_SESSION['userid'];
 
         #TableAuswertungen tbody tr:hover {
             background-color: #f1f5ff;
-        }      
+        }
+
+        .details-control {
+            cursor: pointer;
+        }
     </style>
 </head>
 
 <body>
+    <?php require_once 'includes/header.php'; ?>
 
-    <?php
+    <header class="custom-header py-2 text-white">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <?php
+                $sql = "SELECT * FROM kasse WHERE userid = :userid AND id = :kassennummer";
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute([
+                    'userid' => $userid,
+                    'kassennummer' => $kassennummer
+                ]);
 
-    require 'db.php';
-    $email = $_SESSION['email'];
-    $userid = $_SESSION['userid'];
-
-    require_once 'includes/header.php';
-
-    ?>
-
-    <div class="custom-container mx-2">
-        <header class="custom-header py-2 text-white">
-            <div class="container-fluid">
-                <div class="row align-items-center">
-                    <!-- Titel zentriert -->
-                    <div class="col-12 text-center mb-2 mb-md-0">
-                        <h2 class="h4 mb-0">Kassenbuch - Auswertungen</h2>
+                $kasse = "Unbekannte Kasse";
+                while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                    $kasse = $row['kasse'];
+                }
+                ?>
+                <!-- Titel zentriert -->
+                <div class="col-12 text-center mb-2 mb-md-0">
+                    <h2 class="h4 mb-0"><?php echo htmlspecialchars($kasse); ?> - Auswertungen</h2>
+                </div>
+                <!-- Benutzerinfo + Logout -->
+                <div class="col-12 col-md-auto ms-md-auto text-center text-md-end">
+                    <!-- Auf kleinen Bildschirmen: eigene Zeile für E-Mail -->
+                    <div class="d-block d-md-inline mb-1 mb-md-0">
+                        <span class="me-2">Angemeldet als:
+                            <?= htmlspecialchars($_SESSION['email']) ?></span>
                     </div>
-                    <!-- Benutzerinfo + Logout -->
-                    <div class="col-12 col-md-auto ms-md-auto text-center text-md-end">
-                        <!-- Auf kleinen Bildschirmen: eigene Zeile für E-Mail -->
-                        <div class="d-block d-md-inline mb-1 mb-md-0">
-                            <span class="me-2">Angemeldet als:
-                                <?= htmlspecialchars($_SESSION['email']) ?></span>
-                        </div>
-                        <!-- Logout-Button -->
-                        <a class="btn btn-darkgreen btn-sm" title="Abmelden vom Webshop" href="logout.php">
-                            <i class="fa fa-sign-out" aria-hidden="true"></i> Ausloggen
-                        </a>
-                    </div>
+                    <!-- Logout-Button -->
+                    <a class="btn btn-darkgreen btn-sm" title="Abmelden vom Webshop" href="logout.php">
+                        <i class="fa fa-sign-out" aria-hidden="true"></i> Ausloggen
+                    </a>
                 </div>
             </div>
-        </header>
+        </div>
+    </header>
+    <div class="custom-container mt-3 mx-2">
         <a href="Index.php" class="btn btn-primary btn-sm mb-3"><i class="fa fa-arrow-left"></i></a>
+        <button id="btnPieChart" class="btn btn-primary btn-sm mb-3">
+            <i class="fa fa-chart-pie"></i> Chart
+        </button>
+
+        <form method="get" class="mb-3">
+            <label for="monat" class="form-label">Filter nach Monat:</label>
+            <select name="monat" id="monat" class="form-select" onchange="this.form.submit()">
+                <option value="">Alle Monate</option>
+                <?php foreach ($monate as $monat):
+                    $parts = explode('-', $monat);
+                    $monatName = $monate_de[$parts[1]] . ' ' . $parts[0];
+                    $selected = ($selectedMonat === $monat) ? 'selected' : ''; ?>
+                    <option value="<?= htmlspecialchars($monat) ?>" <?= $selected ?>><?= $monatName ?></option>
+                <?php endforeach; ?>
+            </select>
+        </form>
+
+        <div id="chartContainer" style="width:100%; max-width:600px; margin-bottom:20px; display:none;">
+            <canvas id="pieChart"></canvas>
+        </div>
         <table id="TableAuswertungen" class="display nowrap">
             <thead>
                 <tr>
-                    <th>Buchungstyp</th>
+                    <th></th>
                     <th>Buchungsart</th>
                     <th style="text-align:right;">Anzahl</th>
                     <th style="text-align:right;">Gesamtbetrag</th>
@@ -90,94 +186,122 @@ $userid = $_SESSION['userid'];
                 </tr>
             </thead>
             <tbody>
-                <?php
-                $sql = "WITH Gesamtausgaben AS (
-                        SELECT SUM(betrag) AS gesamt_ausgaben
-                        FROM buchungen
-                        WHERE barkasse = 1
-                          AND typ = 'Ausgabe'
-                          AND userid = :userid
-                    )
-                    SELECT 
-                        b.typ AS buchungstyp,
-                        b.buchungsart AS buchungsart,
-                        COUNT(*) AS anzahl,
-                        SUM(b.betrag) AS gesamt_betrag,
-                        CASE 
-                            WHEN b.typ = 'Ausgabe' THEN 
-                                ROUND(SUM(b.betrag) / (SELECT gesamt_ausgaben FROM Gesamtausgaben) * 100, 2)
-                            ELSE 
-                                0
-                        END AS anteil
-                    FROM buchungen b
-                    LEFT JOIN buchungsarten ba ON b.buchungsart = ba.id
-                    WHERE b.barkasse = 1
-                      AND b.typ = 'Ausgabe'
-                      AND b.userid = :userid
-                    GROUP BY b.typ, b.buchungsart
-                    ORDER BY anteil DESC, b.betrag DESC";
-
-                $stmt = $pdo->prepare($sql);
-                $stmt->execute(['userid' => $userid]);
-
-                $gesamtBetrag = 0;
-                $gesamtAnteil = 0;
-
-                while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                    $gesamtBetrag += $row['gesamt_betrag'];
-                    if ($row['buchungstyp'] === 'Ausgabe') {
-                        $gesamtAnteil += $row['anteil'];
-                    }
-
-                    echo "<tr>
-                    <td>" . htmlspecialchars($row['buchungstyp']) . "</td>
-                    <td>" . htmlspecialchars($row['buchungsart'] ?? 'Unbekannt') . "</td>
-                    <td style='text-align:right'>" . number_format($row['anzahl'], 0, ',', '.') . "</td>
-                    <td style='text-align:right'>" . number_format($row['gesamt_betrag'], 2, ',', '.') . " €</td>
-                    <td style='text-align:right'>" . number_format($row['anteil'], 2, ',', '.') . " %</td>
-                </tr>";
-                }
-                ?>
+                <?php foreach ($rows as $row): ?>
+                    <tr>
+                        <td class="details-control"><i class="fa fa-plus-circle"></i></td>
+                        <td><?= htmlspecialchars($row['buchungsart'] ?? 'Unbekannt') ?></td>
+                        <td style="text-align:right"><?= number_format($row['anzahl'], 0, ',', '.') ?></td>
+                        <td style="text-align:right"><?= number_format($row['gesamt_betrag'], 2, ',', '.') ?> €</td>
+                        <td style="text-align:right"><?= number_format($row['anteil'], 2, ',', '.') ?> %</td>
+                    </tr>
+                <?php endforeach; ?>
             </tbody>
             <tfoot>
                 <tr>
-                    <th colspan="2" style="text-align:right;">Gesamt:</th>
+                    <th>Gesamt:</th>
                     <th></th>
-                    <th style="text-align:right;"><?= number_format($gesamtBetrag, 2, ',', '.') ?> €</th>
-                    <th style="text-align:right;"><?= number_format($gesamtAnteil, 2, ',', '.') ?> %</th>
+                    <th style="text-align:right"><?= array_sum(array_column($rows, 'anzahl')) ?></th>
+                    <th style="text-align:right"><?= number_format($sumBetrag, 2, ',', '.') ?> €</th>
+                    <th style="text-align:right"><?= number_format($sumAnteil, 2, ',', '.') ?> %</th>
                 </tr>
             </tfoot>
         </table>
     </div>
 
-    <!-- JS -->
     <script src="js/jquery.min.js"></script>
     <script src="js/bootstrap.bundle.min.js"></script>
     <script src="js/jquery.dataTables.min.js"></script>
-    <script src="js/dataTables.min.js"></script>
     <script src="js/dataTables.responsive.min.js"></script>
-
+    <script src="js/Chart.min.js"></script>
     <script>
-        $('#TableAuswertungen').DataTable({
+        var table = $('#TableAuswertungen').DataTable({
             language: { url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/de-DE.json" },
-            responsive: {
-                details: {
-                    display: $.fn.dataTable.Responsive.display.modal({
-                        header: function (row) {
-                            var data = row.data();
-                            return 'Details zu ' + data[1];
-                        }
-                    }),
-                    renderer: $.fn.dataTable.Responsive.renderer.tableAll({
-                        tableClass: 'table'
-                    })
-                }
-            },
+            responsive: false,
             scrollX: false,
             pageLength: 50,
             autoWidth: false
         });
+
+        function format(buchungsartId) {
+            return $.ajax({
+                url: 'GetBuchungenDetails.php',
+                type: 'POST',
+                data: { id: buchungsartId, monat: '<?= $selectedMonat ?>' },
+                dataType: 'html'
+            });
+        }
+
+        $('#TableAuswertungen tbody').on('click', 'td.details-control', function () {
+            var tr = $(this).closest('tr');
+            var row = table.row(tr);
+            var buchungsartId = tr.find('td:nth-child(2)').text();
+            if (row.child.isShown()) {
+                row.child.hide();
+                tr.removeClass('shown');
+                $(this).html('<i class="fa fa-plus-circle"></i>');
+            } else {
+                $(this).html('<i class="fa fa-minus-circle"></i>');
+                format(buchungsartId).done(function (html) {
+                    row.child(html).show();
+                    tr.addClass('shown');
+                });
+            }
+        });
+
+
     </script>
+    <script>
+        document.getElementById('btnPieChart').addEventListener('click', function () {
+            // Chart-Container anzeigen
+            document.getElementById('chartContainer').style.display = 'block';
+
+            // Daten aus PHP
+            const labels = <?= json_encode(array_column($rows, 'buchungsart')) ?>;
+            const data = <?= json_encode(array_map(function ($r) {
+                return (float) $r['anteil'];
+            }, $rows)) ?>;
+
+            const ctx = document.getElementById('pieChart').getContext('2d');
+
+            // Prüfen, ob schon ein Chart existiert und zerstören
+            if (window.pieChartInstance) {
+                window.pieChartInstance.destroy();
+            }
+
+            window.pieChartInstance = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Anteil in %',
+                        data: data,
+                        backgroundColor: [
+                            '#007bff', '#28a745', '#dc3545', '#ffc107', '#17a2b8', '#6f42c1',
+                            '#fd7e14', '#20c997', '#6610f2', '#e83e8c', '#343a40', '#fd6f6f'
+                        ],
+                        borderColor: '#fff',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return context.label + ': ' + context.raw + ' %';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+
 </body>
 
 </html>

@@ -22,7 +22,7 @@ require_once 'db.php';
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kassenbuch - Impressum</title>
+  <title>CashControl - Impressum</title>
   <link href="css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"> 
 
@@ -154,7 +154,7 @@ require_once 'db.php';
 
           <!-- Titel zentriert -->
           <div class="col-12 text-center mb-2 mb-md-0">
-            <h2 class="h4 mb-0">Kassenbuch - Impressum</h2>
+            <h2 class="h4 mb-0">CashControl - Impressum</h2>
           </div>
 
           <!-- Benutzerinfo + Logout -->
@@ -181,7 +181,7 @@ require_once 'db.php';
                     <a href="Index.php" title="Zurück zur Hauptübersicht" class="btn btn-primary btn-sm me-4 "><i
                             class="fa fa-arrow-left" aria-hidden="true"></i></a>
 
-                    <p><strong>Das Kassenbuch wurde 2025 erstellt<br>
+                    <p><strong>CashControl wurde 2025 erstellt<br>
                             Author : Gerhard Wißt<br>
                             Langjährige Programmiererfahrung unter .NET,ASP.NET, C#, VB.NET, PHP, Blazor,
                             Webtechnologien und SQL-Server. <br> Erstellt Webanwendungen und datenbankgestützte
@@ -190,8 +190,8 @@ require_once 'db.php';
                     </p>
                     <p class="me-4" style="text-align:left" style="text-align:left">
                     <h3 class="me-4" style="text-align:left">Allgemeine Angaben</h3>
-                    <p class="me-4" style="text-align:left"><b>Internet:</b> <a href="http://www.kassenbuch-wisst.de"
-                            target="_blank">www.kassenbuch-wisst.de</a></p>
+                    <p class="me-4" style="text-align:left"><b>Internet:</b> <a href="http://www.CashControl-wisst.de"
+                            target="_blank">www.CashControl-wisst.de</a></p>
 
                     <p class="me-4" style="text-align:left" style="text-align:left"><b>Name des
                             Diensteanbieters:</b> EDV Beratung Wißt Einzelunternehmen</>

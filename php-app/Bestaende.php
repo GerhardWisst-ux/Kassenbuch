@@ -3,14 +3,12 @@ ob_start();
 session_start();
 if (empty($_SESSION['userid'])) {
     http_response_code(403);
-    echo json_encode(['error' => 'not authorized']);
-    header('Location: Login.php'); // zum Loginformular
+    header('Location: Login.php');
     exit;
 }
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
-
 ?>
 
 <!DOCTYPE html>
@@ -19,7 +17,7 @@ error_reporting(E_ALL);
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Kassenbuch Bestände</title>
+    <title>CashControl - Bestände</title>
 
     <!-- CSS -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
@@ -28,7 +26,6 @@ error_reporting(E_ALL);
     <link href="css/responsive.dataTables.min.css" rel="stylesheet">
     <link href="css/style.css" rel="stylesheet">
     <style>
-       
         #TableBestaende {
             width: 100%;
             font-size: 0.9rem;
@@ -37,27 +34,37 @@ error_reporting(E_ALL);
         #TableBestaende tbody tr:hover {
             background-color: #f1f5ff;
         }
-       
     </style>
 </head>
 
 <body>
-
     <?php
     require 'db.php';
     require_once 'includes/header.php';
+    require_once 'includes/bestaende_berechnen.php';
 
     $email = $_SESSION['email'];
     $userid = $_SESSION['userid'];
-
+    $kassennummer = $_SESSION['kassennummer'] ?? null;
+    //echo $kassennummer;
+    
     // Verfügbare Jahre aus der Datenbank holen
-    $sqlYears = "SELECT DISTINCT YEAR(datum) AS Jahr FROM bestaende WHERE userid = :userid ORDER BY Jahr DESC";
+    $sqlYears = "SELECT DISTINCT YEAR(datum) AS Jahr FROM bestaende WHERE userid = :userid AND kassennummer = :kassennummer ORDER BY Jahr DESC";
     $stmtYears = $pdo->prepare($sqlYears);
-    $stmtYears->execute(['userid' => $userid]);
+    $stmtYears->execute([
+        'userid' => $userid,
+        'kassennummer' => $kassennummer
+    ]);
     $jahre = $stmtYears->fetchAll(PDO::FETCH_COLUMN);
 
     // Aktuelles Jahr
-    $jahrFilter = isset($_POST['jahr']) ? (int) $_POST['jahr'] : (isset($_GET['jahr']) ? (int) $_GET['jahr'] : date("Y"));
+    if (isset($_POST['jahr'])) {
+        $jahrFilter = (int) $_POST['jahr'];
+    } elseif (isset($_GET['jahr'])) {
+        $jahrFilter = (int) $_GET['jahr'];
+    } else {
+        $jahrFilter = date("Y"); // Alle Jahre
+    }
 
     // Berechnung der Bestände
     $bestaendeBerechnet = false;
@@ -65,67 +72,41 @@ error_reporting(E_ALL);
     $gesamtSaldo = 0;
 
     if (isset($_POST['berechne_bestaende'])) {
-        $jahr = isset($_GET['jahr']) && $_GET['jahr'] != 0 ? (int) $_GET['jahr'] : date('Y');
-        $eingefuegt = 0;
-        $gesamtSaldo = 0;
+        $jahr = $jahrFilter ?: date('Y');
 
-        for ($monat = 1; $monat <= 12; $monat++) {
-            $checkStmt = $pdo->prepare("
-            SELECT COUNT(*) FROM bestaende 
-            WHERE userid = :userid AND YEAR(datum)=:jahr AND MONTH(datum)=:monat
-        ");
-            $checkStmt->execute(['userid' => $userid, 'jahr' => $jahr, 'monat' => $monat]);
-            if ($checkStmt->fetchColumn())
-                continue;
+        $result = berechneBestaende($pdo, $userid, $kassennummer, $jahr);
 
-            $sql = "
-            SELECT 
-                SUM(CASE WHEN typ='Einlage' THEN betrag ELSE 0 END) AS einlagen,
-                SUM(CASE WHEN typ='Ausgabe' THEN betrag ELSE 0 END) AS ausgaben
-            FROM buchungen
-            WHERE YEAR(datum)=:jahr AND MONTH(datum)=:monat AND userid=:userid AND barkasse=1
-        ";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute(['jahr' => $jahr, 'monat' => $monat, 'userid' => $userid]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            $einlagen = (float) ($result['einlagen'] ?? 0);
-            $ausgaben = (float) ($result['ausgaben'] ?? 0);
-            $saldo = $einlagen - $ausgaben;
-
-            $datum = date("$jahr-$monat-01");
-            $stmtInsert = $pdo->prepare("
-            INSERT INTO bestaende (datum, ausgaben, einlagen, bestand, monat, userid)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ");
-            $stmtInsert->execute([$datum, $ausgaben, $einlagen, $saldo, $monat, $userid]);
-
-            $eingefuegt++;
-            $gesamtSaldo += $saldo;
-        }
-
-        // Nach der Berechnung redirecten, um doppeltes Berechnen zu vermeiden
-        header("Location: Bestaende.php?jahr=$jahr&berechnet=1&eingefuegt=$eingefuegt&saldo=$gesamtSaldo");
+        header("Location: Bestaende.php?jahr=$jahr&berechnet=1&eingefuegt={$result['eingefuegt']}&aktualisiert={$result['aktualisiert']}&saldo={$result['saldo']}");
         exit;
     }
-
     ?>
 
     <header class="custom-header py-2 text-white">
         <div class="container-fluid">
             <div class="row align-items-center">
+                <?php
+                $sql = "SELECT * FROM kasse WHERE userid = :userid AND id = :kassennummer";
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute([
+                    'userid' => $userid,
+                    'kassennummer' => $kassennummer
+                ]);
+
+                $kasse = "Unbekannte Kasse";
+                while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                    $kasse = $row['kasse'];
+                }
+                ?>
                 <!-- Titel zentriert -->
                 <div class="col-12 text-center mb-2 mb-md-0">
-                    <h2 class="h4 mb-0">Kassenbuch - Bestände</h2>
+                    <h2 class="h2 mb-0"><?php echo htmlspecialchars($kasse); ?> - Bestände</h2>
                 </div>
                 <!-- Benutzerinfo + Logout -->
                 <div class="col-12 col-md-auto ms-md-auto text-center text-md-end">
-                    <!-- Auf kleinen Bildschirmen: eigene Zeile für E-Mail -->
                     <div class="d-block d-md-inline mb-1 mb-md-0">
                         <span class="me-2">Angemeldet als:
                             <?= htmlspecialchars($_SESSION['email']) ?></span>
                     </div>
-                    <!-- Logout-Button -->
                     <a class="btn btn-darkgreen btn-sm" title="Abmelden vom Webshop" href="logout.php">
                         <i class="fa fa-sign-out" aria-hidden="true"></i> Ausloggen
                     </a>
@@ -133,27 +114,27 @@ error_reporting(E_ALL);
             </div>
         </div>
     </header>
-    <div class="custom-container mt-3 mx-2">
 
+    <div class="custom-container mt-3 mx-2">
         <!-- Formular: Jahr + Berechnen -->
-        <form method="POST" class="mb-3 d-flex align-items-center">
+        <form method="POST" id="bestaendeForm" class="mb-3 d-flex align-items-center">
             <button type="submit" name="berechne_bestaende" class="btn btn-primary btn-sm me-2">
                 <i class="fas fa-calculator"></i>
             </button>
             <a href="BestaendeChart.php" class="btn btn-primary btn-sm me-2"><i class="fas fa-chart-bar"></i></a>
             <a href="Index.php" class="btn btn-primary btn-sm"><i class="fa fa-arrow-left"></i></a>
+
+            <div class="ms-3">
+                <label for="jahr" class="form-label fw-bold me-2">Jahr auswählen:</label>
+                <select name="jahr" id="jahr" class="form-select w-auto me-2">
+                    <?php foreach ($jahre as $jahrOption): ?>
+                        <option value="<?= $jahrOption ?>" <?= ($jahrOption == $jahrFilter) ? 'selected' : '' ?>>
+                            <?= $jahrOption ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
         </form>
-        <div class="mb-3">
-            <label for="jahr" class="form-label fw-bold me-2">Jahr auswählen:</label>
-            <select name="jahr" id="jahr" class="form-select w-auto me-2">
-                <option value="0" <?= $jahrFilter == 0 ? 'selected' : '' ?>>Alle Jahre</option>
-                <?php foreach ($jahre as $jahrOption): ?>
-                    <option value="<?= $jahrOption ?>" <?= ($jahrOption == $jahrFilter) ? 'selected' : '' ?>>
-                        <?= $jahrOption ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-        </div>
 
         <!-- Berechnungs-Toast -->
         <?php if (isset($_GET['berechnet']) && $_GET['berechnet'] == 1):
@@ -161,7 +142,7 @@ error_reporting(E_ALL);
             $gesamtSaldo = (float) ($_GET['saldo'] ?? 0);
             $berechnungsMeldung = $eingefuegt > 0
                 ? "Bestände für $eingefuegt Monate erfolgreich berechnet."
-                : "Für alle Monate existieren bereits Bestände.";
+                : "Bestände erfolgreich berechnet.";
             ?>
             <div class="toast-container position-fixed top-0 end-0 p-3">
                 <div id="calcToast" class="toast toast-green" role="alert" aria-live="assertive" aria-atomic="true">
@@ -198,71 +179,42 @@ error_reporting(E_ALL);
                 <tbody>
                     <?php
                     $sql = ($jahrFilter == 0)
-                        ? "SELECT * FROM bestaende WHERE userid=:userid ORDER BY datum DESC"
-                        : "SELECT * FROM bestaende WHERE userid=:userid AND YEAR(datum)=:jahr ORDER BY datum DESC";
+                        ? "SELECT * FROM bestaende WHERE userid=:userid  AND kassennummer = :kassennummer ORDER BY datum DESC"
+                        : "SELECT * FROM bestaende WHERE userid=:userid AND kassennummer = :kassennummer AND YEAR(datum)=:jahr ORDER BY datum DESC";
                     $stmt = $pdo->prepare($sql);
-                    $params = ['userid' => $userid];
+                    $params = [
+                        'userid' => $userid,
+                        'kassennummer' => $kassennummer
+                    ];
                     if ($jahrFilter != 0)
                         $params['jahr'] = $jahrFilter;
                     $stmt->execute($params);
 
                     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                         $formattedDate = (new DateTime($row['datum']))->format('d.m.Y');
-
-                        // Werte direkt in Euro formatieren
                         $einlagen = number_format((float) $row['einlagen'], 2, ',', '.') . ' €';
                         $ausgaben = number_format((float) $row['ausgaben'], 2, ',', '.') . ' €';
-                        $bestand = number_format((float) $row['einlagen'] - (float) $row['ausgaben'], 2, ',', '.') . ' €';
+                        $bestand = number_format((float) $row['bestand'], 2, ',', '.') . ' €';
 
                         echo "<tr>
-                            <td>$formattedDate</td>
-                            <td style='text-align:right;'>$einlagen</td>
-                            <td style='text-align:right;'>$ausgaben</td>
-                            <td style='text-align:right;'>$bestand</td>
-                            <td style='text-align:center; white-space: nowrap;'>
-                                <a href='EditBestand.php?id={$row['id']}' class='btn btn-primary btn-sm me-1'>
-                                    <i class='fa-solid fa-pen-to-square'></i>
-                                </a>
-                                <a href='#' data-id='{$row['id']}' class='btn btn-danger btn-sm delete-button'>
-                                    <i class='fa-solid fa-trash'></i>
-                                </a>
-                            </td>
-                        </tr>";
+                        <td>$formattedDate</td>
+                        <td style='text-align:right;'>$einlagen</td>
+                        <td style='text-align:right;'>$ausgaben</td>
+                        <td style='text-align:right;'>$bestand</td>
+                        <td style='text-align:center; white-space: nowrap;'>
+                            <a href='EditBestand.php?id={$row['id']}' class='btn btn-primary btn-sm me-1'>
+                                <i class='fa-solid fa-pen-to-square'></i>
+                            </a>
+                            <a href='#' data-id='{$row['id']}' class='btn btn-danger btn-sm delete-button'>
+                                <i class='fa-solid fa-trash'></i>
+                            </a>
+                        </td>
+                    </tr>";
                     }
                     ?>
                 </tbody>
-
             </table>
         </div>
-
-        <!-- Delete Modal -->
-        <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header bg-danger text-white">
-                        <h5 class="modal-title">Löschbestätigung</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">Möchten Sie diese Position wirklich löschen?</div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
-                        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Löschen</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Delete-Toast -->
-        <div class="toast-container position-fixed top-0 end-0 p-3">
-            <div id="deleteToast" class="toast toast-green" role="alert" aria-live="assertive" aria-atomic="true">
-                <div class="toast-header">
-                    <strong class="me-auto">Benachrichtigung</strong>
-                    <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
-                </div>
-                <div class="toast-body">Position wurde gelöscht.</div>
-            </div>
-        </div>
-
     </div>
 
     <!-- JS -->
@@ -312,6 +264,18 @@ error_reporting(E_ALL);
                 var toast = new bootstrap.Toast($('#deleteToast')[0]);
                 toast.show();
             });
+        });
+
+        // Automatisch Berechnung auslösen, wenn das Jahr geändert wird
+        document.getElementById('jahr').addEventListener('change', function () {
+            const form = document.getElementById('bestaendeForm');
+            // Simuliere Klick auf den Berechnen-Button
+            const hiddenButton = document.createElement('input');
+            hiddenButton.type = 'hidden';
+            hiddenButton.name = 'berechne_bestaende';
+            hiddenButton.value = '1';
+            form.appendChild(hiddenButton);
+            form.submit();
         });
     </script>
 

@@ -17,7 +17,7 @@ if ($_SESSION['userid'] == "") {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kassenbuch Position bearbeiten</title>
+  <title>CashControl - Position bearbeiten</title>
 
   <link href="css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -46,7 +46,7 @@ if ($_SESSION['userid'] == "") {
 
   $email = $_SESSION['email'];
   $userid = $_SESSION['userid'];
-
+  $kassennummer = $_SESSION['kassennummer'] ?? null;
 
   // Abfrage der E-Mail vom Login
   $email = $_SESSION['email'];
@@ -72,10 +72,19 @@ if ($_SESSION['userid'] == "") {
     // Meldung nach einmaligem Anzeigen löschen
     unset($_SESSION['success_message']);
   }
-  ?>
+
+  if (!empty($_SESSION['error_message'])): ?>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+      <?= htmlspecialchars($_SESSION['error_message']) ?>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></button>
+    </div>
+    <?php
+    // Meldung nach Anzeige löschen
+    unset($_SESSION['error_message']);
+  endif; ?>
 
 
-  <div id="addbuchung">
+  <div id="editbuchung">
     <form action="EditBuchungEntry.php" method="post">
       <input type="hidden" name="csrf_token"
         value="<?= htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8') ?>">
@@ -83,9 +92,23 @@ if ($_SESSION['userid'] == "") {
         <div class="container-fluid">
           <div class="row align-items-center">
 
+            <?php
+            $sql = "SELECT * FROM kasse WHERE userid = :userid AND id = :kassennummer";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([
+              'userid' => $userid,
+              'kassennummer' => $kassennummer
+            ]);
+
+            $kasse = null;
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+              $kasse = $row['kasse'];
+            }
+            ?>
+
             <!-- Titel zentriert -->
             <div class="col-12 text-center mb-2 mb-md-0">
-              <h2 class="h4 mb-0">Kassenbuch - Buchung bearbeiten</h2>
+              <h2 class="h2 mb-0"><?php echo htmlspecialchars($kasse); ?> - Buchung bearbeiten</h2>
             </div>
 
             <!-- Benutzerinfo + Logout -->
@@ -105,7 +128,33 @@ if ($_SESSION['userid'] == "") {
       </header>
 
       <br>
+      <?php
+
+      $stmtBestand = $pdo->prepare("
+            SELECT bestand 
+            FROM bestaende 
+            WHERE kassennummer = :kassennummer 
+              AND userid = :userid
+            ORDER BY datum DESC
+            LIMIT 1
+        ");
+      $stmtBestand->execute([
+        ':kassennummer' => $kassennummer,
+        ':userid' => $userid
+      ]);
+      $aktuellerBestand = $stmtBestand->fetchColumn();
+
+      ?>
       <div class="mt-2 mx-2">
+        <div class="form-group row me-4">
+          <label class="col-sm-2 col-form-label text-dark">Aktueller Bestand:</label>
+          <div class="col-sm-1">
+            <div class="input-group">
+              <input class="form-control" type="text" name="aktuellerbestand" value="<?= $aktuellerBestand ?>" disabled>
+              <span class="input-group-text">€</span>
+            </div>
+          </div>
+        </div>
         <div class="form-group row me-4">
           <label class="col-sm-2 col-form-label text-dark">Beleg-Nr:</label>
           <div class="col-sm-2">
@@ -115,9 +164,16 @@ if ($_SESSION['userid'] == "") {
         </div>
         <div class="form-group row me-4">
           <label class="col-sm-2 col-form-label text-dark">Datum:</label>
+          <?php
+          $datumValue = '';
+          if (!empty($result['datum'])) {
+            // Datenbankwert ins richtige Format für input type="date"
+            $datumValue = (new DateTime($result['datum']))->format('Y-m-d');
+          }
+          ?>
           <div class="col-sm-1">
-            <input id="datum" class="form-control" type="date" name="datum"
-              value="<?= htmlspecialchars($result['datum']) ?>" required>
+            <input id="datum" class="form-control" type="date" name="datum" value="<?= htmlspecialchars($datumValue) ?>"
+              required>
           </div>
         </div>
         <div class="form-group row me-4">
@@ -130,10 +186,17 @@ if ($_SESSION['userid'] == "") {
           </div>
         </div>
         <div class="form-group row me-4">
-          <label class="col-sm-2 col-form-label text-dark">Betrag:</label>
+          <label for="betrag" class="col-sm-2 col-form-label text-dark">Betrag:</label>
           <div class="col-sm-1">
-            <input class="form-control" type="number" name="betrag" step="0.01"
-              value="<?= htmlspecialchars($result['betrag']) ?>" required>
+            <div class="input-group">
+              <input class="form-control" type="number" step="0.01" id="betrag" name="betrag" required
+                data-bestand="<?= $aktuellerBestand ?>"
+                value="<?= isset($result['betrag']) ? number_format((float) $result['betrag'], 2, '.', '') : '' ?>">
+              <span class="input-group-text">€</span>
+            </div>
+            <small id="betragWarnung" class="text-danger fw-bold" style="display:none;">
+              Betrag überschreitet den aktuellen Bestand!
+            </small>
           </div>
         </div>
         <div class="form-group row me-4">
@@ -142,19 +205,21 @@ if ($_SESSION['userid'] == "") {
             <select class="form-control" id="buchungsarten-dropdown" name="buchungart_id"
               onchange="toggleCustomInput(this)">
               <?php
-              $sql = "SELECT DISTINCT ID, Buchungsart FROM Buchungsarten WHERE userid = :userid ORDER BY Buchungsart";
+              $sql = "SELECT ID, Buchungsart FROM Buchungsarten WHERE userid = :userid ORDER BY Buchungsart";
               $stmt = $pdo->prepare($sql);
               $stmt->execute(['userid' => $userid]);
 
-              while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                echo "<option value='" . htmlspecialchars($row['ID']) . "'>" . htmlspecialchars($row['Buchungsart']) . "</option>";
+              while ($baRow = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $selected = ($baRow['Buchungsart'] === $result['buchungsart']) ? "selected" : "";
+                echo "<option value='" . htmlspecialchars($baRow['ID']) . "' $selected>" . htmlspecialchars($baRow['Buchungsart']) . "</option>";
               }
               ?>
-              <option value="custom">Wert eingeben</option>
+              <option value="custom" <?= ($result['buchungsart'] === 'custom') ? "selected" : "" ?>>Wert eingeben</option>
             </select>
 
             <input class="form-control mt-2 d-none" type="text" id="custom-input" name="custom_buchungsart"
-              placeholder="Wert eingeben">
+              placeholder="Wert eingeben"
+              value="<?= htmlspecialchars($result['buchungsart'] === 'custom' ? $result['custom_buchungsart'] : '') ?>">
           </div>
         </div>
         <div class="form-group row me-4">
@@ -167,7 +232,7 @@ if ($_SESSION['userid'] == "") {
         <div class="form-group row me-4">
           <div class="col-sm-offset-2 col-sm-10">
             <button class="btn btn-primary" type="submit"><i class="fas fa-save"></i></button>
-            <a href="Index.php" title="Zurück zur Hauptübersicht" class="btn btn-primary"><span> <i
+            <a href="Buchungen.php" title="Zurück zur Hauptübersicht" class="btn btn-primary"><span> <i
                   class="fa fa-arrow-left" aria-hidden="true"></i></span></a>'
           </div>
         </div>
@@ -180,6 +245,24 @@ if ($_SESSION['userid'] == "") {
   <script src="js/bootstrap.bundle.min.js"></script>
 
   <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const betragInput = document.getElementById("betrag");
+      const warnung = document.getElementById("betragWarnung");
+      const typ = document.getElementById("typ");
+      
+      const bestand = parseFloat(betragInput.getAttribute("data-bestand"));
+
+      betragInput.addEventListener("input", function () {
+        const wert = parseFloat(this.value);
+        if (!isNaN(wert) && wert > bestand && typ.value === "Ausgabe") {
+          warnung.style.display = "block";
+          betragInput.classList.add("is-invalid");
+        } else {
+          warnung.style.display = "none";
+          betragInput.classList.remove("is-invalid");
+        }
+      });
+    });
 
     function NavBarClick() {
       const topnav = document.getElementById("myTopnav");
