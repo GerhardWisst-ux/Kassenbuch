@@ -23,7 +23,7 @@ $userid = $_SESSION['userid'];
 require_once 'includes/header.php';
 
 // Buchungsarten laden
-$sql = "SELECT DISTINCT ID, Buchungsart FROM Buchungsarten WHERE userid = :userid ORDER BY Buchungsart";
+$sql = "SELECT DISTINCT ID, Buchungsart FROM buchungsarten WHERE userid = :userid ORDER BY Buchungsart";
 $stmt = $pdo->prepare($sql);
 $stmt->execute(['userid' => $userid]);
 $buchungsarten = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -49,11 +49,10 @@ $buchungsarten = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
   <header class="custom-header text-center">
     <h2 class="h4 mb-0">CashControl - Buchungsart hinzufügen</h2>
-    <div class="text-end me-3">
-      <span class="me-2">Angemeldet als: <?= htmlspecialchars($_SESSION['email']) ?></span>
-      <a class="btn btn-darkgreen btn-sm" href="logout.php" title="Abmelden">
-        <i class="fa fa-sign-out" aria-hidden="true"></i> Ausloggen
-      </a>
+    <div class="text-end me-3">      
+      <?php
+      require_once 'includes/benutzerversion.php';
+      ?>
     </div>
   </header>
 

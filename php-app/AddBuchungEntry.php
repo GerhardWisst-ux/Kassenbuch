@@ -101,13 +101,13 @@ try {
         if (!ctype_digit($buchungart_id)) {
             throw new RuntimeException('Ungültige Buchungsart-ID.');
         }
-        $stmt = $pdo->prepare("SELECT Buchungsart FROM Buchungsarten WHERE id = :id AND userid = :userid");
+        $stmt = $pdo->prepare("SELECT buchungsart FROM buchungsarten WHERE id = :id AND userid = :userid");
         $stmt->execute([':id' => $buchungart_id, ':userid' => $userid]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$row) {
             throw new RuntimeException('Buchungsart nicht gefunden.');
         }
-        $vonan = $row['Buchungsart'];
+        $vonan = $row['buchungsart'];
     }
 
     $stmt = $pdo->prepare("

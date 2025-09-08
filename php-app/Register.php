@@ -121,91 +121,119 @@ use RobThree\Auth\Providers\Qr\GoogleChartsQRCodeProvider;
     require 'db.php';
 
 
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
-        // foreach ($_POST as $key => $value) {
-        //     echo htmlspecialchars($key) . " = " . htmlspecialchars($value) . "<br>";
-        // }
-    
-        $error = false;
-        $email = trim($_POST['email']);
-        $passwort = $_POST['passwort'];
-        $passwort2 = $_POST['passwort2'];
 
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
+
+        $error = false;
+        $errorMessage = '';
+
+        // Eingaben bereinigen
+        $email = trim($_POST['email'] ?? '');
+        $passwort = $_POST['passwort'] ?? '';
+        $passwort2 = $_POST['passwort2'] ?? '';
+        $vorname = trim($_POST['vorname'] ?? '');
+        $nachname = trim($_POST['nachname'] ?? '');
+
+        // Validierung
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $errorMessage = "Bitte eine gültige E-Mail-Adresse eingeben.";
             $error = true;
-        }
-        if (strlen($passwort) == 0) {
+        } elseif (empty($passwort)) {
             $errorMessage = "Bitte ein Passwort angeben.";
             $error = true;
-        }
-        if ($passwort !== $passwort2) {
+        } elseif ($passwort !== $passwort2) {
             $errorMessage = "Die Passwörter müssen übereinstimmen.";
             $error = true;
         }
 
         if (!$error) {
-            $statement = $pdo->prepare("SELECT * FROM users WHERE email = :email");
-            $statement->execute(['email' => $email]);
-            $user = $statement->fetch();
-
-            if ($user) {
+            // Prüfen, ob E-Mail bereits existiert
+            $stmtCheck = $pdo->prepare("SELECT id FROM users WHERE email = :email");
+            $stmtCheck->execute(['email' => $email]);
+            if ($stmtCheck->fetch()) {
                 $errorMessage = "Diese E-Mail-Adresse ist bereits registriert.";
-            } else {
-                $passwort_hash = password_hash($passwort, PASSWORD_DEFAULT);
-                $statement = $pdo->prepare("INSERT INTO users (email, passwort) VALUES (:email, :passwort)");
-                $result = $statement->execute([
-                    'email' => $email,
-                    'passwort' => $passwort_hash
-                ]);
+                $error = true;
+            }
+        }
 
-                if ($result) {
-                    // ID des gerade eingefügten Datensatzes
-                    $newUserId = $pdo->lastInsertId();
-                    echo "Neue User-ID: " . $newUserId;
-                } else {
-                    echo "Fehler beim Einfügen!";
+        if (!$error) {
+            // Passwort hashen
+            $passwort_hash = password_hash($passwort, PASSWORD_DEFAULT);
+
+            // User einfügen
+            $stmtInsert = $pdo->prepare("
+            INSERT INTO users 
+                (email, passwort, is_admin, vorname, nachname, freigeschaltet) 
+            VALUES 
+                (:email, :passwort, :is_admin, :vorname, :nachname, :freigeschaltet)
+        ");
+            $result = $stmtInsert->execute([
+                'email' => $email,
+                'passwort' => $passwort_hash,
+                'is_admin' => false,
+                'vorname' => $vorname,
+                'nachname' => $nachname,
+                'freigeschaltet' => true
+            ]);
+
+            if ($result) {
+                $newUserId = $pdo->lastInsertId();
+
+                // Buchungsarten vom Standard-User kopieren
+                $stmtBA = $pdo->prepare("
+                SELECT buchungsart, mwst_ermaessigt
+                FROM buchungsarten
+                WHERE userid = :userid
+                  AND kassennummer = :kassennummer
+                  AND standard = 1
+            ");
+                $stmtBA->execute([':userid' => 1, ':kassennummer' => 1]);
+
+                $stmtInsertBA = $pdo->prepare("
+                INSERT INTO buchungsarten 
+                    (buchungsart, Dauerbuchung, created_at, updated_at, userid, mwst)
+                VALUES 
+                    (:buchungsart, :dauer, :created, :updated, :userid, :mwst)
+            ");
+
+                while ($rowBA = $stmtBA->fetch(PDO::FETCH_ASSOC)) {
+                    $stmtInsertBA->execute([
+                        'buchungsart' => $rowBA['buchungsart'],
+                        'dauer' => false,
+                        'created' => date('Y-m-d'),
+                        'updated' => null,
+                        'userid' => $newUserId,
+                        'mwst' => 1.19
+                    ]);
                 }
 
-                // Standardbuchungsarten anlegen für neuen Benutzer
-                $buchungsarten = ["_Diveres", "ALDI SUED", "Essen", "Einlage", "LIDL"];
-                $stmt = $pdo->prepare("
-                        INSERT INTO buchungsarten (buchungsart, Dauerbuchung, created_at, updated_at, userid)
-                        VALUES (?, ?, ?, ?, ?)
-                    ");
-
-                foreach ($buchungsarten as $art) {
-                    $stmt->execute([$art, false, date('Y-m-d'), null, $newUserId]);
-                }
-
+                // 2FA einrichten
                 require_once '../vendor/autoload.php';
-
                 $qrProvider = new GoogleChartsQRCodeProvider();
                 $tfa = new TwoFactorAuth($qrProvider);
-
-                // Secret generieren
                 $secret = $tfa->createSecret();
 
-                // QR-Code als Data URI
-                $qrCodeUrl = $tfa->getQRCodeImageAsDataUri('CashControl', $secret);
-
-                // Secret speichern
                 $updateStmt = $pdo->prepare("UPDATE users SET twofactor_secret = :secret WHERE id = :id");
                 $updateStmt->execute(['secret' => $secret, 'id' => $newUserId]);
 
-                // QR-Code für Google Authenticator anzeigen
+                // QR-Code erzeugen und anzeigen
                 $qrCodeUrl = $tfa->getQRCodeImageAsDataUri('CashControl', $secret);
                 echo "<p>Scanne diesen QR-Code mit deiner Authenticator-App:</p>";
                 echo "<img src='$qrCodeUrl' alt='QR-Code'>";
                 echo "<p>ODER Code manuell eingeben: <b>$secret</b></p>";
 
-                if ($result) {
-                    header("Location: Login.php");
-                    exit();
-                } else {
-                    $errorMessage = "Beim Abspeichern ist ein Fehler aufgetreten.";
-                }
+                // Weiterleitung nach erfolgreicher Registrierung
+                header("Location: Login.php");
+                exit();
+
+            } else {
+                $errorMessage = "Beim Abspeichern ist ein Fehler aufgetreten.";
             }
+        }
+
+        // Fehlermeldung anzeigen, falls vorhanden
+        if ($error && !empty($errorMessage)) {
+            echo "<div class='alert alert-danger'>{$errorMessage}</div>";
         }
     }
     ?>
@@ -227,6 +255,18 @@ use RobThree\Auth\Providers\Qr\GoogleChartsQRCodeProvider;
                                     <input type="email" name="email" id="email" class="form-control" required
                                         value="<?= htmlspecialchars($_POST['email'] ?? '') ?>"
                                         placeholder="Benutzer eingeben">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="vorname" class="text-dark">Vorname:</label>
+                                    <input type="Text" name="vorname" id="vorname" class="form-control" required
+                                        value="<?= htmlspecialchars($_POST['vorname'] ?? '') ?>"
+                                        placeholder="Vorname eingeben">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="nachname" class="text-dark">Nachname:</label>
+                                    <input type="text" name="nachname" id="nachname" class="form-control" required
+                                        value="<?= htmlspecialchars($_POST['nachname'] ?? '') ?>"
+                                        placeholder="Nachname eingeben">
                                 </div>
                                 <div class="mb-3">
                                     <label for="passwort" class="form-label">Passwort:</label>

@@ -45,7 +45,7 @@ if ($_SESSION['userid'] == "") {
     require_once 'includes/header.php';
 
     // Buchungsarten laden
-    $sql = "SELECT DISTINCT ID, Buchungsart FROM Buchungsarten WHERE userid = :userid ORDER BY Buchungsart";
+    $sql = "SELECT DISTINCT id, buchungsart FROM buchungsarten WHERE userid = :userid ORDER BY Buchungsart";
     $stmt = $pdo->prepare($sql);
     $stmt->execute(['userid' => $userid]);
     $buchungsarten = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -58,18 +58,13 @@ if ($_SESSION['userid'] == "") {
                 <div class="col-12 text-center mb-2 mb-md-0">
                     <h2 class="h4 mb-0">CashControl - Kasse hinzufügen</h2>
                 </div>
-                <!-- Benutzerinfo + Logout -->
-                <div class="col-12 col-md-auto ms-md-auto text-center text-md-end">
-                    <!-- Auf kleinen Bildschirmen: eigene Zeile für E-Mail -->
-                    <div class="d-block d-md-inline mb-1 mb-md-0">
-                        <span class="me-2">Angemeldet als:
-                            <?= htmlspecialchars($_SESSION['email']) ?></span>
-                    </div>
-                    <!-- Logout-Button -->
-                    <a class="btn btn-darkgreen btn-sm" title="Abmelden vom Webshop" href="logout.php">
-                        <i class="fa fa-sign-out" aria-hidden="true"></i> Ausloggen
-                    </a>
-                </div>
+               <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CashControl Buchungsart bearbeiten</title>
+
+  <link href="css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link href="css/style.css" rel="stylesheet">
             </div>
         </div>
     </header>
@@ -89,7 +84,8 @@ if ($_SESSION['userid'] == "") {
             <div class="mb-3 row">
                 <label for="kontonummer" class="col-sm-2 col-form-label">Kontonummer:</label>
                 <div class="col-sm-4">
-                    <input class="form-control" type="text" id="kontonummer" name="kontonummer" required pattern="\d{1,8}" title="Maximal 8 Ziffern" maxlength="8">
+                    <input class="form-control" type="text" id="kontonummer" name="kontonummer" required
+                        pattern="\d{1,8}" title="Maximal 8 Ziffern" maxlength="8">
                 </div>
             </div>
 
@@ -108,7 +104,7 @@ if ($_SESSION['userid'] == "") {
                 </div>
             </div>
 
-            <div class="mb-3 row">                
+            <div class="mb-3 row">
                 <label for="checkminus" class="col-sm-2 col-form-label">Kasse minus:</label>
                 <div class="col-sm-10">
                     <input class="form-check-input" id="checkminus" type="checkbox" name="checkminus">

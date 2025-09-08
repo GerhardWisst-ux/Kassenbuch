@@ -114,7 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         // Buchungsart abrufen
-        $sql = "SELECT Buchungsart FROM Buchungsarten WHERE id = :buchungart_id";
+        $sql = "SELECT buchungsart FROM buchungsarten WHERE id = :buchungart_id";
         $stmt = $pdo->prepare($sql);
         $stmt->execute(['buchungart_id' => $buchungart_id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);

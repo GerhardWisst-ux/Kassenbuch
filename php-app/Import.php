@@ -21,11 +21,7 @@ if (empty($_SESSION['userid'])) {
 
 <body>
 
-  <?php
-  session_start();
-  if (!isset($_SESSION['userid'])) {
-    header('Location: Login.php'); // zum Loginformular
-  }
+  <?php    
 
   // Abfrage der E-Mail vom Login
   $email = $_SESSION['email'];

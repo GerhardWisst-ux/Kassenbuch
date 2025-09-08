@@ -30,116 +30,14 @@ $kassennummer = $_SESSION['kassennummer'] ?? null;
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <link href="css/jquery.dataTables.min.css" rel="stylesheet">
   <link href="css/responsive.dataTables.min.css" rel="stylesheet">
+  <link href="css/style.css" rel="stylesheet">
 
   <style>
-    /* === Grundlayout === */
-    html,
-    body {
-      height: 100%;
-      margin: 0;
-      background-color: #f8f9fa;
-      font-family: 'Segoe UI', Tahoma, sans-serif;
-    }
-
-    /* Wrapper für Flex */
-    .wrapper {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    /* === Navbar & Header === */
-    .custom-header {
-      background: linear-gradient(90deg, #1e3c72, #2a5298);
-      color: #fff;
-      border-bottom: 2px solid #1b3a6d;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-      border-radius: 0 0 12px 12px;
-    }
-
-    .custom-header h2 {
-      font-weight: 600;
-      letter-spacing: 0.5px;
-    }
-
-    /* === Buttons === */
-    .btn {
-      border-radius: 30px;
-      font-size: 0.85rem;
-      padding: 0.45rem 0.9rem;
-      font-weight: 500;
+    /* Hover-Effekt für Karten */
+    .card-hover:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
       transition: all 0.3s ease;
-    }
-
-    .btn-primary {
-      background-color: #2a5298;
-      border-color: #1e3c72;
-    }
-
-    .btn-primary:hover {
-      background-color: #1e3c72;
-    }
-
-    .btn-darkgreen {
-      background-color: #198754;
-      border-color: #146c43;
-    }
-
-    .btn-darkgreen:hover {
-      background-color: #146c43;
-    }
-
-    /* === Karten & Tabellen === */
-    .custom-container {
-      background-color: #fff;
-      border-radius: 12px;
-      /* padding: 20px; */
-      margin-top: 0px;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-    }
-
-    #TableBuchungen {
-      width: 100%;
-      font-size: 0.9rem;
-    }
-
-    #TableBuchungen tbody tr:hover {
-      background-color: #f1f5ff;
-    }
-
-    /* === Navbar Design === */
-    .navbar-custom {
-      background: linear-gradient(to right, #cce5f6, #e6f2fb);
-      border-bottom: 1px solid #b3d7f2;
-    }
-
-    .navbar-custom .navbar-brand,
-    .navbar-custom .nav-link {
-      color: #0c2c4a;
-      font-weight: 500;
-    }
-
-    .navbar-custom .nav-link:hover,
-    .navbar-custom .nav-link:focus {
-      color: #04588c;
-      text-decoration: underline;
-    }
-
-    /* === Modal === */
-    .modal-content {
-      border-radius: 12px;
-    }
-
-    .modal-header {
-      background-color: #0946c9ff;
-      color: #fff;
-      border-radius: 12px 12px 0 0;
-    }
-
-    /* === Toast === */
-    .toast-green {
-      background-color: #198754;
-      color: #fff;
     }
   </style>
 </head>
@@ -195,13 +93,19 @@ $kassennummer = $_SESSION['kassennummer'] ?? null;
               <div class="col-12 col-md-auto ms-md-auto text-center text-md-end">
                 <!-- Auf kleinen Bildschirmen: eigene Zeile für E-Mail -->
                 <div class="d-block d-md-inline mb-1 mb-md-0">
-                  <span class="me-2">Angemeldet als:
-                    <?= htmlspecialchars($_SESSION['email']) ?></span>
+                  <span class="me-2">Benutzer: <?= htmlspecialchars($_SESSION['email']) ?></span>
                 </div>
-                <!-- Logout-Button -->
-                <a class="btn btn-darkgreen btn-sm" title="Abmelden vom Webshop" href="logout.php">
-                  <i class="fa fa-sign-out" aria-hidden="true"></i> Ausloggen
-                </a>
+                <!-- Version -->
+                <span class="version-info" title="Git-Hash + Build-Datum">
+                  Version: <?= htmlspecialchars($appVersion->getVersion()) ?>
+                </span>
+                <span>
+                  <!-- Logout-Button -->
+                  <a class="btn btn-darkgreen btn-sm" title="Abmelden vom Webshop" href="logout.php">
+                    <i class="fa fa-sign-out" aria-hidden="true"></i> Ausloggen
+                  </a>
+
+                </span>
               </div>
             </div>
           </div>
@@ -341,7 +245,7 @@ $kassennummer = $_SESSION['kassennummer'] ?? null;
         WHERE userid = :userid         
         AND barkasse = 1 
         AND kassennummer = :kassennummer 
-         ORDER BY YEAR(datum) ASC, MONTH(datum) ASC, datum ASC, id ASC"; // älteste zuerst, dann nach ID
+         ORDER BY YEAR(datum) DESC, MONTH(datum) DESC, datum DESC, id DESC"; // neueste zuerst, dann nach ID
           $stmt = $pdo->prepare($sql);
           $stmt->execute(['userid' => $userid, 'kassennummer' => $kassennummer]);
 
@@ -375,21 +279,29 @@ $kassennummer = $_SESSION['kassennummer'] ?? null;
                 <th class='visible-column'>Beleg-Nr</th>
                 <th class='betrag-right'>Betrag</th>
                 <th class='betrag-right'>Mwst.</th>
-                <th>Buchungsart</th>                
+                <th class='betrag-right'>erm.</th>
+                <th>Buchungsart</th>
                 <th class='visible-column'>Verwendungszweck</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
               <?php
-
               // Alle Buchungsarten und deren MwSt-Ermäßigung einmal laden
-              $buchungsartenMwst = [];
-              $stmtBA = $pdo->query("SELECT buchungsart, mwst_ermaessigt FROM buchungsarten");
+              $stmtBA = $pdo->prepare("
+                  SELECT buchungsart, mwst_ermaessigt 
+                  FROM buchungsarten 
+                  WHERE userid = :userid
+              ");
+              $stmtBA->execute([':userid' => $userid]);
+
               while ($rowBA = $stmtBA->fetch(PDO::FETCH_ASSOC)) {
                 $buchungsartenMwst[$rowBA['buchungsart']] = $rowBA['mwst_ermaessigt'];
               }
-
+              // print_r($buchungsartenMwst);
+              
+              $summe = 0;
+              $mwstsumme = 0;
               // Datenzeilen durchlaufen
               while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 // Datum ins deutsche Format umwandeln
@@ -403,40 +315,91 @@ $kassennummer = $_SESSION['kassennummer'] ?? null;
                 $farbe = ($row['typ'] === 'Einlage') ? 'green' : 'red';
                 $betragFormatted = "<span style='color: {$farbe}; font-weight: bold;'>{$betragFormatted}</span>";
 
-                // Berechnung der MwSt
+                $brutto = $row['betrag'];
+                $netto = $brutto; // Fallback
+                $mwst = 0;
+                $steuersatz = 0;
+
                 if ($row['typ'] === 'Ausgabe') {
                   $erm = isset($buchungsartenMwst[$row['buchungsart']]) && $buchungsartenMwst[$row['buchungsart']] == 1;
 
                   if ($erm) {
                     // 7% MwSt
-                    $betragmwst = $betragmwst - ($betragmwst / 1.07);
+                    $steuersatz = 7;
+                    $netto = $brutto / 1.07;
+                    $mwst = $brutto - $netto;
                   } else {
                     // 19% MwSt
-                    $betragmwst = $betragmwst - ($betragmwst / 1.19);
+                    $steuersatz = 19;
+                    $netto = $brutto / 1.19;
+                    $mwst = $brutto - $netto;
                   }
                 } else if ($row['typ'] === 'Einlage') {
-                  $betragmwst = 0;
+                  // Keine MwSt bei Einlage
+                  $steuersatz = 0;
+                  $netto = $brutto;
+                  $mwst = 0;
                 }
 
+
+                // Werte runden (falls gewünscht, auf 2 Nachkommastellen)
+                $netto = round($netto, 2);
+                $mwst = round($mwst, 2);
+
+
+                // Werte runden (falls gewünscht, auf 2 Nachkommastellen)
+                $netto = round($netto, 2);
+                $mwst = round($mwst, 2);
+
                 // MwSt Betrag formatieren
-                $betragMwstFormatted = number_format($betragmwst, 2, '.', ',') . " €";
+                $betragMwstFormatted = number_format($mwst, 2, '.', ',') . " €";
                 $betragMwstFormatted = "<span style='color: {$farbe}; font-weight: bold;'>{$betragMwstFormatted}</span>";
+
+                if ($row['typ'] === 'Einlage')
+                  $erm = '';
 
                 // Tabelle ausgeben
                 echo "<tr>
-            <td style='vertical-align: top; width:7%;'>{$formattedDate}</td>
-            <td style='vertical-align: top; width:7%;' class='visible-column'>{$row['typ']}</td>
-            <td style='vertical-align: top; width:10%;' class='visible-column'>{$row['belegnr']}</td>
-            <td style='vertical-align: top; width:5%; text-align:right; white-space: nowrap;'>{$betragFormatted}</td>
-            <td style='vertical-align: top; width:5%; text-align:right; white-space: nowrap;'>{$betragMwstFormatted}</td>
-            <td style='vertical-align: top; width:20%;'>{$row['vonan']}</td>            
-            <td style='vertical-align: top; width:20%;'>{$row['beschreibung']}</td>
-            <td style='vertical-align: top; width:7%; white-space: nowrap;'>
-                <a href='EditBuchung.php?id={$row['id']}' style='width:60px;' title='Buchung bearbeiten' class='btn btn-primary btn-sm'><i class='fa-solid fa-pen-to-square'></i></a> 
-                <a href='DeleteBuchung.php?id={$row['id']}' data-id='{$row['id']}' style='width:60px;' title='Buchung löschen' class='btn btn-danger btn-sm delete-button'><i class='fa-solid fa-trash'></i></a>
-            </td>
-        </tr>";
+                      <td style='vertical-align: top; width:7%;'data-order=" . (new DateTime($row['datum']))->format('Y-m-d') . ">{$formattedDate}</td>
+                      <td style='vertical-align: top; width:7%;' class='visible-column'>{$row['typ']}</td>
+                      <td style='vertical-align: top; width:10%;' class='visible-column'>{$row['belegnr']}</td>
+                      <td style='vertical-align: top; width:5%; text-align:right; white-space: nowrap;'>{$betragFormatted}</td>
+                      <td style='vertical-align: top; width:5%; text-align:right; white-space: nowrap;'>{$betragMwstFormatted}</td>
+                      <td style='vertical-align: top; width:5%; text-align:right; white-space: nowrap;'>{$erm}</td>
+                      <td style='vertical-align: top; width:20%;'>{$row['vonan']}</td>            
+                      <td style='vertical-align: top; width:20%;'>{$row['beschreibung']}</td>
+                      <td style='vertical-align: top; width:7%; white-space: nowrap;'>
+                          <a href='EditBuchung.php?id={$row['id']}' style='width:60px;' title='Buchung bearbeiten' class='btn btn-primary btn-sm'><i class='fa-solid fa-pen-to-square'></i></a> 
+                          <a href='DeleteBuchung.php?id={$row['id']}' data-id='{$row['id']}' style='width:60px;' title='Buchung löschen' class='btn btn-danger btn-sm delete-button'><i class='fa-solid fa-trash'></i></a>
+                      </td>
+                  </tr>";
+
+                if ($row['typ'] === 'Einlage') {
+                  $summe += $row['betrag'];
+                  $mwstsumme += $mwst;
+                } else {
+                  $summe -= $row['betrag'];
+                  $mwstsumme += $mwst;
+                }
+
               }
+
+              $farbesumme = ($summe > 0) ? 'green' : 'red';
+              $farbesummemwst = ($mwstsumme > 0) ? 'green' : 'red';
+
+              echo "<tr>
+                      <td style='vertical-align: top; width:7%;'>Summe</td>
+                      <td style='vertical-align: top; width:7%;' class='visible-column'></td>
+                      <td style='vertical-align: top; width:10%;' class='visible-column'></td>
+                      <td style='vertical-align: top; width:5%; text-align:right; white-space: nowrap;font-weight:bold;'><span style='color: {$farbesumme}; font-weight: bold;'>" . number_format($summe, 2, '.', ',') . " €" . "</td>
+                      <td style='vertical-align: top; width:5%; text-align:right; white-space: nowrap;font-weight:bold;'><span style='color: {$farbesummemwst}; font-weight: bold;'>" . number_format($mwstsumme, 2, '.', ',') . " €" . "</td>
+                      <td style='vertical-align: top; width:5%; text-align:right; white-space: nowrap;'></td>
+                      <td style='vertical-align: top; width:20%;'></td>            
+                      <td style='vertical-align: top; width:20%;'></td>
+                      <td style='vertical-align: top; width:7%; white-space: nowrap;'>
+                          
+                      </td>
+                  </tr>";
               ?>
             </tbody>
           </table>
@@ -487,7 +450,7 @@ $kassennummer = $_SESSION['kassennummer'] ?? null;
           } else {
             $sql = "SELECT SUM(CASE WHEN typ = 'Einlage' THEN betrag ELSE 0 END) AS einlagen,
                     SUM(CASE WHEN typ = 'Ausgabe' THEN betrag ELSE 0 END) AS ausgaben
-                    FROM buchungen WHERE userid = :userid kassennummer = :kassennummer and barkasse = 1";
+                    FROM buchungen WHERE userid = :userid AND kassennummer = :kassennummer and barkasse = 1";
             $stmt = $pdo->prepare($sql);
             $stmt->execute(['userid' => $userid, 'kassennummer' => $kassennummer]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -622,7 +585,6 @@ $kassennummer = $_SESSION['kassennummer'] ?? null;
           ];
 
           // Alle Buchungsarten mit MwSt-Ermäßigung einmal laden
-          $buchungsartenMwst = [];
           $buchungsartenMwst = [];
 
           // prepare statt query
@@ -829,6 +791,7 @@ $kassennummer = $_SESSION['kassennummer'] ?? null;
     <script src="js/jquery.dataTables.min.js"></script>
     <script src="js/dataTables.min.js"></script>
     <script src="js/dataTables.responsive.min.js"></script>
+    <script src="js/date-eu.js"></script>
 
     <script>
       $(document).ready(function () {
@@ -877,26 +840,28 @@ $kassennummer = $_SESSION['kassennummer'] ?? null;
         }
       }
 
-      $(document).ready(function () {
-        $('#TableBuchungen').DataTable({
-          language: { url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/de-DE.json" },
-          responsive: {
-            details: {
-              display: $.fn.dataTable.Responsive.display.modal({
-                header: function (row) {
-                  var data = row.data();
-                  return 'Details zu ' + data[1];
-                }
-              }),
-              renderer: $.fn.dataTable.Responsive.renderer.tableAll({
-                tableClass: 'table'
-              })
-            }
-          },
-          scrollX: false,
-          pageLength: 50,
-          autoWidth: false
-        });
+      $('#TableBuchungen').DataTable({
+        language: { url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/de-DE.json" },
+        responsive: {
+          details: {
+            display: $.fn.dataTable.Responsive.display.modal({
+              header: function (row) {
+                var data = row.data();
+                return 'Details zu ' + data[1];
+              }
+            }),
+            renderer: $.fn.dataTable.Responsive.renderer.tableAll({
+              tableClass: 'table'
+            })
+          }
+        },
+        scrollX: false,
+        pageLength: 50,
+        autoWidth: false,
+        columnDefs: [
+          { type: 'date-eu', targets: 0 } // 0 = Spalte mit Datum
+        ],
+        order: [[0, 'desc']] // Sortiere standardmäßig nach Datum absteigend
       });
     </script>
 

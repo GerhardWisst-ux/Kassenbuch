@@ -1,0 +1,40 @@
+version: '3.9'
+
+services:
+  db:
+    image: mariadb:latest
+    container_name: kassenbuch-db
+    environment:
+      - MARIADB_ROOT_PASSWORD=root
+      - MARIADB_DATABASE=kassenbuch
+      - MARIADB_USER=kassenbuch
+      - MARIADB_PASSWORD=n
+    restart: on-failure:10
+    volumes:
+      - db-vol:/var/lib/mysql
+      - ./db-init:/docker-entrypoint-initdb.d
+
+  pma:
+    image: phpmyadmin:latest
+    container_name: kassenbuch-pma
+    environment:
+      - PMA_HOST=db
+    ports:
+      - "6080:80"
+    restart: on-failure:10
+    depends_on:
+      - db
+
+  php:
+    build: ./php-app
+    container_name: kassenbuch-php
+    volumes:
+      - ./php-app:/var/www/html
+    ports:
+      - "6081:80"
+    depends_on:
+      - db
+
+volumes:
+  db-vol:
+    name: db-vol-name5

@@ -88,20 +88,10 @@ if ($_SESSION['userid'] == "") {
               <h2 class="h4 mb-0">CashControl - Kasse bearbeiten</h2>
             </div>
 
-            <!-- Benutzerinfo + Logout -->
-            <div class="col-12 col-md-auto ms-md-auto text-center text-md-end">
-              <!-- Auf kleinen Bildschirmen: eigene Zeile für E-Mail -->
-              <div class="d-block d-md-inline mb-1 mb-md-0">
-                <span class="me-2">Angemeldet als:
-                  <?= htmlspecialchars($_SESSION['email']) ?></span>
-              </div>
-              <!-- Logout-Button -->
-              <a class="btn btn-darkgreen btn-sm" title="Abmelden vom Webshop" href="logout.php">
-                <i class="fa fa-sign-out" aria-hidden="true"></i> Ausloggen
-              </a>
-            </div>
+            <?php
+            require_once 'includes/benutzerversion.php';
+            ?>
           </div>
-        </div>
       </header>
       <br>
       <div class="mt-2 mx-2">
@@ -115,8 +105,8 @@ if ($_SESSION['userid'] == "") {
         <div class="form-group row me-4">
           <label class="col-sm-2 col-form-label text-dark">Kontonummer:</label>
           <div class="col-sm-2">
-            <input class="form-control" type="text" id="kontonummer" name="kontonummer" required pattern="\d{1,8}"
-              title="Maximal 8 Ziffern" value="<?= htmlspecialchars($result['kontonummer']) ?>" maxlength="8">
+            <input class="form-control" type="text" id="kontonummer" name="kontonummer" required pattern="\d{1,6}"
+              title="Maximal 6 Ziffern" value="<?= htmlspecialchars($result['kontonummer']) ?>" maxlength="6">
           </div>
         </div>
         <div class="form-group row me-4">
@@ -140,7 +130,7 @@ if ($_SESSION['userid'] == "") {
           <label for="checkminus" class="col-sm-2 col-form-label text-dark">Minusbestand:</label>
           <div class="col-sm-10 d-flex align-items-center">
             <div class="form-check">
-              <input class="form-check-input" type="checkbox" id="dauerbuchung" name="checkminus" value="1"
+              <input class="form-check-input checkbox-lg" type="checkbox" id="dauerbuchung" name="checkminus" value="1"
                 <?= isset($result['checkminus']) && $result['checkminus'] == 1 ? 'checked' : '' ?>>
               <label class="form-check-label" for="dauerbuchung"></label>
             </div>

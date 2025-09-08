@@ -1,7 +1,5 @@
 <?php
-ob_start();
 session_start();
-
 require 'db.php';
 
 $userid = $_SESSION['userid'] ?? null;
@@ -14,16 +12,18 @@ if (!$userid || !$buchungsartId) {
 }
 
 // SQL mit optionalem Monatsfilter
-$sql = "SELECT datum, vonan, beschreibung, betrag 
-        FROM buchungen 
-        WHERE userid = :userid 
-          AND kassennummer = :kassennummer
-          AND buchungsart = :buchungsart";
+$sql = "
+    SELECT datum, belegnr, vonan, beschreibung, betrag 
+    FROM buchungen 
+    WHERE userid = :userid 
+      AND kassennummer = :kassennummer
+      AND buchungsart = :buchungsart
+";
 
 $params = [
     'userid' => $userid,
     'kassennummer' => $kassennummer,
-    'buchungsart' => $buchungsartId
+    'buchungsart' => $buchungsartId,
 ];
 
 if ($monat) {
@@ -38,27 +38,100 @@ $stmt->execute($params);
 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 if (!$rows) {
-    echo "<div>Keine Details vorhanden.</div>";
-    exit;
+    exit("<div>Keine Details vorhanden.</div>");
 }
 
-echo "<table class='table table-sm table-striped'>
+// Tabelle ausgeben
+echo "<table id='TableDetail' class='table table-sm table-striped'>
         <thead>
             <tr>
                 <th>Datum</th>
-                <th>Beschreibung</th>
-                <th style='text-align:right;'>Betrag</th>
+                <th>Beleg-Nr</th>
+                <th>Buchungsart</th>
+                <th>Beschreibung</th>                
+                <th class='text-end'>Betrag</th>
             </tr>
         </thead>
         <tbody>";
 
+$summe = 0;
+
 foreach ($rows as $r) {
+    $summe += $r['betrag'];
+
     echo "<tr>
             <td>" . htmlspecialchars(date('d.m.Y', strtotime($r['datum']))) . "</td>
-            <td>" . htmlspecialchars($r['beschreibung']) . "</td>
-            <td style='text-align:right;'>" . number_format($r['betrag'], 2, ',', '.') . " €</td>
+            <td>" . htmlspecialchars($r['belegnr']) . "</td>
+            <td>" . htmlspecialchars($r['vonan']) . "</td>
+            <td>" . htmlspecialchars($r['beschreibung']) . "</td>            
+            <td class='text-end'>" . number_format($r['betrag'], 2, ',', '.') . " €</td>
           </tr>";
 }
 
+// Summenzeile
+echo "<tr class='table-secondary fw-bold'>
+        <td colspan='4' class='text-end'>Summe:</td>
+        <td class='text-end'>" . number_format($summe, 2, ',', '.') . " €</td>
+      </tr>";
+
 echo "</tbody></table>";
 ?>
+
+<script>
+    // $(document).ready(function () {
+    //     $('#TableDetail').DataTable({
+    //         language: { url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/de-DE.json" },
+    //         responsive: {
+    //             details: {
+    //                 display: $.fn.dataTable.Responsive.display.modal({
+    //                     header: function (row) {
+    //                         var data = row.data();
+    //                         return 'Details zu ' + data[1];
+    //                     }
+    //                 }),
+    //                 renderer: $.fn.dataTable.Responsive.renderer.tableAll({
+    //                     tableClass: 'table'
+    //                 })
+    //             }
+    //         },
+    //         scrollX: false,
+    //         pageLength: 50,
+    //         autoWidth: false
+    //     });
+    // });
+
+    // Automatisch Berechnung auslösen, wenn das Jahr geändert wird
+    document.getElementById('jahr')?.addEventListener('change', function () {
+        const form = document.getElementById('bestaendeForm');
+        if (!form) return;
+
+        const hiddenButton = document.createElement('input');
+        hiddenButton.type = 'hidden';
+        hiddenButton.name = 'berechne_bestaende';
+        hiddenButton.value = '1';
+
+        form.appendChild(hiddenButton);
+        form.submit();
+    });
+</script>
+
+<style>
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    th,
+    td {
+        padding: 8px;
+        border: 1px solid #ddd;
+    }
+
+    th {
+        background-color: #f2f2f2;
+    }
+
+    .table-secondary {
+        background-color: #e9ecef;
+    }
+</style>

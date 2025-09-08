@@ -1,6 +1,3 @@
-<!DOCTYPE html>
-<html>
-
 <?php
 ob_start();
 
@@ -16,6 +13,8 @@ if (empty($_SESSION['csrf_token'])) {
 
 ?>
 
+<!DOCTYPE html>
+<html>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -30,7 +29,7 @@ if (empty($_SESSION['csrf_token'])) {
 
     <style>
         /* Hover-Effekt für Cards */
-        < !-- Hover Effekt -->.card-hover {
+        .card-hover {
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
@@ -50,6 +49,9 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['kassennummer'] = null;
     require_once 'includes/header.php';
     require_once 'includes/bestaende_berechnen.php';
+
+
+
     ?>
 
     <div id="kasse">
@@ -69,12 +71,19 @@ if (empty($_SESSION['csrf_token'])) {
                         <div class="col-12 col-md-auto ms-md-auto text-center text-md-end">
                             <!-- Auf kleinen Bildschirmen: eigene Zeile für E-Mail -->
                             <div class="d-block d-md-inline mb-1 mb-md-0">
-                                <span class="me-2">Angemeldet als: <?= htmlspecialchars($_SESSION['email']) ?></span>
+                                <span class="me-2">Benutzer: <?= htmlspecialchars($_SESSION['email']) ?></span>
                             </div>
-                            <!-- Logout-Button -->
-                            <a class="btn btn-darkgreen btn-sm" title="Abmelden vom Webshop" href="logout.php">
-                                <i class="fa fa-sign-out" aria-hidden="true"></i> Ausloggen
-                            </a>
+                            <!-- Version -->
+                            <span class="version-info" title="Git-Hash + Build-Datum">
+                                Version: <?= htmlspecialchars($appVersion->getVersion()) ?>
+                            </span>
+                            <span>
+                                <!-- Logout-Button -->
+                                <a class="btn btn-darkgreen btn-sm" title="Abmelden vom Webshop" href="logout.php">
+                                    <i class="fa fa-sign-out" aria-hidden="true"></i> Ausloggen
+                                </a>
+
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -88,109 +97,92 @@ if (empty($_SESSION['csrf_token'])) {
             echo '</div><br>';
 
             ?>
-            <div class="row g-3 position-relative">
-                <?php
-                // Alle Kassen für den Benutzer
-                $sql = "SELECT * FROM kasse WHERE userid = :userid";
-                $stmt = $pdo->prepare($sql);
-                $stmt->execute(['userid' => $userid]);
+            <?php
 
-                while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
 
-                    $jahr = date('Y');
 
-                    $result = berechneBestaende($pdo, $userid, $row['id'], $jahr);
+            // Anzahl aktive Kassen
+            $stmtAktiv = $pdo->prepare("SELECT COUNT(*) FROM kasse WHERE userid = :userid AND archiviert = 0");
+            $stmtAktiv->execute(['userid' => $userid]);
+            $anzahlAktiv = (int) $stmtAktiv->fetchColumn();
 
-                    $kassenId = $row['id'];
-                    $formattedDate = (new DateTime($row['datumab']))->format('d.m.Y');
-                    $anfangsbestand = (float) $row['anfangsbestand'];
-                    $anfangsbestandFormatted = number_format($anfangsbestand, 2, ',', '.') . ' €';
+            // Anzahl archivierte Kassen
+            $stmtArchiv = $pdo->prepare("SELECT COUNT(*) FROM kasse WHERE userid = :userid AND archiviert = 1");
+            $stmtArchiv->execute(['userid' => $userid]);
+            $anzahlArchiv = (int) $stmtArchiv->fetchColumn();
 
-                    // Letzten Bestand aus bestaende holen
-                    $stmtBestand = $pdo->prepare("
-                                        SELECT bestand 
-                                        FROM bestaende 
-                                        WHERE kassennummer = :kassennummer 
-                                        AND userid = :userid
-                                        AND bestand > 0
-                                        ORDER BY datum DESC
-                                        LIMIT 1
-                                    ");
-                    $stmtBestand->execute([
-                        ':kassennummer' => $kassenId,
-                        ':userid' => $userid
-                    ]);
-                    $aktuellerBestand = $stmtBestand->fetchColumn();
-                    $aktuellerBestandFormatted = $aktuellerBestand !== false
-                        ? number_format((float) $aktuellerBestand, 2, ',', '.') . ' €'
-                        : '-';
 
-                    // Badge für Kasse minus mit Tooltip
-                    $checkminusBadge = $row['checkminus'] == 1
-                        ? '<span class="badge bg-danger" data-bs-toggle="tooltip" title="Kasse kann ins Minus gehen">Ja</span>'
-                        : '<span class="badge bg-success" data-bs-toggle="tooltip" title="Kasse darf nicht ins Minus gehen">Nein</span>';
+            // Summe der aktuellen Bestände aktive Kassen
+            $stmtSaldoAktiv = $pdo->prepare("
+    SELECT SUM(bestand) 
+    FROM bestaende b
+    JOIN kasse k ON b.kassennummer = k.id
+    WHERE k.userid = :userid AND k.archiviert = 0
+      AND b.datum = (SELECT MAX(b2.datum) 
+                     FROM bestaende b2 
+                     WHERE b2.kassennummer = b.kassennummer)
+");
+            $stmtSaldoAktiv->execute(['userid' => $userid]);
+            $summeAktiv = (float) $stmtSaldoAktiv->fetchColumn() ?: 0;
 
-                    // Header-Farbe je nach Anfangsbestand
-                    if ($aktuellerBestand >= 200) {
-                        $headerClass = 'bg-success text-white';
-                    } elseif ($aktuellerBestand >= 100) {
-                        $headerClass = 'bg-warning text-dark';
-                    } else {
-                        $headerClass = 'bg-danger text-white';
-                    }
+            // Summe der aktuellen Bestände archivierte Kassen
+            $stmtSaldoArchiv = $pdo->prepare("
+    SELECT SUM(bestand) 
+    FROM bestaende b
+    JOIN kasse k ON b.kassennummer = k.id
+    WHERE k.userid = :userid AND k.archiviert = 1
+      AND b.datum = (SELECT MAX(b2.datum) 
+                     FROM bestaende b2 
+                     WHERE b2.kassennummer = b.kassennummer)
+");
+            $stmtSaldoArchiv->execute(['userid' => $userid]);
+            $summeArchiv = (float) $stmtSaldoArchiv->fetchColumn() ?: 0;
+            ?>
 
-                    // Kritisches Label bei < 200 €
-                    $kritischLabel = $aktuellerBestand < 100
-                        ? '<span class="position-absolute top-0 end-0 m-2 px-2 py-1 bg-danger text-white rounded-pill small" title="Bestand sehr niedrig!">KRITISCH</span>'
-                        : '';
-
-                    echo "
-        <div class='col-sm-6 col-md-4 col-lg-3 position-relative'>
-            <div class='card shadow-sm d-flex h-100 flex-column card-hover'>
-                {$kritischLabel}
-                <div class='card-header {$headerClass} py-2 px-3'>
-                    <h6 class='mb-0'>{$row['kasse']}</h6>
+            <ul class="nav nav-tabs" id="kassenTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="aktive-tab" data-bs-toggle="tab" data-bs-target="#aktive"
+                        type="button" role="tab">
+                        Aktive Kassen <span class="badge bg-primary"><?= $anzahlAktiv ?></span>
+                        <small>(<?= number_format($summeAktiv, 2, ',', '.') ?> €)</small>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="archivierte-tab" data-bs-toggle="tab" data-bs-target="#archivierte"
+                        type="button" role="tab">
+                        Archivierte Kassen <span class="badge bg-secondary"><?= $anzahlArchiv ?></span>
+                        <small>(<?= number_format($summeArchiv, 2, ',', '.') ?> €)</small>
+                    </button>
+                </li>
+            </ul>
+            <div class="tab-content mt-3" id="kassenTabsContent">
+                <div class="tab-pane fade show active" id="aktive" role="tabpanel">
+                    <div class="row">
+                        <?php
+                        // Aktive Kassen laden
+                        $stmt = $pdo->prepare("SELECT * FROM kasse WHERE userid = :userid AND archiviert = 0 ORDER BY datumab ASC");
+                        $stmt->execute([':userid' => $userid]);
+                        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                            $jahr = date('Y');
+                            $result = berechneBestaende($pdo, $userid, $row['id'], $jahr);
+                            include 'KassenCard.php';
+                        }
+                        ?>
+                    </div>
                 </div>
-                <div class='card-body py-2 px-3 flex-grow-1'>
-                    <p class='card-text mb-1'>
-                        <strong>Kontonummer:</strong> {$row['kontonummer']}
-                    </p>
-                    <p class='card-text mb-1'>
-                        <strong>Datum ab:</strong> {$formattedDate}
-                    </p>
-                    <p class='card-text mb-1'>
-                        <strong>Anfangsbestand:</strong> {$anfangsbestandFormatted}
-                    </p>
-                    <p class='card-text mb-1'>
-                        <strong>Aktueller Bestand:</strong> {$aktuellerBestandFormatted}
-                    </p>
-                  
-                    <p class='card-text mb-0'>
-                        <strong>Kasse minus:</strong> {$checkminusBadge}
-                    </p>
-                </div>
-                <div class='card-footer bg-light py-2 px-3 d-flex justify-content-end'>
-                    <a href='Editkasse.php?id={$row['id']}' 
-                       class='btn btn-primary btn-sm me-2' title='Kasse bearbeiten'>
-                       <i class='fa-solid fa-pen-to-square'></i>
-                    </a>
-                    <a href='Buchungen.php?kassennummer={$row['id']}' 
-                       class='btn btn-secondary btn-sm me-2' title='Buchungen ansehen'>
-                       <i class='fa-solid fa-ticket'></i>
-                    </a>
-                    <a href='DeleteKasse.php?id={$row['id']}' 
-                       data-id='{$row['id']}' 
-                       class='btn btn-danger btn-sm delete-button' title='Kasse löschen'>
-                       <i class='fa-solid fa-trash'></i>
-                    </a>
+                <div class="tab-pane fade" id="archivierte" role="tabpanel">
+                    <div class="row">
+                        <?php
+                        // Archivierte Kassen laden
+                        $stmt = $pdo->prepare("SELECT * FROM kasse WHERE userid = :userid AND archiviert = 1 ORDER BY datumab ASC");
+                        $stmt->execute([':userid' => $userid]);
+                        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                            include 'KassenCard.php';
+                        }
+                        ?>
+                    </div>
                 </div>
             </div>
-        </div>";
-                }
-                ?>
-            </div>
-
-
 
 
             <!-- Hover Effekt -->

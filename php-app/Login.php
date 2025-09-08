@@ -1,7 +1,10 @@
 <?php
+ob_start();
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
+require 'db.php';
+session_start();
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -108,31 +111,28 @@ error_reporting(E_ALL);
 
 <body>
     <?php
-    require 'db.php';
-    session_start(); // Session starten
     
     $_SESSION['userid'] = "";
 
+    $errorMessage = '';
+
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email = filter_var(trim($_POST['email']), FILTER_SANITIZE_EMAIL);
-        $passwort = trim($_POST['passwort']);
+        $password = trim($_POST['passwort']);
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $errorMessage = "Ungültige E-Mail-Adresse.";
         } else {
             try {
-                $statement = $pdo->prepare("SELECT * FROM users WHERE email = :email");
-                $statement->execute(['email' => $email]);
-                
-                $user = $statement->fetch();
-                $email = trim($_POST['email']);
-                $password = trim($_POST['passwort']);
-
                 $stmt = $pdo->prepare("SELECT id, email, passwort, freigeschaltet FROM users WHERE email = :email");
                 $stmt->execute(['email' => $email]);
                 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-                if ($user && password_verify($password, $user['passwort'])) {
+                if (!$user) {
+                    $errorMessage = "Benutzer existiert nicht.";
+                } elseif (!password_verify($password, $user['passwort'])) {
+                    $errorMessage = "Passwort ist falsch.";
+                } else {
                     if ((int) $user['freigeschaltet'] === 1) {
                         // Direkt einloggen
                         $_SESSION['userid'] = $user['id'];
@@ -145,19 +145,17 @@ error_reporting(E_ALL);
                         header("Location: twofactor.php");
                         exit;
                     }
-                } else {
-                    $error = "E-Mail oder Passwort ist falsch!";
                 }
             } catch (PDOException $e) {
                 $errorMessage = "Datenbankfehler: " . $e->getMessage();
             }
         }
     }
-    ?>
+    ?>    
 
     <!-- Inhalt mit Login-Form -->
 
-    <body>
+    <body>     
         <div class="container mt-5">
             <div class="row justify-content-center">
                 <div class="col-md-6">

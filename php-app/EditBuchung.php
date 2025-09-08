@@ -111,18 +111,9 @@ if ($_SESSION['userid'] == "") {
               <h2 class="h2 mb-0"><?php echo htmlspecialchars($kasse); ?> - Buchung bearbeiten</h2>
             </div>
 
-            <!-- Benutzerinfo + Logout -->
-            <div class="col-12 col-md-auto ms-md-auto text-center text-md-end">
-              <!-- Auf kleinen Bildschirmen: eigene Zeile für E-Mail -->
-              <div class="d-block d-md-inline mb-1 mb-md-0">
-                <span class="me-2">Angemeldet als:
-                  <?= htmlspecialchars($_SESSION['email']) ?></span>
-              </div>
-              <!-- Logout-Button -->
-              <a class="btn btn-darkgreen btn-sm" title="Abmelden vom Webshop" href="logout.php">
-                <i class="fa fa-sign-out" aria-hidden="true"></i> Ausloggen
-              </a>
-            </div>
+            <?php
+            require_once 'includes/benutzerversion.php';
+            ?>
           </div>
         </div>
       </header>
@@ -205,7 +196,7 @@ if ($_SESSION['userid'] == "") {
             <select class="form-control" id="buchungsarten-dropdown" name="buchungart_id"
               onchange="toggleCustomInput(this)">
               <?php
-              $sql = "SELECT ID, Buchungsart FROM Buchungsarten WHERE userid = :userid ORDER BY Buchungsart";
+              $sql = "SELECT ID, buchungsart FROM buchungsarten WHERE userid = :userid ORDER BY buchungsart";
               $stmt = $pdo->prepare($sql);
               $stmt->execute(['userid' => $userid]);
 
@@ -249,7 +240,7 @@ if ($_SESSION['userid'] == "") {
       const betragInput = document.getElementById("betrag");
       const warnung = document.getElementById("betragWarnung");
       const typ = document.getElementById("typ");
-      
+
       const bestand = parseFloat(betragInput.getAttribute("data-bestand"));
 
       betragInput.addEventListener("input", function () {

@@ -112,6 +112,25 @@ $sumAnteil = array_sum(array_column($rows, 'anteil'));
         .details-control {
             cursor: pointer;
         }
+
+        /* Dropdown-Breite begrenzen */
+        #monat {
+            width: 200px;
+            /* feste Breite */
+            max-width: 100%;
+            /* responsive, nicht größer als Container */
+        }
+
+        /* Scrollbar für lange Listen */
+        #monat option {
+            max-height: 150px;
+            /* maximale Höhe jeder Option-Liste (in manchen Browsern nötig) */
+        }
+
+        /* Modernere Darstellung mit leichtem Schatten */
+        #monat {
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+        }
     </style>
 </head>
 
@@ -138,18 +157,9 @@ $sumAnteil = array_sum(array_column($rows, 'anteil'));
                 <div class="col-12 text-center mb-2 mb-md-0">
                     <h2 class="h4 mb-0"><?php echo htmlspecialchars($kasse); ?> - Auswertungen</h2>
                 </div>
-                <!-- Benutzerinfo + Logout -->
-                <div class="col-12 col-md-auto ms-md-auto text-center text-md-end">
-                    <!-- Auf kleinen Bildschirmen: eigene Zeile für E-Mail -->
-                    <div class="d-block d-md-inline mb-1 mb-md-0">
-                        <span class="me-2">Angemeldet als:
-                            <?= htmlspecialchars($_SESSION['email']) ?></span>
-                    </div>
-                    <!-- Logout-Button -->
-                    <a class="btn btn-darkgreen btn-sm" title="Abmelden vom Webshop" href="logout.php">
-                        <i class="fa fa-sign-out" aria-hidden="true"></i> Ausloggen
-                    </a>
-                </div>
+                <?php
+                require_once 'includes/benutzerversion.php';
+                ?>
             </div>
         </div>
     </header>

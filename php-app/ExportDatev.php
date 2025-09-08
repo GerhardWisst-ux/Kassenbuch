@@ -144,16 +144,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="col-12 text-center mb-2 mb-md-0">
                     <h2 class="h4 mb-0">CashControl - DATEV-Export</h2>
                 </div>
-                <!-- Benutzerinfo + Logout -->
-                <div class="col-12 col-md-auto ms-md-auto text-center text-md-end">
-                    <div class="d-block d-md-inline mb-1 mb-md-0">
-                        <span class="me-2">Angemeldet als:
-                            <?= htmlspecialchars($_SESSION['email']) ?></span>
-                    </div>
-                    <a class="btn btn-darkgreen btn-sm" title="Abmelden vom Webshop" href="logout.php">
-                        <i class="fa fa-sign-out" aria-hidden="true"></i> Ausloggen
-                    </a>
-                </div>
+                <?php
+                require_once 'includes/benutzerversion.php';
+                ?>
             </div>
         </div>
     </header>
@@ -278,13 +271,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </tr>
                 </tfoot>
             </table>
-
         </div>
-
 
     <?php endif; ?>
 
     </div>
+    <script src="js/bootstrap.bundle.min.js"></script>
 </body>
 
 </html>

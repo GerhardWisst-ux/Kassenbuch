@@ -82,24 +82,12 @@ if (empty($_SESSION['csrf_token'])) {
               ?>
               <!-- Titel zentriert -->
               <div class="col-12 text-center mb-2 mb-md-0">
-                <h2 class="h2 mb-0"><?php echo htmlspecialchars($kasse); ?> - Buchungungsarten</h2>
+                <h4 class="h4 mb-0"><?php echo htmlspecialchars($kasse); ?> - Buchungungsarten</h2>
               </div>
 
-
-              <!-- Benutzerinfo + Logout -->
-              <div class="col-12 col-md-auto ms-md-auto text-center text-md-end">
-                <!-- Auf kleinen Bildschirmen: eigene Zeile für E-Mail -->
-                <div class="d-block d-md-inline mb-1 mb-md-0">
-                  <span class="me-2">Angemeldet als:
-                    <?= htmlspecialchars($_SESSION['email']) ?></span>
-                </div>
-                <!-- Logout-Button -->
-                <a class="btn btn-darkgreen btn-sm" title="Abmelden vom Webshop" href="logout.php">
-                  <i class="fa fa-sign-out" aria-hidden="true"></i> Ausloggen
-                </a>
-              </div>
-            </div>
-          </div>
+              <?php
+              require_once 'includes/benutzerversion.php';
+              ?>
         </header>
         <?php
 

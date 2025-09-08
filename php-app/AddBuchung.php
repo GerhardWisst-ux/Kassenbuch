@@ -18,9 +18,8 @@ if ($_SESSION['userid'] == "") {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>CashControl Position hinzufügen</title>
+    <title>CashControl Buchungsart hinzufügen</title>
 
-    <!-- CSS -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="css/style.css" rel="stylesheet">
@@ -46,7 +45,7 @@ if ($_SESSION['userid'] == "") {
     require_once 'includes/header.php';
 
     // Buchungsarten laden
-    $sql = "SELECT DISTINCT ID, Buchungsart FROM Buchungsarten WHERE userid = :userid ORDER BY Buchungsart";
+    $sql = "SELECT DISTINCT ID, buchungsart FROM buchungsarten WHERE userid = :userid ORDER BY Buchungsart";
     $stmt = $pdo->prepare($sql);
     $stmt->execute(['userid' => $userid]);
     $buchungsarten = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -72,20 +71,10 @@ if ($_SESSION['userid'] == "") {
                 <div class="col-12 text-center mb-2 mb-md-0">
                     <h2 class="h2 mb-0"><?php echo htmlspecialchars($kasse); ?> - Buchung hinzufügen</h2>
                 </div>
-                <!-- Benutzerinfo + Logout -->
-                <div class="col-12 col-md-auto ms-md-auto text-center text-md-end">
-                    <!-- Auf kleinen Bildschirmen: eigene Zeile für E-Mail -->
-                    <div class="d-block d-md-inline mb-1 mb-md-0">
-                        <span class="me-2">Angemeldet als:
-                            <?= htmlspecialchars($_SESSION['email']) ?></span>
-                    </div>
-                    <!-- Logout-Button -->
-                    <a class="btn btn-darkgreen btn-sm" title="Abmelden vom Webshop" href="logout.php">
-                        <i class="fa fa-sign-out" aria-hidden="true"></i> Ausloggen
-                    </a>
-                </div>
+                <?php
+                require_once 'includes/benutzerversion.php';
+                ?>
             </div>
-        </div>
     </header>
 
     <div id="addbuchung" class="container-fluid mt-4">
@@ -137,19 +126,19 @@ if ($_SESSION['userid'] == "") {
                 </div>
             </div>
 
-          <div class="mb-3 row">
-          <label for="betrag" class="col-sm-2 col-form-label text-dark">Betrag:</label>
-          <div class="col-sm-1">
-            <div class="input-group">
-              <input class="form-control" type="number" step="0.01" id="betrag" name="betrag" required
-                data-bestand="<?= $aktuellerBestand ?>"                >
-              <span class="input-group-text">€</span>
+            <div class="mb-3 row">
+                <label for="betrag" class="col-sm-2 col-form-label text-dark">Betrag:</label>
+                <div class="col-sm-1">
+                    <div class="input-group">
+                        <input class="form-control" type="number" step="0.01" id="betrag" name="betrag" required
+                            data-bestand="<?= $aktuellerBestand ?>">
+                        <span class="input-group-text">€</span>
+                    </div>
+                    <small id="betragWarnung" class="text-danger fw-bold" style="display:none;">
+                        Betrag überschreitet den aktuellen Bestand!
+                    </small>
+                </div>
             </div>
-            <small id="betragWarnung" class="text-danger fw-bold" style="display:none;">
-              Betrag überschreitet den aktuellen Bestand!
-            </small>
-          </div>
-        </div>
 
             <div class="mb-3 row">
                 <label class="col-sm-2 col-form-label">Buchungsart:</label>

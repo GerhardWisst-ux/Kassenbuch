@@ -85,18 +85,9 @@ if ($_SESSION['userid'] == "") {
           <h2 class="h4 mb-0">CashControl - Bestand bearbeiten</h2>
         </div>
 
-        <!-- Benutzerinfo + Logout -->
-        <div class="col-12 col-md-auto ms-md-auto text-center text-md-end">
-          <!-- Auf kleinen Bildschirmen: eigene Zeile für E-Mail -->
-          <div class="d-block d-md-inline mb-1 mb-md-0">
-            <span class="me-2">Angemeldet als:
-              <?= htmlspecialchars($_SESSION['email']) ?></span>
-          </div>
-          <!-- Logout-Button -->
-          <a class="btn btn-darkgreen btn-sm" title="Abmelden vom Webshop" href="logout.php">
-            <i class="fa fa-sign-out" aria-hidden="true"></i> Ausloggen
-          </a>
-        </div>
+        <?php
+        require_once 'includes/benutzerversion.php';
+        ?>
       </div>
     </div>
   </header>
@@ -118,24 +109,24 @@ if ($_SESSION['userid'] == "") {
           $isPast = isset($result['datum']) && strtotime($result['datum']) < strtotime(date('Y-m-d'));
           $bestand = number_format($result['einlagen'] - $result['ausgaben'], 2, '.', '');
           ?>
-         <div class="form-group row">
+          <div class="form-group row">
             <label class="col-sm-2 col-form-label text-dark">Einlagen:</label>
             <div class="col-sm-1">
               <div class="input-group">
                 <input id="einlagen" class="form-control text-end" type="text" name="einlagen"
-                value="<?= htmlspecialchars($result['einlagen']) ?>">
-              <span class="input-group-text">€</span>
+                  value="<?= htmlspecialchars($result['einlagen']) ?>">
+                <span class="input-group-text">€</span>
               </div>
             </div>
           </div>
-          
+
           <div class="form-group row">
             <label class="col-sm-2 col-form-label text-dark">Ausgaben:</label>
             <div class="col-sm-1">
               <div class="input-group">
                 <input id="ausgaben" class="form-control text-end" type="text" name="ausgaben"
-                value="<?= htmlspecialchars($result['ausgaben']) ?>">
-              <span class="input-group-text">€</span>
+                  value="<?= htmlspecialchars($result['ausgaben']) ?>">
+                <span class="input-group-text">€</span>
               </div>
             </div>
           </div>
@@ -144,8 +135,8 @@ if ($_SESSION['userid'] == "") {
             <div class="col-sm-1">
               <div class="input-group">
                 <input id="bestand" class="form-control text-end" type="text" name="bestand"
-                value="<?= htmlspecialchars($result['bestand']) ?>">
-              <span class="input-group-text">€</span>
+                  value="<?= htmlspecialchars($result['bestand']) ?>">
+                <span class="input-group-text">€</span>
               </div>
             </div>
           </div>

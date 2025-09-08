@@ -99,34 +99,35 @@ error_reporting(E_ALL);
                 ?>
                 <!-- Titel zentriert -->
                 <div class="col-12 text-center mb-2 mb-md-0">
-                    <h2 class="h2 mb-0"><?php echo htmlspecialchars($kasse); ?> - Bestände</h2>
+                    <h2 class="h4 mb-0"><?php echo htmlspecialchars($kasse); ?> - Bestände</h2>
                 </div>
-                <!-- Benutzerinfo + Logout -->
-                <div class="col-12 col-md-auto ms-md-auto text-center text-md-end">
-                    <div class="d-block d-md-inline mb-1 mb-md-0">
-                        <span class="me-2">Angemeldet als:
-                            <?= htmlspecialchars($_SESSION['email']) ?></span>
-                    </div>
-                    <a class="btn btn-darkgreen btn-sm" title="Abmelden vom Webshop" href="logout.php">
-                        <i class="fa fa-sign-out" aria-hidden="true"></i> Ausloggen
-                    </a>
-                </div>
+
+                <?php
+                require_once 'includes/benutzerversion.php';
+                ?>
             </div>
-        </div>
     </header>
 
     <div class="custom-container mt-3 mx-2">
         <!-- Formular: Jahr + Berechnen -->
-        <form method="POST" id="bestaendeForm" class="mb-3 d-flex align-items-center">
-            <button type="submit" name="berechne_bestaende" class="btn btn-primary btn-sm me-2">
-                <i class="fas fa-calculator"></i>
-            </button>
-            <a href="BestaendeChart.php" class="btn btn-primary btn-sm me-2"><i class="fas fa-chart-bar"></i></a>
-            <a href="Index.php" class="btn btn-primary btn-sm"><i class="fa fa-arrow-left"></i></a>
+        <form method="POST" id="bestaendeForm" class="mb-3">
+            <!-- Buttons in einer Zeile -->
+            <div class="d-flex align-items-center mb-2">
+                <button type="submit" name="berechne_bestaende" class="btn btn-primary btn-sm me-2">
+                    <i class="fas fa-calculator"></i>
+                </button>
+                <a href="BestaendeChart.php" class="btn btn-primary btn-sm me-2">
+                    <i class="fas fa-chart-bar"></i>
+                </a>
+                <a href="Index.php" class="btn btn-primary btn-sm">
+                    <i class="fa fa-arrow-left"></i>
+                </a>
+            </div>
 
-            <div class="ms-3">
+            <!-- Label + Select in der nächsten Zeile -->
+            <div class="d-flex align-items-center">
                 <label for="jahr" class="form-label fw-bold me-2">Jahr auswählen:</label>
-                <select name="jahr" id="jahr" class="form-select w-auto me-2">
+                <select name="jahr" id="jahr" class="form-select w-auto">
                     <?php foreach ($jahre as $jahrOption): ?>
                         <option value="<?= $jahrOption ?>" <?= ($jahrOption == $jahrFilter) ? 'selected' : '' ?>>
                             <?= $jahrOption ?>

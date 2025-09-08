@@ -1,0 +1,11 @@
+EXTF;700;21;Kassenexport;Buchungen;20250908;;;;;;;
+"Umsatz (ohne Soll/Haben-Kz)";Soll/Haben-Kennzeichen;"WKZ Umsatz";Kurs;Basisumsatz;"WKZ Basisumsatz";Konto;Gegenkonto;BU-Schlüssel;"Belegfeld 1";"Belegfeld 2";Buchungstext;Belegdatum;Buchungstyp;Kassen-Nr
+400,00;S;EUR;;;;1000;1890;8;RE202521-0466;466;"Kasse Einlage September 2025";20250901;Einlage;1
+11,20;H;EUR;;;;1000;3300;8;RE202521-0468;468;Tagesbedarf;20250902;Ausgabe;1
+6,20;H;EUR;;;;1000;3300;8;RE202521-0467;467;Tagesbedarf;20250903;Ausgabe;1
+5,24;H;EUR;;;;1000;3300;8;RE202521-0469;469;Tagesbedarf;20250903;Ausgabe;1
+11,64;H;EUR;;;;1000;3300;8;RE202521-0470;470;Tagesbedarf;20250904;Ausgabe;1
+17,00;H;EUR;;;;1000;4650;8;RE202521-0476;476;"Inder Steinstr. Schlemmerblock Peter Neugebauer";20250905;Ausgabe;1
+3,26;H;EUR;;;;1000;3300;8;RE202521-0478;478;Tagesbedarf;20250906;Ausgabe;1
+14,00;H;EUR;;;;1000;4980;8;RE202521-0479;479;"Winnenden Handy, 2 * DVD, Pflanze";20250906;Ausgabe;1
+26,13;H;EUR;;;;1000;3300;8;RE202521-0480;480;"Tagesbedarf Grillgut Besuch Weiß";20250906;Ausgabe;1

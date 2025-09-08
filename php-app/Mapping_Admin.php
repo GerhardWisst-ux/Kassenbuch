@@ -49,7 +49,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Alle Mappings holen
-$mappings = $pdo->query("SELECT * FROM buchungsart_mapping ORDER BY kontenrahmen, buchungsart")->fetchAll(PDO::FETCH_ASSOC);
+$filterRahmen = $_GET['kontenrahmen'] ?? '';
+
+// SQL vorbereiten
+$sql = "SELECT * FROM buchungsart_mapping";
+$params = [];
+
+if ($filterRahmen !== '') {
+    $sql .= " WHERE kontenrahmen = :rahmen";
+    $params['rahmen'] = $filterRahmen;
+}
+
+$sql .= " ORDER BY buchungsart ASC";
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
+$mappings = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -74,24 +89,29 @@ $mappings = $pdo->query("SELECT * FROM buchungsart_mapping ORDER BY kontenrahmen
                     <h2 class="h4 mb-0">CashControl - Buchungsarten-Mapping (DATEV)</h2>
                 </div>
                 <!-- Benutzerinfo + Logout -->
-                <div class="col-12 col-md-auto ms-md-auto text-center text-md-end">
-                    <div class="d-block d-md-inline mb-1 mb-md-0">
-                        <span class="me-2">Angemeldet als:
-                            <?= htmlspecialchars($_SESSION['email']) ?></span>
-                    </div>
-                    <a class="btn btn-darkgreen btn-sm" title="Abmelden vom Webshop" href="logout.php">
-                        <i class="fa fa-sign-out" aria-hidden="true"></i> Ausloggen
-                    </a>
-                </div>
+                <link href="css/style.css" rel="stylesheet">
+                <?php
+                require_once 'includes/benutzerversion.php';
+                ?>
             </div>
-        </div>
     </header>
-    <div class="container-fluid mb-3">
+    <div class="container-fluid mb-3 mt-3">
+
         <a href="Index.php" class="btn btn-primary btn-sm"><i class="fa fa-arrow-left"></i></a>
         <!-- Add Button -->
         <br>
-        <button class="btn btn-success mt-3" data-bs-toggle="modal" data-bs-target="#addModal">➕ Neue Zuordnung</button>
+        <button class="btn btn-success mt-3" data-bs-toggle="modal" data-bs-target="#addModal">➕ Neue
+            Zuordnung</button>
         <!-- Tabelle -->
+        <form method="GET" class="d-flex gap-3 mb-3 align-items-center flex-wrap">
+            <label for="filterKontenrahmen" class="form-label mb-0">Kontenrahmen:</label>
+            <select id="filterKontenrahmen" name="kontenrahmen" class="form-select" style="width: 150px;"
+                onchange="this.form.submit()">
+                <option value="">Alle</option>
+                <option value="SKR03" <?= (isset($_GET['kontenrahmen']) && $_GET['kontenrahmen'] == 'SKR03') ? 'selected' : '' ?>>SKR03</option>
+                <option value="SKR04" <?= (isset($_GET['kontenrahmen']) && $_GET['kontenrahmen'] == 'SKR04') ? 'selected' : '' ?>>SKR04</option>
+            </select>
+        </form>
         <table id="mappingTable" class="table table-striped table-bordered">
             <thead>
                 <tr>
@@ -145,8 +165,10 @@ $mappings = $pdo->query("SELECT * FROM buchungsart_mapping ORDER BY kontenrahmen
                                         <div class="mb-3">
                                             <label class="form-label">Kontenrahmen</label>
                                             <select name="kontenrahmen" class="form-select">
-                                                <option <?= $m['kontenrahmen'] == "SKR03" ? "selected" : "" ?>>SKR03</option>
-                                                <option <?= $m['kontenrahmen'] == "SKR04" ? "selected" : "" ?>>SKR04</option>
+                                                <option <?= $m['kontenrahmen'] == "SKR03" ? "selected" : "" ?>>SKR03
+                                                </option>
+                                                <option <?= $m['kontenrahmen'] == "SKR04" ? "selected" : "" ?>>SKR04
+                                                </option>
                                             </select>
                                         </div>
                                         <div class="mb-3">

@@ -1,2 +1,10 @@
-FROM php:apache
-RUN docker-php-ext-install mysqli pdo_mysql
+FROM php:8.2-apache
+
+# MySQL Erweiterungen installieren
+RUN docker-php-ext-install mysqli pdo pdo_mysql
+
+# Arbeitsverzeichnis
+WORKDIR /var/www/html
+
+# Apache Konfiguration (optional)
+EXPOSE 80

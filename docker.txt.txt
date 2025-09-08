@@ -1,0 +1,16 @@
+cd C:\xampp\htdocs\Cash
+docker compose down -v
+docker compose up -d
+-v löscht alte Volumes, damit SQL-Init neu ausgeführt wird.Datenbank DB umstellen:
+<?php
+try {
+    $pdo = new PDO('mysql:host=db;port=3306;dbname=kassenbuch', 'kassenbuch', 'n');
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);    
+} catch (PDOException $e) {
+    echo "Verbindung fehlgeschlagen: " . $e->getMessage();
+}
+?>
+
+Test im Browser: http://localhost:6080/index.php?route=/sql&pos=0&db=kassenbuch&table=buchungsarten
+
+http://localhost:6081/Index.php
