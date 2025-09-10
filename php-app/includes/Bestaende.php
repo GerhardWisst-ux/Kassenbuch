@@ -21,7 +21,9 @@ error_reporting(E_ALL);
     <meta name="author" content="Dein Name oder Firma">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>CashControl - Bestände</title>
+
     <link rel="icon" type="image/png" href="images/favicon.png" />
+
     <!-- CSS -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -77,7 +79,7 @@ error_reporting(E_ALL);
     if (isset($_POST['berechne_bestaende'])) {
         $jahr = $jahrFilter ?: date('Y');
 
-        $result = berechneBestaende($pdo, $userid, $kassennummer, $jahr, false);
+        $result = $kassennummer = $_SESSION['kassennummer'] ?? null($pdo, $userid, $kassennummer, $jahr, false);
 
         header("Location: Bestaende.php?jahr=$jahr&berechnet=1&eingefuegt={$result['eingefuegt']}&aktualisiert={$result['aktualisiert']}&saldo={$result['saldo']}");
         exit;

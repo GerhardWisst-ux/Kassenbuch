@@ -1,23 +1,3 @@
-SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
-START TRANSACTION;
-SET time_zone = "+00:00";
-
-
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8mb4 */;
-
---
--- Datenbank: `cash`
---
-
--- --------------------------------------------------------
-
---
--- Tabellenstruktur für Tabelle `bestaende`
---
-
 CREATE TABLE `bestaende` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `kassennummer` int(151) NOT NULL,
@@ -32,7 +12,7 @@ CREATE TABLE `bestaende` (
   KEY `fk_bestaende_kasse` (`kassennummer`),
   CONSTRAINT `fk_bestaende_kasse` FOREIGN KEY (`kassennummer`) REFERENCES `kasse` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_bestaende_user` FOREIGN KEY (`userid`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=146 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=20344 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('50','1','2025-01-01','1','400.00','400.00','0.00','1');
 INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('51','1','2025-02-01','2','400.00','400.00','0.00','1');
@@ -45,19 +25,19 @@ INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlage
 INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('58','1','2025-09-01','9','118.52','590.00','474.11','1');
 INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('59','1','2025-10-01','10','0.00','0.00','474.11','1');
 INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('60','1','2025-11-01','11','0.00','0.00','474.11','1');
-INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('61','1','2025-12-01','12','0.00','0.00','474.11','1');
-INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('62','2','2025-01-01','1','0.00','0.00','0.00','1');
-INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('63','2','2025-02-01','2','0.00','0.00','0.00','1');
-INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('64','2','2025-03-01','3','0.00','0.00','0.00','1');
-INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('65','2','2025-04-01','4','0.00','0.00','0.00','1');
-INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('66','2','2025-05-01','5','0.00','0.00','0.00','1');
-INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('67','2','2025-06-01','6','0.00','0.00','0.00','1');
-INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('68','2','2025-07-01','7','0.00','0.00','0.00','1');
-INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('69','2','2025-08-01','8','0.00','0.00','0.00','1');
-INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('70','2','2025-09-01','9','75.99','400.00','324.01','1');
-INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('71','2','2025-10-01','10','0.00','0.00','324.01','1');
-INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('72','2','2025-11-01','11','0.00','0.00','324.01','1');
-INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('73','2','2025-12-01','12','0.00','0.00','324.01','1');
+INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('61','1','2025-12-01','12','0.00','0.00','0.00','1');
+INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('62','2','2025-01-01','1','0.00','0.00','50.00','1');
+INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('63','2','2025-02-01','2','0.00','0.00','50.00','1');
+INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('64','2','2025-03-01','3','0.00','0.00','50.00','1');
+INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('65','2','2025-04-01','4','0.00','0.00','50.00','1');
+INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('66','2','2025-05-01','5','0.00','0.00','50.00','1');
+INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('67','2','2025-06-01','6','0.00','0.00','50.00','1');
+INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('68','2','2025-07-01','7','0.00','0.00','50.00','1');
+INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('69','2','2025-08-01','8','0.00','0.00','50.00','1');
+INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('70','2','2025-09-01','9','75.99','400.00','374.01','1');
+INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('71','2','2025-10-01','10','0.00','0.00','374.01','1');
+INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('72','2','2025-11-01','11','0.00','0.00','374.01','1');
+INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('73','2','2025-12-01','12','0.00','0.00','374.01','1');
 INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('74','3','2025-01-01','1','0.00','0.00','0.00','1');
 INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('75','3','2025-02-01','2','0.00','0.00','0.00','1');
 INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('76','3','2025-03-01','3','0.00','0.00','0.00','1');
@@ -70,18 +50,6 @@ INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlage
 INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('83','3','2025-10-01','10','0.00','0.00','0.00','1');
 INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('84','3','2025-11-01','11','0.00','0.00','0.00','1');
 INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('85','3','2025-12-01','12','0.00','0.00','0.00','1');
-INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('134','8','2025-01-01','1','0.00','0.00','0.00','22');
-INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('135','8','2025-02-01','2','0.00','0.00','0.00','22');
-INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('136','8','2025-03-01','3','0.00','0.00','0.00','22');
-INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('137','8','2025-04-01','4','0.00','0.00','0.00','22');
-INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('138','8','2025-05-01','5','0.00','0.00','0.00','22');
-INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('139','8','2025-06-01','6','0.00','0.00','0.00','22');
-INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('140','8','2025-07-01','7','0.00','0.00','0.00','22');
-INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('141','8','2025-08-01','8','0.00','0.00','0.00','22');
-INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('142','8','2025-09-01','9','0.00','0.00','0.00','22');
-INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('143','8','2025-10-01','10','0.00','0.00','0.00','22');
-INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('144','8','2025-11-01','11','0.00','0.00','0.00','22');
-INSERT INTO `bestaende` (`id`,`kassennummer`,`datum`,`monat`,`ausgaben`,`einlagen`,`bestand`,`userid`) VALUES ('145','8','2025-12-01','12','0.00','0.00','0.00','22');
 
 
 CREATE TABLE `buchungen` (
@@ -406,12 +374,11 @@ CREATE TABLE `kasse` (
   PRIMARY KEY (`id`),
   KEY `fk_kasse_user` (`userid`),
   CONSTRAINT `fk_kasse_user` FOREIGN KEY (`userid`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 INSERT INTO `kasse` (`id`,`kasse`,`anfangsbestand`,`kontonummer`,`datumab`,`checkminus`,`userid`,`archiviert`) VALUES ('1','Kasse Gerhard Wißt','0','1600','2024-12-01','0','1','0');
 INSERT INTO `kasse` (`id`,`kasse`,`anfangsbestand`,`kontonummer`,`datumab`,`checkminus`,`userid`,`archiviert`) VALUES ('2','Kasse Gerhard Wißt2','50','1602','2025-01-01','0','1','0');
 INSERT INTO `kasse` (`id`,`kasse`,`anfangsbestand`,`kontonummer`,`datumab`,`checkminus`,`userid`,`archiviert`) VALUES ('3','Kasse Gerhard Wißt 3','587','1603','2025-07-01','1','1','1');
-INSERT INTO `kasse` (`id`,`kasse`,`anfangsbestand`,`kontonummer`,`datumab`,`checkminus`,`userid`,`archiviert`) VALUES ('8','Kasse Anja','350','1600','2025-09-01','1','22','0');
 
 
 CREATE TABLE `users` (

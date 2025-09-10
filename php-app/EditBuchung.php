@@ -16,9 +16,12 @@ if ($_SESSION['userid'] == "") {
 
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Datensicherung für das Kassenbuch – einfache Verwaltung und sichere Backups.">
+  <meta name="author" content="Dein Name oder Firma">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>CashControl - Position bearbeiten</title>
-
+  <link rel="icon" type="image/png" href="images/favicon.png" />
   <link href="css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <link href="css/style.css" rel="stylesheet">
@@ -201,8 +204,8 @@ if ($_SESSION['userid'] == "") {
               $stmt->execute(['userid' => $userid]);
 
               while ($baRow = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                $selected = ($baRow['Buchungsart'] === $result['buchungsart']) ? "selected" : "";
-                echo "<option value='" . htmlspecialchars($baRow['ID']) . "' $selected>" . htmlspecialchars($baRow['Buchungsart']) . "</option>";
+                $selected = ($baRow['buchungsart'] === $result['buchungsart']) ? "selected" : "";
+                echo "<option value='" . htmlspecialchars($baRow['ID']) . "' $selected>" . htmlspecialchars($baRow['buchungsart']) . "</option>";
               }
               ?>
               <option value="custom" <?= ($result['buchungsart'] === 'custom') ? "selected" : "" ?>>Wert eingeben</option>
@@ -230,6 +233,62 @@ if ($_SESSION['userid'] == "") {
       </div>
     </form>
   </div>
+  <label for="TicketFile" class="col-sm-3 col-form-label text-dark mx-2">Dateien</label>
+  <div class="col-sm-9">
+    <form action="uploadcashfile.php" method="POST" enctype="multipart/form-data">
+      <input type="hidden" name="kassennummer" value="<?= htmlspecialchars((string) $kassennummer) ?>">
+      <input type="file" name="ticketfile" accept="application/pdf" class="form-control mb-2">
+      <button type="submit" class="btn btn-primary btn-sm mx-2">
+        <i class="fa-solid fa-upload"></i> Hochladen
+      </button>
+    </form>
+  </div>
+  <?php
+
+  $sqlFiles = "SELECT id, kassennummer, FilePath, UploadedAt 
+             FROM cash_files 
+             WHERE kassennummer = :kassennummer 
+             ORDER BY UploadedAt DESC";
+  $stmtFiles = $pdo->prepare($sqlFiles);
+  $stmtFiles->execute(['kassennummer' => $kassennummer]);
+  $files = $stmtFiles->fetchAll(PDO::FETCH_ASSOC);
+
+  if ($files): ?>
+    <div class="mt-3 mx-2">
+      <h5>Hochgeladene Dateien</h5>
+      <table class="table table-bordered table-hover mt-3">
+        <thead class="table-light">
+          <tr>
+            <th>Dateiname</th>
+            <th>Aktion</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($files as $file): ?>
+            <tr>
+              <td>
+                <a href="<?= htmlspecialchars($file['FilePath']) ?>" target="_blank">
+                  <i class="fa-solid fa-file-pdf text-danger"></i>
+                  <?= htmlspecialchars(basename($file['FilePath'])) ?>
+                </a>
+              </td>
+              <td>
+                <form action="DeleteCashFile.php" method="POST" style="display:inline;">
+                  <input type="hidden" name="FilePath" value="<?= htmlspecialchars($file['FilePath']) ?>">
+                  <input type="hidden" name="kassennummer" value="<?= (int) $kassennummer ?>">
+                  <button type="submit" name="delete" class="btn btn-danger btn-sm"
+                    onclick="return confirm('Soll diese Datei wirklich gelöscht werden?');">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </form>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  <?php endif; ?>
+
 
   <!-- JS -->
   <script src="js/jquery.min.js"></script>

@@ -78,27 +78,7 @@ echo "</tbody></table>";
 ?>
 
 <script>
-    // $(document).ready(function () {
-    //     $('#TableDetail').DataTable({
-    //         language: { url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/de-DE.json" },
-    //         responsive: {
-    //             details: {
-    //                 display: $.fn.dataTable.Responsive.display.modal({
-    //                     header: function (row) {
-    //                         var data = row.data();
-    //                         return 'Details zu ' + data[1];
-    //                     }
-    //                 }),
-    //                 renderer: $.fn.dataTable.Responsive.renderer.tableAll({
-    //                     tableClass: 'table'
-    //                 })
-    //             }
-    //         },
-    //         scrollX: false,
-    //         pageLength: 50,
-    //         autoWidth: false
-    //     });
-    // });
+   
 
     // Automatisch Berechnung auslösen, wenn das Jahr geändert wird
     document.getElementById('jahr')?.addEventListener('change', function () {

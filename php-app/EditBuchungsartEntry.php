@@ -93,6 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } catch (PDOException $e) {
         echo "Fehler beim Aktualisieren: " . $e->getMessage();
+        $_SESSION['success_message'] = "Fehler beim Aktualisieren: " . $e->getMessage();
         exit();
     }
 }

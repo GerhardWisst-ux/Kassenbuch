@@ -1,16 +1,125 @@
-cd C:\xampp\htdocs\Cash
+Alte Container und Volumes bereinigen
+
+Zuerst alles stoppen und alte Volumes löschen (Achtung: alle bisherigen Daten gehen verloren!):
+
+cd C:\xampp\htdocs\Helpdesk
 docker compose down -v
-docker compose up -d
--v löscht alte Volumes, damit SQL-Init neu ausgeführt wird.Datenbank DB umstellen:
-<?php
-try {
-    $pdo = new PDO('mysql:host=db;port=3306;dbname=kassenbuch', 'kassenbuch', 'n');
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);    
-} catch (PDOException $e) {
-    echo "Verbindung fehlgeschlagen: " . $e->getMessage();
-}
-?>
+docker volume rm db-vol-name5
 
-Test im Browser: http://localhost:6080/index.php?route=/sql&pos=0&db=kassenbuch&table=buchungsarten
 
+-v löscht die Volumes, damit MariaDB keine alten, gesperrten Dateien hat.
+
+Prüfe mit docker volume ls, dass das Volume entfernt wurde.
+
+2️⃣ Compose-Datei richtig anlegen
+
+Erstelle oder bearbeite docker-compose.yml in deinem Projektordner:
+
+version: "3.9"
+
+services:
+  db:
+    image: mariadb:latest
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: helpdesk
+      MARIADB_USER: helpdesk
+      MARIADB_PASSWORD: n
+    restart: on-failure:10
+    volumes:
+      - db-vol:/var/lib/mysql
+      - ./db-init:/docker-entrypoint-initdb.d
+    networks:
+      - helpdesk-net
+
+  pma:
+    image: phpmyadmin:latest
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: root
+      PMA_ABSOLUTE_URI: http://localhost:6090/
+    ports:
+      - "6090:80"
+    restart: on-failure:10
+    depends_on:
+      - db
+    networks:
+      - helpdesk-net
+
+  php:
+    build: ./php-app
+    volumes:
+      - ./php-app:/var/www/html
+    ports:
+      - "6091:80"
+    depends_on:
+      - db
+    networks:
+      - helpdesk-net
+
+volumes:
+  db-vol:
+    name: db-vol-name5
+
+networks:
+  helpdesk-net:
+    driver: bridge
+
+
+⚠️ Wichtig: environment: muss als Mapping geschrieben werden (KEY: VALUE) – keine - davor!
+
+3️⃣ Optional: Init-Skript für helpdesk-User
+
+Lege im Projektordner db-init/01-helpdesk.sql an:
+
+CREATE DATABASE IF NOT EXISTS helpdesk;
+CREATE USER IF NOT EXISTS 'helpdesk'@'%' IDENTIFIED BY 'n';
+GRANT ALL PRIVILEGES ON helpdesk.* TO 'helpdesk'@'%';
+FLUSH PRIVILEGES;
+
+
+So wird der Benutzer automatisch verfügbar, auch von phpMyAdmin aus.
+
+4️⃣ Container bauen und starten
+docker compose up -d --build
+
+
+--build stellt sicher, dass auch der PHP-Container neu gebaut wird.
+
+5️⃣ Logs prüfen
+docker logs -f helpdesk-db-1
+
+
+Achte darauf, dass MariaDB ohne Fehler hochfährt.
+
+Wenn alles passt, sollte ein Eintrag wie ready for connections erscheinen.
+
+6️⃣ Zugriff auf phpMyAdmin
+
+Öffne im Browser:
+
+http://localhost:6090
+
+
+Login automatisch: Benutzer root, Passwort root
+
+Der helpdesk-User steht ebenfalls bereit: Benutzer helpdesk, Passwort n
+
+Host: db wird automatisch durch PMA_HOST gesetzt – kein Eingabefeld nötig.
+
+7️⃣ Zugriff auf deine PHP-App
+
+Öffne im Browser:
+
+http://localhost:6091
+
+
+Dein PHP-Frontend läuft jetzt direkt über den Container.
+
+💡 Tipp:
+Wenn du später weitere Datenbanken oder Benutzer anlegen willst, lege einfach weitere .sql-Dateien in db-init/ – MariaDB führt sie automatisch beim Start aus.
+Test im Browser: 
+http://localhost:6080/index.php?route=/sql&pos=0&db=kassenbuch&table=buchungsarten
 http://localhost:6081/Index.php

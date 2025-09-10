@@ -34,6 +34,7 @@ services:
       - "6081:80"
     depends_on:
       - db
+    command: bash /var/www/html/wait-for-db.sh
 
 volumes:
   db-vol:

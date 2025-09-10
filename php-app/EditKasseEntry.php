@@ -81,8 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'datumab' => $datumab,
             'userid' => $userid,
         ]);
-
-        //echo "Position mit der ID" . $id . " wurde upgedatet!";
+        
         // Erfolgsmeldung setzen
         $_SESSION['success_message'] = "Die Kasse wurde erfolgreich gespeichert.";
 

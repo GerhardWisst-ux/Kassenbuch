@@ -120,7 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($row) {
-            $vonan = $row['Buchungsart'];
+            $vonan = $row['buchungsart'];
         } else {
             $vonan = ''; // Falls keine Buchungsart gefunden
         }
@@ -159,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: ' . $_SERVER['HTTP_REFERER']);
             exit;
         } else {
-            header('Location: Buchungsarten.php'); // Fallback
+            header('Location: Buchungen.php'); // Fallback
             exit;
         }
 

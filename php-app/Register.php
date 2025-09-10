@@ -133,6 +133,9 @@ use RobThree\Auth\Providers\Qr\GoogleChartsQRCodeProvider;
         $passwort2 = $_POST['passwort2'] ?? '';
         $vorname = trim($_POST['vorname'] ?? '');
         $nachname = trim($_POST['nachname'] ?? '');
+        $strasse  = trim($_POST['strasse'] ?? '');
+        $plz = trim($_POST['plz'] ?? '');
+        $ort = trim($_POST['ort'] ?? '');
 
         // Validierung
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -163,9 +166,9 @@ use RobThree\Auth\Providers\Qr\GoogleChartsQRCodeProvider;
             // User einfügen
             $stmtInsert = $pdo->prepare("
             INSERT INTO users 
-                (email, passwort, is_admin, vorname, nachname, freigeschaltet) 
+                (email, passwort, is_admin, vorname, nachname, strasse, plz, ort, freigeschaltet) 
             VALUES 
-                (:email, :passwort, :is_admin, :vorname, :nachname, :freigeschaltet)
+                (:email, :passwort, :is_admin, :vorname, :nachname, :strasse, :plz, :ort, :freigeschaltet)
         ");
             $result = $stmtInsert->execute([
                 'email' => $email,
@@ -173,6 +176,9 @@ use RobThree\Auth\Providers\Qr\GoogleChartsQRCodeProvider;
                 'is_admin' => false,
                 'vorname' => $vorname,
                 'nachname' => $nachname,
+                'strasse' => $strasse,
+                'plz' => $plz,
+                'ort' => $ort,
                 'freigeschaltet' => true
             ]);
 
@@ -267,6 +273,22 @@ use RobThree\Auth\Providers\Qr\GoogleChartsQRCodeProvider;
                                     <input type="text" name="nachname" id="nachname" class="form-control" required
                                         value="<?= htmlspecialchars($_POST['nachname'] ?? '') ?>"
                                         placeholder="Nachname eingeben">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="strasse" class="text-dark">Straße:</label>
+                                    <input type="text" name="strasse" id="strasse" class="form-control" required
+                                        value="<?= htmlspecialchars($_POST['strasse'] ?? '') ?>"
+                                        placeholder="Straße eingeben">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="plz" class="text-dark">PLZ:</label>
+                                    <input type="number" maxlength="5" name="plz" id="plz" class="form-control" required
+                                        value="<?= htmlspecialchars($_POST['plz'] ?? '') ?>" placeholder="PLZ eingeben">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="ort" class="text-dark">Ort:</label>
+                                    <input type="text" name="ort" id="ort" class="form-control" required
+                                        value="<?= htmlspecialchars($_POST['ort'] ?? '') ?>" placeholder="Ort eingeben">
                                 </div>
                                 <div class="mb-3">
                                     <label for="passwort" class="form-label">Passwort:</label>

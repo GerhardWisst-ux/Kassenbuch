@@ -10,7 +10,7 @@
     </span>
     <span>
         <!-- Logout-Button -->
-        <a class="btn btn-darkgreen btn-sm text-white" title="Abmelden vom Webshop" href="logout.php">
+        <a class="btn btn-darkgreen btn-sm text-white" title="Abmelden vom Kassenbuch" href="logout.php">
             <i class="fa fa-sign-out" aria-hidden="true"></i> Ausloggen
         </a>
 

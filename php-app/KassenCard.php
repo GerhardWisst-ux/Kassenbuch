@@ -63,15 +63,15 @@ echo "
             <p class='card-text mb-0'><strong>Kasse minus:</strong> {$checkminusBadge}</p>
         </div>
         <div class='card-footer bg-light py-2 px-3 d-flex justify-content-end'>
+             <a href='Buchungen.php?kassennummer={$row['id']}' class='btn btn-secondary btn-sm me-2' title='Buchungen ansehen'>
+                <i class='fa-solid fa-receipt'></i>
+            </a>
             <a href='Editkasse.php?id={$row['id']}' class='btn btn-primary btn-sm me-2' title='Kasse bearbeiten'>
-                <i class='fa-solid fa-pen-to-square'></i>
-            </a>
-            <a href='Buchungen.php?kassennummer={$row['id']}' class='btn btn-secondary btn-sm me-2' title='Buchungen ansehen'>
-                <i class='fa-solid fa-ticket'></i>
-            </a>
+                <i class='fa-solid fa-pen'></i>
+            </a>            
             {$archiveButton}
             <a href='DeleteKasse.php?id={$row['id']}' class='btn btn-danger btn-sm delete-button' title='Kasse löschen'>
-                <i class='fa-solid fa-trash'></i>
+                <i class='fa-solid fa-trash-can'></i>
             </a>
         </div>
     </div>

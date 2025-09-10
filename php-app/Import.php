@@ -2,10 +2,10 @@
 ob_start();
 session_start();
 if (empty($_SESSION['userid'])) {
-    http_response_code(403);
-    echo json_encode(['error' => 'not authorized']);
-    header('Location: Login.php'); // zum Loginformular
-    exit;
+  http_response_code(403);
+  echo json_encode(['error' => 'not authorized']);
+  header('Location: Login.php'); // zum Loginformular
+  exit;
 }
 ?>
 
@@ -21,7 +21,7 @@ if (empty($_SESSION['userid'])) {
 
 <body>
 
-  <?php    
+  <?php
 
   // Abfrage der E-Mail vom Login
   $email = $_SESSION['email'];
@@ -36,18 +36,9 @@ if (empty($_SESSION['userid'])) {
             <h2 class="h4 mb-0">CashControl - Import</h2>
           </div>
 
-          <!-- Benutzerinfo + Logout -->
-          <div class="col-12 col-md-auto ms-md-auto text-center text-md-end">
-            <!-- Auf kleinen Bildschirmen: eigene Zeile für E-Mail -->
-            <div class="d-block d-md-inline mb-1 mb-md-0">
-              <span class="me-2">Angemeldet als:
-                <?= htmlspecialchars($_SESSION['email']) ?></span>
-            </div>
-            <!-- Logout-Button -->
-            <a class="btn btn-darkgreen btn-sm mt-2 mx-2" title="Abmelden vom Webshop" href="logout.php">
-              <i class="fa fa-sign-out" aria-hidden="true"></i> Ausloggen
-            </a>
-          </div>
+          <?php
+          require_once 'includes/benutzerversion.php';
+          ?>
         </div>
       </div>
     </header>

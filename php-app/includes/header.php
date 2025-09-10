@@ -13,7 +13,8 @@
 
     /* Hellblau für gesamten Header-Bereich */
     .header-lightblue {
-        background-color: #cfe8fc; /* sanftes Hellblau */
+        background-color: #cfe8fc;
+        /* sanftes Hellblau */
     }
 
     .header-lightblue .nav-link {
@@ -46,7 +47,7 @@ require_once 'AppVersion.php';
 $appVersion = new AppVersion('1.0.0'); // Fallback-Version
 ?>
 
-<nav class="navbar navbar-expand-lg header-lightblue shadow-sm">
+<nav class="navbar navbar-expand-lg navbar-custom shadow-sm">
     <div class="container">
         <a class="navbar-brand" href="<?= $prefix ?>index.php">CashControl</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu"
@@ -82,7 +83,7 @@ $appVersion = new AppVersion('1.0.0'); // Fallback-Version
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle <?= ($current == 'Mapping_Admin.php' || $current == 'ExportDatev.php') ? 'active' : '' ?>"
                                 href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                Export/Import
+                                Admin
                             </a>
                             <ul class="dropdown-menu">
                                 <li>
@@ -93,8 +94,14 @@ $appVersion = new AppVersion('1.0.0'); // Fallback-Version
                                     <a class="dropdown-item <?= ($current == 'ExportDatev.php') ? 'active' : '' ?>"
                                         href="<?= $prefix ?>ExportDatev.php">DATEV-Export</a>
                                 </li>
+                                <li>
+                                    <a class="dropdown-item <?= ($current == 'Datensicherung.php') ? 'active' : '' ?>"
+                                        href="<?= $prefix ?>Datensicherung.php">Datensicherung</a>
+                                </li>
                             </ul>
                         </li>
+
+
                     <?php endif; ?>
                 <?php endif; ?>
 

@@ -59,7 +59,7 @@ if (empty($userid) || !ctype_digit((string)$userid)) {
     $stmt->execute(['id' => $id]);
     echo "CashControl Buchungen - Position " . $id . " wurde gelöscht!";
     sleep(1);
-    header('Location: Index.php'); // Zurück zur Übersicht
+    header('Location: Buchungen.php'); // Zurück zur Übersicht
   
     //exit();
   } else {

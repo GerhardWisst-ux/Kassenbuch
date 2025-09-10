@@ -16,8 +16,12 @@ if ($_SESSION['userid'] == "") {
 
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Datensicherung für das Kassenbuch – einfache Verwaltung und sichere Backups.">
+  <meta name="author" content="Dein Name oder Firma">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>CashControl - Kasse bearbeiten</title>
+  <link rel="icon" type="image/png" href="images/favicon.png" />
 
   <link href="css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -69,13 +73,21 @@ if ($_SESSION['userid'] == "") {
       . htmlspecialchars($_SESSION['success_message']) .
       '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
          </div>';
-    // Meldung nach einmaligem Anzeigen löschen
+    // Meldung nach einmaligem Anzeigen löschen        
     unset($_SESSION['success_message']);
   }
+  if (!empty($_SESSION['error_message'])): ?>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+      <?= htmlspecialchars($_SESSION['error_message']) ?>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></button>
+    </div>
+    <?php
+    // Meldung nach Anzeige löschen        
+    unset($_SESSION['error_message']);
+  endif;
   ?>
 
-
-  <div id="addbuchung">
+  <div id="editbuchung">
     <form action="EditKasseEntry.php" method="post">
       <input type="hidden" name="csrf_token"
         value="<?= htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8') ?>">

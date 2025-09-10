@@ -116,6 +116,6 @@ select.form-select.btn {
 }
 
 .checkbox-lg {
-    transform: scale(2.5); /* 1.5 = 150% größer */
+    transform: scale(1.5); /* 1.5 = 150% größer */
     margin-right: 0.5rem;  /* optional Abstand zum Label */
 }

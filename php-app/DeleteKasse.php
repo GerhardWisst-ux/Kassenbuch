@@ -75,15 +75,19 @@ try {
     /* Ausgabe für Benutzer (escaped) */
     echo "CashControl Kasse " . htmlspecialchars((string)$id, ENT_QUOTES, 'UTF-8') . " wurde gelöscht!";
 
+    $_SESSION['success_message'] = "CashControl Kasse " . htmlspecialchars((string)$id, ENT_QUOTES, 'UTF-8') . " wurde gelöscht!";
+
     /* CSRF-Token nach Verwendung erneuern */
     unset($_SESSION['csrf_token']);
 
     /* Weiterleitung */
     header('Location: Index.php');
+    
     exit;
 
 } catch (PDOException $e) {
     http_response_code(500);
-    exit('Fehler beim Löschen: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8'));
+    $_SESSION['error_message'] = 'Fehler beim Löschen: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
+    exit('Fehler beim Löschen: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8'));   
 }
 ?>

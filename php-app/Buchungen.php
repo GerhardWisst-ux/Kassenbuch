@@ -1,30 +1,149 @@
 <?php
+
 ob_start();
 session_start();
-if (empty($_SESSION['userid'])) {
+require 'db.php';
+
+// --- Validierung / Session ---
+$userid = $_SESSION['userid'] ?? null;
+$email = $_SESSION['email'] ?? null;
+
+if (!$userid) {
+  // klassisch: Zugriff verweigern
   header('Location: Login.php');
   exit;
 }
 
-require 'db.php';
-$userid = $_SESSION['userid'];
-$email = $_SESSION['email'];
-if (!isset($_SESSION['kassennummer']) || empty($_SESSION['kassennummer'])) {
-
-  $_SESSION['kassennummer'] = isset($_GET['kassennummer']) ? $_GET['kassennummer'] : 0;
+// Kassennummer aus Session oder GET
+if (empty($_SESSION['kassennummer'])) {
+  $_SESSION['kassennummer'] = isset($_GET['kassennummer']) ? (int) $_GET['kassennummer'] : 0;
 }
-$kassennummer = $_SESSION['kassennummer'] ?? null;
+$kassennummer = (int) ($_SESSION['kassennummer'] ?? 0);
 
+// CSRF-Token
+if (empty($_SESSION['csrf_token'])) {
+  $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+// --- Hilfsfunktionen ---
+function renderFlash(): void
+{
+  if (!empty($_SESSION['flash'])) {
+    $flash = $_SESSION['flash'];
+    $type = htmlspecialchars($flash['type'], ENT_QUOTES, 'UTF-8');
+    $text = htmlspecialchars($flash['text'], ENT_QUOTES, 'UTF-8');
+    echo '<div class="alert alert-' . $type . ' alert-dismissible fade show mt-3 mx-2" role="alert">';
+    echo nl2br($text);
+    echo '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></button>';
+    echo '</div>';
+    unset($_SESSION['flash']);
+  }
+}
+
+function fmtMoney($value): string
+{
+  // deutsche Formatierung: 1.234,56 €
+  return number_format((float) $value, 2, ',', '.') . ' €';
+}
+
+function calcVatAndNet(float $brutto, string $typ, array $buchungsartenMwst, string $buchungsart): array
+{
+  $netto = $brutto;
+  $mwst = 0.0;
+  $steuersatz = 0;
+
+  if ($typ === 'Ausgabe') {
+    $erm = isset($buchungsartenMwst[$buchungsart]) && $buchungsartenMwst[$buchungsart] == 1;
+    if ($erm) {
+      $steuersatz = 7;
+      $netto = $brutto / 1.07;
+    } else {
+      $steuersatz = 19;
+      $netto = $brutto / 1.19;
+    }
+    $mwst = $brutto - $netto;
+  }
+
+  return [
+    'netto' => round($netto, 2),
+    'mwst' => round($mwst, 2),
+    'steuersatz' => $steuersatz
+  ];
+}
+
+// --- Grundeinstellungen für Seite ---
+$yearFilter = date('Y');
+$currentMonth = date('Y-m');
+
+// Lade Kassenname
+$stmt = $pdo->prepare("SELECT kasse FROM kasse WHERE userid = :userid AND id = :kassennummer LIMIT 1");
+$stmt->execute(['userid' => $userid, 'kassennummer' => $kassennummer]);
+$kasse = $stmt->fetchColumn() ?: 'Unbekannte Kasse';
+
+// Lade alle Buchungsarten/Ermäßigungen (einmalig)
+$buchungsartenMwst = [];
+$stmtBA = $pdo->prepare("SELECT buchungsart, mwst_ermaessigt FROM buchungsarten WHERE userid = :userid AND kassennummer = :kassennummer");
+$stmtBA->execute(['userid' => $userid, 'kassennummer' => $kassennummer]);
+while ($r = $stmtBA->fetch(PDO::FETCH_ASSOC)) {
+  $buchungsartenMwst[$r['buchungsart']] = $r['mwst_ermaessigt'];
+}
+
+// Verfügbare Monate für Filter
+$stmtMonths = $pdo->prepare("SELECT DISTINCT DATE_FORMAT(datum, '%Y-%m') AS monat FROM buchungen WHERE userid = :userid AND kassennummer = :kassennummer AND barkasse = 1 ORDER BY monat DESC");
+$stmtMonths->execute(['userid' => $userid, 'kassennummer' => $kassennummer]);
+
+// Bestimme ausgewählten Monat (GET oder default currentMonth)
+$selectedMonth = isset($_GET['monat']) ? trim($_GET['monat']) : $currentMonth;
+
+// Wenn user "Alle Monate" gewählt hat (leerer Wert), setze auf ''
+if ($selectedMonth === '') {
+  $monatFilter = '';
+  $monatNumFilter = 0;
+} else {
+  $monatFilter = $selectedMonth;
+  $monatNumFilter = (int) (new DateTime($monatFilter . '-01'))->format('n');
+  $yearFilter = substr($monatFilter, 0, 4);
+}
+
+// Lade Buchungen (abhängig vom Filter)
+if ($monatFilter !== '') {
+  $startDatum = $monatFilter . '-01';
+  $endDatum = date('Y-m-t', strtotime($startDatum));
+  $sql = "SELECT * FROM buchungen 
+            WHERE datum BETWEEN :startDatum AND :endDatum
+              AND userid = :userid
+              AND kassennummer = :kassennummer
+              AND barkasse = 1
+            ORDER BY datum DESC, id DESC";
+  $stmt = $pdo->prepare($sql);
+  $stmt->execute(['startDatum' => $startDatum, 'endDatum' => $endDatum, 'userid' => $userid, 'kassennummer' => $kassennummer]);
+
+  // Vormonat-Endbestand
+  $vorMonat = date('Y-m', strtotime('-1 month', strtotime($startDatum)));
+  $stmtVB = $pdo->prepare("SELECT bestand FROM bestaende WHERE DATE_FORMAT(datum, '%Y-%m') = :vormonat AND userid = :userid AND kassennummer = :kassennummer ORDER BY datum DESC LIMIT 1");
+  $stmtVB->execute(['vormonat' => $vorMonat, 'userid' => $userid, 'kassennummer' => $kassennummer]);
+  $anfangsbestand = (float) ($stmtVB->fetchColumn() ?: 0);
+} else {
+  // Alle Buchungen
+  $sql = "SELECT * FROM buchungen WHERE userid = :userid AND kassennummer = :kassennummer AND barkasse = 1 ORDER BY YEAR(datum) DESC, MONTH(datum) DESC, datum DESC, id DESC";
+  $stmt = $pdo->prepare($sql);
+  $stmt->execute(['userid' => $userid, 'kassennummer' => $kassennummer]);
+  $anfangsbestand = 0;
+}
+
+// --- HTML Ausgabe ---
 ?>
-
 <!DOCTYPE html>
-<html>
+<html lang="de">
 
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>CashControl Buchungen</title>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Datensicherung für das Kassenbuch – einfache Verwaltung und sichere Backups.">
+  <meta name="author" content="Dein Name oder Firma">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>CashControl - Buchungen</title>
+  <link rel="icon" type="image/png" href="images/favicon.png" />
   <!-- CSS -->
   <link href="css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -33,813 +152,384 @@ $kassennummer = $_SESSION['kassennummer'] ?? null;
   <link href="css/style.css" rel="stylesheet">
 
   <style>
-    /* Hover-Effekt für Karten */
     .card-hover:hover {
       transform: translateY(-5px);
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-      transition: all 0.3s ease;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, .2);
+      transition: all .3s ease;
     }
   </style>
 </head>
 
 <body>
+  <?php require_once 'includes/header.php'; ?>
 
-  <?php
+  <header class="custom-header py-2 text-white">
+    <div class="container-fluid">
+      <div class="row align-items-center">
+        <!-- Titel zentriert -->
+        <div class="col-12 text-center mb-2 mb-md-0">
+          <h2 class="h4 mb-0"><?php echo htmlspecialchars($kasse); ?> - Buchungen</h2>
+        </div>
 
-  $Anfangsbestand = 0;
-  $yearFilter = date("Y");
-
-
-  $monatNumFilter = 0;
-  $email = $_SESSION['email'];
-  $userid = $_SESSION['userid'];
-
-
-  require_once 'includes/header.php';
-
-  // CSRF-Token erzeugen
-  if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-  }
-  ?>
-
-  <div id="index">
-    <form id="indexform">
-      <input type="hidden" id="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-      <div class="custom-container">
-        <header class="custom-header py-2 text-white">
-          <div class="container-fluid">
-            <div class="row align-items-center">
-
-              <?php
-              $sql = "SELECT * FROM kasse WHERE userid = :userid AND id = :kassennummer";
-              $stmt = $pdo->prepare($sql);
-              $stmt->execute([
-                'userid' => $userid,
-                'kassennummer' => $kassennummer
-              ]);
-
-              $kasse = "Unbekannte Kasse";
-              while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                $kasse = $row['kasse'];
-              }
-              ?>
-              <!-- Titel zentriert -->
-              <div class="col-12 text-center mb-2 mb-md-0">
-                <h2 class="h4 mb-0"><?php echo htmlspecialchars($kasse); ?> - Buchungen</h2>
-              </div>
-
-              <!-- Benutzerinfo + Logout -->
-              <div class="col-12 col-md-auto ms-md-auto text-center text-md-end">
-                <!-- Auf kleinen Bildschirmen: eigene Zeile für E-Mail -->
-                <div class="d-block d-md-inline mb-1 mb-md-0">
-                  <span class="me-2">Benutzer: <?= htmlspecialchars($_SESSION['email']) ?></span>
-                </div>
-                <!-- Version -->
-                <span class="version-info" title="Git-Hash + Build-Datum">
-                  Version: <?= htmlspecialchars($appVersion->getVersion()) ?>
-                </span>
-                <span>
-                  <!-- Logout-Button -->
-                  <a class="btn btn-darkgreen btn-sm" title="Abmelden vom Webshop" href="logout.php">
-                    <i class="fa fa-sign-out" aria-hidden="true"></i> Ausloggen
-                  </a>
-
-                </span>
-              </div>
-            </div>
-          </div>
-        </header>
         <?php
-
-        echo '<div class="btn-toolbar mt-2 mb-2 mx-2" role="toolbar" aria-label="Toolbar with button groups">';
-        echo '<div class="btn-group" role="group" aria-label="First group">';
-        echo '<a href="AddBuchung.php" title="Position hinzufügen" class="btn btn-primary btn-sm me-4"><span><i class="fa fa-plus" aria-hidden="true"></i></span></a>';
-        echo '</div>';
-
-        // Export und Import Buttons in einen flexiblen Container für kleine Bildschirmauflösung
-        echo '<div class="d-flex flex-nowrap">';
-        echo '<div class="btn-group me-1" role="group" aria-label="Second group">';
-        echo '<a href="#" data-bs-toggle="modal" data-bs-target="#exportModal" title="Export Buchungen in CSV-Datei" class="btn btn-primary btn-sm">
-              <i class="fa-solid fa-file-export"></i></a>';
-        echo '</div>';
-        echo '<div class="btn-group me-1" role="group" aria-label="Third group">';
-        echo '<a href="Import.php" title="Import Buchungen in CSV-Datei" class="btn btn-primary btn-sm"><span><i class="fa-solid fa-file-import"></i></span></a>';
-        echo '</div>';
-        echo '<div class="btn-group me-2" role="group" aria-label="First group">';
-        if (isset($_GET['monat']) && !empty($_GET['monat'])) {
-          echo '<a href="CreatePDF.php?monat=' . htmlspecialchars($_GET['monat']) . '" title="PDF erzeugen" class="btn btn-primary btn-sm">
-              <span><i class="fa-solid fa-file-pdf"></i></span>
-            </a>';
-        }
-        echo '</div>';
-        echo '</div>';
-        echo '</div>';
-
-        // Abrufen der verfügbaren Monate
-        // Aktueller Monat im Format YYYY-MM
-        $currentMonth = date('Y-m');
-
-        // Abrufen der verfügbaren Monate
-        $sql = "SELECT DISTINCT DATE_FORMAT(datum, '%Y-%m') AS monat 
-        FROM buchungen 
-        WHERE Userid = :userid 
-        ORDER BY datum DESC, Day(datum) DESC";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute(['userid' => $userid]);
-
-        echo '<form method="GET" action="" style="class="d-flex mb-2" style="gap: 20px;" flex-direction: column; gap: 10px;">';
-
-        // Erste Zeile: Labels        
-        echo '<div id="divLabels" class="d-flex mb-2 mx-2" style="gap: 20px;">';
-        echo '<label for="monat" class="form-label mb-0" style="width: 200px;">Bewegungen im Monat:</label>';
-        echo '<label for="anfangsbestand" class="form-label mb-0" style="width: 200px;">Anfangsbestand:</label>';
-        echo '</div>';
-
-        // Zweite Zeile: Eingabefelder
-        echo '<div id="divInputs" class="d-flex mb-3 mx-2" style="gap: 20px;">';
-
-        // Dropdown für Bewegungen im Monat
-        echo '<select id="monat" name="monat" class="form-control" style="width: 200px;" onchange="this.form.submit()">';
-
-        // Option "Alle Monate" nur anzeigen, wenn wir das brauchen
-        echo '<option value="">Alle Monate</option>';
-
-        // Deutsche Monatsnamen
-        $monatNames = [
-          1 => 'Januar',
-          2 => 'Februar',
-          3 => 'März',
-          4 => 'April',
-          5 => 'Mai',
-          6 => 'Juni',
-          7 => 'Juli',
-          8 => 'August',
-          9 => 'September',
-          10 => 'Oktober',
-          11 => 'November',
-          12 => 'Dezember'
-        ];
-
-        // Bestimmen, welcher Monat ausgewählt sein soll
-        if (isset($_GET['monat'])) {
-          $selectedMonth = $_GET['monat']; // kann leer sein
-        } else {
-          $selectedMonth = $currentMonth; // nur beim ersten Laden
-        }
-
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-          $monat = $row['monat'];
-          $monatNum = (new DateTime($monat . '-01'))->format('n'); // Monatsnummer
-          $monatFormatted = $monatNames[$monatNum] . ' ' . (new DateTime($monat . '-01'))->format('Y');
-          $selected = ($selectedMonth === $monat) ? 'selected' : '';
-          echo "<option value=\"$monat\" $selected>$monatFormatted</option>";
-        }
-
-        echo '</select>';
-
-        // Wenn ein Monat ausgewählt wurde, dann filtern wir die Buchungen
-        if (!empty($selectedMonth)) {
-          $monatFilter = $selectedMonth;
-          $monatNumFilter = (new DateTime($monatFilter . '-01'))->format('n');
-          $yearFilter = substr($monatFilter, 0, 4);
-        } else {
-          $monatFilter = '';
-        }
-
-        if ($monatFilter <> '')
-          $yearFilter = substr($monatFilter, 0, 4);
-
-        $stmtAB = null; // Initialisierung
-        
-        if ($monatFilter <> '') {
-          $startDatum = $monatFilter . "-01";
-          $endDatum = date("Y-m-t", strtotime($startDatum));
-
-          // Buchungen für gewählten Monat
-          $sql = "SELECT * FROM buchungen 
-                  WHERE datum BETWEEN :startDatum AND :endDatum 
-                  AND userid = :userid 
-                  AND kassennummer = :kassennummer 
-                  AND barkasse = 1 
-                  ORDER BY datum DESC";
-          $stmt = $pdo->prepare($sql);
-          $stmt->execute(['startDatum' => $startDatum, 'endDatum' => $endDatum, 'userid' => $userid, 'kassennummer' => $kassennummer]);
-
-          // Vormonat berechnen
-          $vorMonat = date("Y-m", strtotime("-1 month", strtotime($startDatum)));
-
-          // Endbestand des Vormonats holen
-          $sql = "SELECT bestand FROM bestaende
-            WHERE DATE_FORMAT(datum, '%Y-%m') = :vormonat
-            AND userid = :userid AND kassennummer = :kassennummer
-            ORDER BY datum DESC 
-            LIMIT 1";
-          $stmtVB = $pdo->prepare($sql);
-          $stmtVB->execute(['vormonat' => $vorMonat, 'userid' => $userid, 'kassennummer' => $kassennummer]);
-          $anfangsbestand = $stmtVB->fetchColumn() ?: 0;
-
-        } else {
-          // Alle Buchungen
-          $sql = "SELECT * FROM buchungen 
-        WHERE userid = :userid         
-        AND barkasse = 1 
-        AND kassennummer = :kassennummer 
-         ORDER BY YEAR(datum) DESC, MONTH(datum) DESC, datum DESC, id DESC"; // neueste zuerst, dann nach ID
-          $stmt = $pdo->prepare($sql);
-          $stmt->execute(['userid' => $userid, 'kassennummer' => $kassennummer]);
-
-          $monatFilter = '';
-          $anfangsbestand = 0;
-        }
-
-        // Nur ausgeben, wenn $stmtAB existiert und erfolgreich ausgeführt wurde
-        if ($anfangsbestand <> 0) {
-
-          echo '<input class="form-control text-end" type="text" name="anfangsbestand" id="anfangsbestand" value="'
-            . number_format($anfangsbestand, 2, ',', '.')
-            . ' €" style="width: 200px;" step="0.01" disabled>';
-
-        } else {
-          // Optional: Wenn kein Monat gewählt, Anfangsbestand 0 anzeigen
-          echo '<input class="form-control text-end" type="text" name="anfangsbestand" id="anfangsbestand" value="0,00 €" style="width: 200px;" step="0.01" disabled>';
-        }
-        echo '</div>'; // Ende divInputs        
-        echo '</div>';
-        echo '</div>';
-
+        require_once 'includes/benutzerversion.php';
         ?>
-        <br>
-        <div class="table-responsive mx-2">
-          <table id="TableBuchungen" class="table table-striped nowrap" style="width:100%">
-            <thead>
-              <tr>
-                <th>Datum</th>
-                <th class='visible-column'>Typ</th>
-                <th class='visible-column'>Beleg-Nr</th>
-                <th class='betrag-right'>Betrag</th>
-                <th class='betrag-right'>Mwst.</th>
-                <th class='betrag-right'>erm.</th>
-                <th>Buchungsart</th>
-                <th class='visible-column'>Verwendungszweck</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php
-              // Alle Buchungsarten und deren MwSt-Ermäßigung einmal laden
-              $stmtBA = $pdo->prepare("
-                  SELECT buchungsart, mwst_ermaessigt 
-                  FROM buchungsarten 
-                  WHERE userid = :userid
-              ");
-              $stmtBA->execute([':userid' => $userid]);
-
-              while ($rowBA = $stmtBA->fetch(PDO::FETCH_ASSOC)) {
-                $buchungsartenMwst[$rowBA['buchungsart']] = $rowBA['mwst_ermaessigt'];
-              }
-              // print_r($buchungsartenMwst);
-              
-              $summe = 0;
-              $mwstsumme = 0;
-              // Datenzeilen durchlaufen
-              while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                // Datum ins deutsche Format umwandeln
-                $formattedDate = (new DateTime($row['datum']))->format('d.m.Y');
-
-                // Ursprünglicher Betrag
-                $betragmwst = $row['betrag'];
-                $betragFormatted = number_format($row['betrag'], 2, '.', ',') . " €";
-
-                // Farbe für Betrag setzen
-                $farbe = ($row['typ'] === 'Einlage') ? 'green' : 'red';
-                $betragFormatted = "<span style='color: {$farbe}; font-weight: bold;'>{$betragFormatted}</span>";
-
-                $brutto = $row['betrag'];
-                $netto = $brutto; // Fallback
-                $mwst = 0;
-                $steuersatz = 0;
-
-                if ($row['typ'] === 'Ausgabe') {
-                  $erm = isset($buchungsartenMwst[$row['buchungsart']]) && $buchungsartenMwst[$row['buchungsart']] == 1;
-
-                  if ($erm) {
-                    // 7% MwSt
-                    $steuersatz = 7;
-                    $netto = $brutto / 1.07;
-                    $mwst = $brutto - $netto;
-                  } else {
-                    // 19% MwSt
-                    $steuersatz = 19;
-                    $netto = $brutto / 1.19;
-                    $mwst = $brutto - $netto;
-                  }
-                } else if ($row['typ'] === 'Einlage') {
-                  // Keine MwSt bei Einlage
-                  $steuersatz = 0;
-                  $netto = $brutto;
-                  $mwst = 0;
-                }
+      </div>
+  </header>
+  <div class="container-fluid mt-3">
+    <?php renderFlash(); ?>
 
 
-                // Werte runden (falls gewünscht, auf 2 Nachkommastellen)
-                $netto = round($netto, 2);
-                $mwst = round($mwst, 2);
 
+    <!-- Toolbar -->
+    <div class="btn-toolbar mb-3" role="toolbar" aria-label="Toolbar">
+      <div class="btn-group me-2" role="group">
+        <a href="AddBuchung.php" class="btn btn-primary btn-sm" title="Position hinzufügen"><i
+            class="fa fa-plus"></i></a>
+      </div>
 
-                // Werte runden (falls gewünscht, auf 2 Nachkommastellen)
-                $netto = round($netto, 2);
-                $mwst = round($mwst, 2);
+      <div class="btn-group me-2" role="group">
+        <a href="#" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#exportModal"
+          title="Export"><i class="fa-solid fa-file-export"></i></a>
+      </div>
 
-                // MwSt Betrag formatieren
-                $betragMwstFormatted = number_format($mwst, 2, '.', ',') . " €";
-                $betragMwstFormatted = "<span style='color: {$farbe}; font-weight: bold;'>{$betragMwstFormatted}</span>";
+      <div class="btn-group me-2" role="group">
+        <a href="Import.php" class="btn btn-primary btn-sm" title="Import"><i class="fa-solid fa-file-import"></i></a>
+      </div>
 
-                if ($row['typ'] === 'Einlage')
-                  $erm = '';
+      <div class="ms-auto">
+        <?php if (!empty($monatFilter)): ?>
+          <a href="CreatePDF.php?monat=<?= urlencode($monatFilter) ?>" class="btn btn-outline-secondary btn-sm"
+            title="PDF erzeugen"><i class="fa-solid fa-file-pdf"></i></a>
+        <?php endif; ?>
+      </div>
+    </div>
 
-                // Tabelle ausgeben
-                echo "<tr>
-                      <td style='vertical-align: top; width:7%;'data-order=" . (new DateTime($row['datum']))->format('Y-m-d') . ">{$formattedDate}</td>
-                      <td style='vertical-align: top; width:7%;' class='visible-column'>{$row['typ']}</td>
-                      <td style='vertical-align: top; width:10%;' class='visible-column'>{$row['belegnr']}</td>
-                      <td style='vertical-align: top; width:5%; text-align:right; white-space: nowrap;'>{$betragFormatted}</td>
-                      <td style='vertical-align: top; width:5%; text-align:right; white-space: nowrap;'>{$betragMwstFormatted}</td>
-                      <td style='vertical-align: top; width:5%; text-align:right; white-space: nowrap;'>{$erm}</td>
-                      <td style='vertical-align: top; width:20%;'>{$row['vonan']}</td>            
-                      <td style='vertical-align: top; width:20%;'>{$row['beschreibung']}</td>
-                      <td style='vertical-align: top; width:7%; white-space: nowrap;'>
-                          <a href='EditBuchung.php?id={$row['id']}' style='width:60px;' title='Buchung bearbeiten' class='btn btn-primary btn-sm'><i class='fa-solid fa-pen-to-square'></i></a> 
-                          <a href='DeleteBuchung.php?id={$row['id']}' data-id='{$row['id']}' style='width:60px;' title='Buchung löschen' class='btn btn-danger btn-sm delete-button'><i class='fa-solid fa-trash'></i></a>
-                      </td>
-                  </tr>";
+    <!-- Filter: Monat + Anfangsbestand -->
+    <form method="get" class="row g-2 align-items-end mb-3">
+      <div class="col-auto">
+        <label for="monat" class="form-label mb-0">Bewegungen im Monat</label>
+        <select id="monat" name="monat" class="form-select" onchange="this.form.submit()">
+          <option value="">Alle Monate</option>
+          <?php while ($m = $stmtMonths->fetch(PDO::FETCH_ASSOC)):
+            $monat = $m['monat'];
+            $monatNum = (int) (new DateTime($monat . '-01'))->format('n');
+            $monatFormatted = [
+              1 => 'Januar',
+              2 => 'Februar',
+              3 => 'März',
+              4 => 'April',
+              5 => 'Mai',
+              6 => 'Juni',
+              7 => 'Juli',
+              8 => 'August',
+              9 => 'September',
+              10 => 'Oktober',
+              11 => 'November',
+              12 => 'Dezember'
+            ][$monatNum] . ' ' . (new DateTime($monat . '-01'))->format('Y');
+            $sel = ($selectedMonth === $monat) ? 'selected' : '';
+            ?>
+            <option value="<?= htmlspecialchars($monat) ?>" <?= $sel ?>><?= htmlspecialchars($monatFormatted) ?></option>
+          <?php endwhile; ?>
+        </select>
+      </div>
 
-                if ($row['typ'] === 'Einlage') {
-                  $summe += $row['betrag'];
-                  $mwstsumme += $mwst;
-                } else {
-                  $summe -= $row['betrag'];
-                  $mwstsumme += $mwst;
-                }
-
-              }
-
-              $farbesumme = ($summe > 0) ? 'green' : 'red';
-              $farbesummemwst = ($mwstsumme > 0) ? 'green' : 'red';
-
-              echo "<tr>
-                      <td style='vertical-align: top; width:7%;'>Summe</td>
-                      <td style='vertical-align: top; width:7%;' class='visible-column'></td>
-                      <td style='vertical-align: top; width:10%;' class='visible-column'></td>
-                      <td style='vertical-align: top; width:5%; text-align:right; white-space: nowrap;font-weight:bold;'><span style='color: {$farbesumme}; font-weight: bold;'>" . number_format($summe, 2, '.', ',') . " €" . "</td>
-                      <td style='vertical-align: top; width:5%; text-align:right; white-space: nowrap;font-weight:bold;'><span style='color: {$farbesummemwst}; font-weight: bold;'>" . number_format($mwstsumme, 2, '.', ',') . " €" . "</td>
-                      <td style='vertical-align: top; width:5%; text-align:right; white-space: nowrap;'></td>
-                      <td style='vertical-align: top; width:20%;'></td>            
-                      <td style='vertical-align: top; width:20%;'></td>
-                      <td style='vertical-align: top; width:7%; white-space: nowrap;'>
-                          
-                      </td>
-                  </tr>";
-              ?>
-            </tbody>
-          </table>
-
-          <div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-              <div class="modal-content">
-                <div class="modal-header">
-                  <h5 class="modal-title" id="exportModalLabel">Export auswählen</h5>
-                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                  <p>Bitte wählen Sie, ob der Export nach Monat oder Jahr erfolgen soll:</p>
-                </div>
-                <div class="modal-footer">
-                  <a href="Export.php?type=monat" class="btn btn-primary">Monat</a>
-                  <a href="Export.php?type=jahr" class="btn btn-secondary">Jahr</a>
-                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <?php
-
-          //echo $monatFilter;
-          if ($monatFilter <> '') {
-            $sql = "SELECT COUNT(*) AS anzahl FROM buchungen WHERE userid = :userid AND kassennummer = :kassennummer AND barkasse = 1 AND Year(datum) = :year AND MONTH(datum) = :monat";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute(['year' => $yearFilter, 'monat' => $monatNumFilter, 'userid' => $userid, 'kassennummer' => $kassennummer]);
-            $resultCount = $stmt->fetch(PDO::FETCH_ASSOC);
-          } else {
-            $sql = "SELECT COUNT(*) AS anzahl FROM buchungen WHERE userid = :userid AND kassennummer = :kassennummer AND barkasse = 1";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute(['userid' => $userid, 'kassennummer' => $kassennummer]);
-            $resultCount = $stmt->fetch(PDO::FETCH_ASSOC);
-          }
-
-          // Summen für den ausgewählten Monat
-          if ($monatFilter <> '') {
-            $sql = "SELECT SUM(CASE WHEN typ = 'Einlage' THEN betrag ELSE 0 END) AS einlagen,
-                    SUM(CASE WHEN typ = 'Ausgabe' THEN betrag ELSE 0 END) AS ausgaben
-                    FROM buchungen
-                    WHERE Year(datum) = :year AND MONTH(datum) = :monat and userid = :userid AND kassennummer = :kassennummer and barkasse =1 ";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute(['year' => $yearFilter, 'monat' => $monatNumFilter, 'userid' => $userid, 'kassennummer' => $kassennummer]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-
-          } else {
-            $sql = "SELECT SUM(CASE WHEN typ = 'Einlage' THEN betrag ELSE 0 END) AS einlagen,
-                    SUM(CASE WHEN typ = 'Ausgabe' THEN betrag ELSE 0 END) AS ausgaben
-                    FROM buchungen WHERE userid = :userid AND kassennummer = :kassennummer and barkasse = 1";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute(['userid' => $userid, 'kassennummer' => $kassennummer]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-          }
-
-          $einlagen = (float) ($result['einlagen'] ?? 0);
-          $ausgaben = (float) ($result['ausgaben'] ?? 0);
-          $saldo = $anfangsbestand + $einlagen - $ausgaben;
-          $anzahl = (int) ($resultCount['anzahl'] ?? 0);
-          ?>
-          <div class="card shadow-sm mb-4">
-            <div class="card-header bg-primary text-white fw-bold">
-              <i class="fa-solid fa-coins me-2"></i> Finanzübersicht
-            </div>
-            <div class="card-body">
-              <div class="row mb-2">
-                <div class="col-2 col-md-4">
-                  <i class="fa-solid fa-piggy-bank text-secondary me-2"></i> Anfangsbestand:
-                </div>
-                <div class="col-6 col-md-4 text-end">
-                  <?= number_format($anfangsbestand, 2, '.', '.') ?> €
-                </div>
-              </div>
-
-              <div class="row mb-2">
-                <div class="col-2 col-md-4">
-                  <i class="fa-solid fa-arrow-down text-success me-2"></i> Einlagen:
-                </div>
-                <div class="col-6 col-md-4 text-end text-success fw-bold">
-                  <?= number_format($einlagen, 2, '.', '.') ?> €
-                </div>
-              </div>
-
-              <div class="row mb-2">
-                <div class="col-6 col-md-4">
-                  <i class="fa-solid fa-arrow-up text-danger me-2"></i> Ausgaben:
-                </div>
-                <div class="col-6 col-md-4 text-end text-danger fw-bold">
-                  <?= number_format($ausgaben, 2, '.', '.') ?> €
-                </div>
-              </div>
-
-              <hr>
-
-              <?php $saldoClass = ($saldo >= 0) ? 'text-success' : 'text-danger'; ?>
-              <div class="row">
-                <div class="col-6 col-md-4 fw-bold">
-                  <i class="fa-solid fa-scale-balanced me-2"></i> Neuer Bestand:
-                </div>
-                <div class="col-6 col-md-4 text-end fw-bold <?= $saldoClass ?>">
-                  <?= number_format($saldo, 2, '.', '.') ?> €
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <?php
-
-
-          // Deutsche Monatsnamen
-          $monatsnamen = [
-            1 => 'Januar',
-            2 => 'Februar',
-            3 => 'März',
-            4 => 'April',
-            5 => 'Mai',
-            6 => 'Juni',
-            7 => 'Juli',
-            8 => 'August',
-            9 => 'September',
-            10 => 'Oktober',
-            11 => 'November',
-            12 => 'Dezember'
-          ];
-
-          // Anfangsbestand vom Vormonat ermitteln
-          $anfangsbestand = 0;
-          $stmtVor = $pdo->prepare("
-                    SELECT bestand FROM bestaende 
-                    WHERE userid = :userid AND kassennummer = :kassennummer AND datum < :erstesDatum 
-                    ORDER BY datum DESC LIMIT 1
-                ");
-          $erstesDatum = "$yearFilter-01-01";
-          $stmtVor->execute(['userid' => $userid, 'kassennummer' => $kassennummer, 'erstesDatum' => $erstesDatum]);
-          $anfangsbestand = (float) $stmtVor->fetchColumn() ?: 0;
-
-          $saldoVormonat = $anfangsbestand;
-
-          // Deutsche Monatsnamen
-          $monatsnamen = [
-            1 => 'Januar',
-            2 => 'Februar',
-            3 => 'März',
-            4 => 'April',
-            5 => 'Mai',
-            6 => 'Juni',
-            7 => 'Juli',
-            8 => 'August',
-            9 => 'September',
-            10 => 'Oktober',
-            11 => 'November',
-            12 => 'Dezember'
-          ];
-
-          // Anfangsbestand vom Vormonat ermitteln
-          $anfangsbestand = 0;
-          $stmtVor = $pdo->prepare("
-                  SELECT bestand FROM bestaende 
-                  WHERE userid = :userid AND kassennummer = :kassennummer AND datum < :erstesDatum 
-                  ORDER BY datum DESC LIMIT 1
-              ");
-          $erstesDatum = "$yearFilter-01-01";
-          $stmtVor->execute(['userid' => $userid, 'kassennummer' => $kassennummer, 'erstesDatum' => $erstesDatum]);
-          $anfangsbestand = (float) $stmtVor->fetchColumn() ?: 0;
-
-          $saldoVormonat = $anfangsbestand;
-
-          // Deutsche Monatsnamen
-          $monatsnamen = [
-            1 => 'Januar',
-            2 => 'Februar',
-            3 => 'März',
-            4 => 'April',
-            5 => 'Mai',
-            6 => 'Juni',
-            7 => 'Juli',
-            8 => 'August',
-            9 => 'September',
-            10 => 'Oktober',
-            11 => 'November',
-            12 => 'Dezember'
-          ];
-
-          // Alle Buchungsarten mit MwSt-Ermäßigung einmal laden
-          $buchungsartenMwst = [];
-
-          // prepare statt query
-          $stmtBA = $pdo->prepare("SELECT buchungsart, mwst_ermaessigt 
-                         FROM buchungsarten  
-                         WHERE userid = :userid 
-                           AND kassennummer = :kassennummer");
-
-          // execute mit Parametern
-          $stmtBA->execute([
-            ':userid' => $userid,
-            ':kassennummer' => $kassennummer
-          ]);
-
-          while ($rowBA = $stmtBA->fetch(PDO::FETCH_ASSOC)) {
-            $buchungsartenMwst[$rowBA['buchungsart']] = $rowBA['mwst_ermaessigt'];
-          }
-
-          // Anfangsbestand vom Vormonat ermitteln
-          $erstesDatum = "$yearFilter-01-01";
-          $stmtVor = $pdo->prepare("
-              SELECT bestand 
-              FROM bestaende 
-              WHERE userid = :userid 
-                AND kassennummer = :kassennummer
-                AND datum <= DATE_SUB(:erstesDatum, INTERVAL 1 DAY)
-              ORDER BY datum DESC 
-              LIMIT 1
-          ");
-          $stmtVor->execute(['userid' => $userid, 'kassennummer' => $kassennummer, 'erstesDatum' => $erstesDatum]);
-          $anfangsbestand = (float) $stmtVor->fetchColumn() ?: 0;
-
-          $saldoVormonat = $anfangsbestand;
-
-          // Accordion starten
-          echo '<div class="accordion mb-4" id="accordionFinanzuebersicht">';
-
-          // Finanzübersicht-Header (am Anfang zugeklappt, blau)
-          echo '<div class="accordion-item">
-                <h2 class="accordion-header fw-bold" id="headingFinanz">
-                    <button class="accordion-button collapsed text-white fw-bold" type="button"
-                            data-bs-toggle="collapse" data-bs-target="#collapseFinanz"
-                            aria-expanded="false" aria-controls="collapseFinanz"
-                            style="background-color:#0d6efd;">
-                        <i class="fa-solid fa-coins me-2"></i> Finanzübersicht für ' . $yearFilter . ' (Klick zum Öffnen)
-                    </button>
-                </h2>
-                <div id="collapseFinanz" class="accordion-collapse collapse" aria-labelledby="headingFinanz" data-bs-parent="#accordionFinanzuebersicht">
-                    <div class="accordion-body">';
-
-          // Anfangsbestand anzeigen
-          echo '<div class="row mb-3">
-                    <div class="col-6 col-md-4">
-                        <i class="fa-solid fa-piggy-bank text-secondary me-2"></i> Anfangsbestand:
-                    </div>
-                    <div class="col-6 col-md-4 text-end">
-                        ' . number_format($anfangsbestand, 2, '.', '.') . ' €
-                    </div>
-                  </div>';
-
-          // Monatsübersicht inklusive Buchungen
-          for ($monat = 1; $monat <= 12; $monat++) {
-            // Gesamtsummen für den Monat
-            $stmt = $pdo->prepare("
-                    SELECT 
-                        SUM(CASE WHEN typ='Einlage' THEN betrag ELSE 0 END) AS einlagen,
-                        SUM(CASE WHEN typ='Ausgabe' THEN betrag ELSE 0 END) AS ausgaben
-                    FROM buchungen
-                    WHERE YEAR(datum)=:jahr AND MONTH(datum)=:monat AND userid=:userid AND kassennummer = :kassennummer AND barkasse=1
-                ");
-            $stmt->execute(['jahr' => $yearFilter, 'monat' => $monat, 'userid' => $userid, 'kassennummer' => $kassennummer]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            $einlagen = (float) ($result['einlagen'] ?? 0);
-            $ausgaben = (float) ($result['ausgaben'] ?? 0);
-            $saldo = $saldoVormonat + $einlagen - $ausgaben;
-            $saldoClass = ($saldo >= 0) ? 'text-success' : 'text-danger';
-
-            echo '<div class="accordion-item">
-                <h2 class="accordion-header" id="heading' . $monat . '">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse' . $monat . '" aria-expanded="false" aria-controls="collapse' . $monat . '">
-                        ' . $monatsnamen[$monat] . ' ' . $yearFilter . '
-                    </button>
-                </h2>
-                <div id="collapse' . $monat . '" class="accordion-collapse collapse" aria-labelledby="heading' . $monat . '" data-bs-parent="#collapseFinanz">
-                    <div class="accordion-body">
-                        <div class="row mb-2">
-                            <div class="col-6 col-md-4 fw-bold text-success">
-                                <i class="fa-solid fa-arrow-down me-2"></i> Einlagen:
-                            </div>
-                            <div class="col-6 col-md-4 text-end text-success fw-bold">
-                                ' . number_format($einlagen, 2, '.', '.') . ' €
-                            </div>
-                        </div>
-                        <div class="row mb-2">
-                            <div class="col-6 col-md-4 fw-bold text-danger">
-                                <i class="fa-solid fa-arrow-up me-2"></i> Ausgaben:
-                            </div>
-                            <div class="col-6 col-md-4 text-end text-danger fw-bold">
-                                ' . number_format($ausgaben, 2, '.', '.') . ' €
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-12 col-md-8 fw-bold text-end ' . $saldoClass . '">
-                                Saldo: ' . number_format($saldo, 2, '.', '.') . ' €
-                            </div>
-                        </div>';
-
-            // Einzelne Buchungen für den Monat laden
-            $stmtB = $pdo->prepare("
-                SELECT * FROM buchungen 
-                WHERE YEAR(datum)=:jahr AND MONTH(datum)=:monat AND userid=:userid AND barkasse=1 AND kassennummer = :kassennummer
-                ORDER BY datum ASC
-            ");
-            $stmtB->execute(['jahr' => $yearFilter, 'monat' => $monat, 'userid' => $userid, 'kassennummer' => $kassennummer]);
-
-            echo '<table class="table table-sm table-striped">';
-            echo '<thead>
-            <tr>
-                <th>Datum</th>
-                <th>Typ</th>
-                <th>Belegnr.</th>
-                <th class="text-end">Betrag</th>
-                <th>Von/An</th>
-                <th class="text-end">MwSt</th>
-                <th>Beschreibung</th>
-            </tr>
-          </thead><tbody>';
-
-            while ($row = $stmtB->fetch(PDO::FETCH_ASSOC)) {
-              $formattedDate = (new DateTime($row['datum']))->format('d.m.Y');
-              $betrag = (float) $row['betrag'];
-              $farbe = ($row['typ'] === 'Einlage') ? 'green' : 'red';
-              $betragFormatted = "<span style='color: {$farbe}; font-weight: bold;'>" . number_format($betrag, 2, '.', ',') . " €</span>";
-
-              // MwSt berechnen
-              if ($row['typ'] === 'Ausgabe') {
-                $erm = isset($buchungsartenMwst[$row['buchungsart']]) && $buchungsartenMwst[$row['buchungsart']] == 1;
-                $mwstBetrag = $erm ? $betrag - ($betrag / 1.07) : $betrag - ($betrag / 1.19);
-              } else {
-                $mwstBetrag = 0;
-              }
-              $mwstFormatted = "<span style='color: {$farbe}; font-weight: bold;'>" . number_format($mwstBetrag, 2, '.', ',') . " €</span>";
-
-              echo "<tr>
-                <td>{$formattedDate}</td>
-                <td>{$row['typ']}</td>
-                <td>{$row['belegnr']}</td>
-                <td class='text-end'>{$betragFormatted}</td>
-                <td>{$row['vonan']}</td>
-                <td class='text-end'>{$mwstFormatted}</td>
-                <td>{$row['beschreibung']}</td>
-              </tr>";
-            }
-
-            echo '</tbody></table>';
-
-            echo '</div></div></div>'; // Accordion-Body, Collapse, Item
-          
-            $saldoVormonat = $saldo; // für nächsten Monat
-          }
-
-          echo '</div></div>'; // Accordion-Body, Accordion-Finanzübersicht
-          ?>
-
-
-        </div>
-        <!-- Bootstrap Modal -->
-        <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel"
-          aria-hidden="true">
-          <div class="modal-dialog">
-            <div class="modal-content">
-              <div class="modal-header">
-                <h5 class="modal-title" id="confirmDeleteModalLabel">Löschbestätigung</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
-              </div>
-              <div class="modal-body">
-                Möchten Sie diese Buchung wirklich löschen?
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Löschen</button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- Toast -->
-        <div class="toast-container position-fixed top-0 end-0 p-3">
-          <div id="deleteToast" class="toast toast-green" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-header">
-              <strong class="me-auto">Benachrichtigung</strong>
-              <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-            <div class="toast-body">
-              Buchung wurde gelöscht.
-            </div>
-          </div>
-        </div>
+      <div class="col-auto">
+        <label for="anfangsbestand" class="form-label mb-0">Anfangsbestand</label>
+        <input id="anfangsbestand" class="form-control text-end" type="text" value="<?= fmtMoney($anfangsbestand) ?>"
+          disabled style="min-width:160px">
+      </div>
     </form>
 
-    <!-- JS -->
-    <script src="js/jquery.min.js"></script>
-    <script src="js/bootstrap.bundle.min.js"></script>
-    <script src="js/jquery.dataTables.min.js"></script>
-    <script src="js/dataTables.min.js"></script>
-    <script src="js/dataTables.responsive.min.js"></script>
-    <script src="js/date-eu.js"></script>
+    <!-- Tabelle Buchungen -->
+    <div class="table-responsive">
+      <table id="TableBuchungen" class="table table-striped table-sm nowrap w-100">
+        <thead>
+          <tr>
+            <th>Datum</th>
+            <th class="visible-column">Typ</th>
+            <th class="visible-column">Beleg-Nr</th>
+            <th class="betrag-right">Betrag</th>
+            <th class="betrag-right">Mwst.</th>
+            <th class="betrag-right">erm.</th>
+            <th>Buchungsart</th>
+            <th class="visible-column">Verwendungszweck</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php
+          $summe = 0.0;
+          $mwstsumme = 0.0;
 
-    <script>
-      $(document).ready(function () {
-        let deleteId = null; // Speichert die ID für die Löschung
+          while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $formattedDate = (new DateTime($row['datum']))->format('d.m.Y');
+            $brutto = (float) $row['betrag'];
+            $typ = $row['typ'];
+            $buchungsart = $row['buchungsart'] ?? '';
+            $calc = calcVatAndNet($brutto, $typ, $buchungsartenMwst, $buchungsart);
+            $mwst = $calc['mwst'];
 
-        $('.delete-button').on('click', function (event) {
-          event.preventDefault();
-          deleteId = $(this).data('id'); // Hole die ID aus dem Button-Datenattribut          
-          //alert(deleteId);
-          $('#confirmDeleteModal').modal('show'); // Zeige das Modal an
-        });
+            // Formatierungen
+            $farbe = ($typ === 'Einlage') ? 'green' : 'red';
+            $betragFormatted = "<span style='color:{$farbe}; font-weight:bold;'>" . fmtMoney($brutto) . "</span>";
+            $mwstFormatted = "<span style='color:{$farbe}; font-weight:bold;'>" . fmtMoney($mwst) . "</span>";
+            $erm = ($typ === 'Einlage') ? '' : ((isset($buchungsartenMwst[$buchungsart]) && $buchungsartenMwst[$buchungsart] == 1) ? '7%' : '19%');
 
-        $('#confirmDeleteBtn').on('click', function () {
-          if (deleteId) {
-            // Dynamisches Formular erstellen und absenden
-            const form = $('<form>', {
-              action: 'DeleteBuchung.php',
-              method: 'POST'
-            }).append($('<input>', {
-              type: 'hidden',
-              name: 'id',
-              value: deleteId
-            })).append($('<input>', {
-              type: 'hidden',
-              name: 'csrf_token',
-              value: $('#csrf_token').val() // <- Das Session-Token wird übernommen
-            }));
+            // Summenrechnung
+            if ($typ === 'Einlage') {
+              $summe += $brutto;
+              $mwstsumme += $mwst;
+            } else {
+              $summe -= $brutto;
+              $mwstsumme += $mwst;
+            }
 
-            $('body').append(form);
-            form.submit();
+            // safe output
+            $vonan = htmlspecialchars($row['vonan'] ?? '', ENT_QUOTES, 'UTF-8');
+            $beschreibung = htmlspecialchars($row['beschreibung'] ?? '', ENT_QUOTES, 'UTF-8');
+            $belegnr = htmlspecialchars($row['belegnr'] ?? '', ENT_QUOTES, 'UTF-8');
+            $id = (int) $row['id'];
+
+            // data-order auf ISO-Datum für richtige Sortierung
+            $orderDate = (new DateTime($row['datum']))->format('Y-m-d');
+
+            echo "<tr>
+                    <td data-order='{$orderDate}'>{$formattedDate}</td>
+                    <td class='visible-column'>" . htmlspecialchars($typ) . "</td>
+                    <td class='visible-column'>{$belegnr}</td>
+                    <td class='text-end'>{$betragFormatted}</td>
+                    <td class='text-end'>{$mwstFormatted}</td>
+                    <td class='text-end'>{$erm}</td>
+                    <td>{$buchungsart}</td>
+                    <td class='visible-column'>{$beschreibung}</td>
+                    <td class='text-nowrap'>
+                        <a href='EditBuchung.php?id={$id}' class='btn btn-primary btn-sm' title='Bearbeiten'><i class='fa-solid fa-pen-to-square'></i></a>
+                        <button type='button' class='btn btn-danger btn-sm ms-1 delete-button' data-id='{$id}' title='Löschen'><i class='fa-solid fa-trash'></i></button>
+                    </td>
+                  </tr>";
           }
-          $('#confirmDeleteModal').modal('hide'); // Schließe das Modal
 
-          // Zeige den Toast an
-          var toast = new bootstrap.Toast($('#deleteToast')[0]);
-          toast.show();
-        });
-      });
+          // Summenzeile
+          $farbesumme = ($summe >= 0) ? 'green' : 'red';
+          $farbesummemwst = ($mwstsumme >= 0) ? 'green' : 'red';
+          echo "<tr class='fw-bold'>
+                <td>Summe</td>
+                <td class='visible-column'></td>
+                <td class='visible-column'></td>
+                <td class='text-end'><span style='color:{$farbesumme};'>" . fmtMoney($summe) . "</span></td>
+                <td class='text-end'><span style='color:{$farbesummemwst};'>" . fmtMoney($mwstsumme) . "</span></td>
+                <td></td><td></td><td class='visible-column'></td><td></td>
+              </tr>";
+          ?>
+        </tbody>
+      </table>
+    </div>
 
-      function NavBarClick() {
-        var x = document.getElementById("myTopnav");
-        if (x.className === "topnav") {
-          x.className += " responsive";
-        } else {
-          x.className = "topnav";
-        }
-      }
+    <!-- Export Modal -->
+    <div class="modal fade" id="exportModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Export auswählen</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+          </div>
+          <div class="modal-body">
+            <p>Export nach Monat oder Jahr?</p>
+          </div>
+          <div class="modal-footer">
+            <a href="Export.php?type=monat" class="btn btn-primary">Monat</a>
+            <a href="Export.php?type=jahr" class="btn btn-secondary">Jahr</a>
+            <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Abbrechen</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
+    <!-- Löschbestätigung Modal -->
+    <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel"
+      aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="confirmDeleteModalLabel">Löschbestätigung</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+          </div>
+          <div class="modal-body">Möchten Sie diese Buchung wirklich löschen?</div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+            <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Löschen</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast (optional) -->
+    <div class="toast-container position-fixed top-0 end-0 p-3">
+      <div id="deleteToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+          <strong class="me-auto">Benachrichtigung</strong>
+          <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">Buchung wurde gelöscht.</div>
+      </div>
+    </div>
+
+    <!-- Finanz-Statistiken: Anzahl, Einlagen/Ausgaben, Saldo -->
+    <?php
+    // Anzahl
+    if ($monatFilter !== '') {
+      $stmtCount = $pdo->prepare("SELECT COUNT(*) FROM buchungen WHERE userid=:userid AND kassennummer=:kassennummer AND barkasse=1 AND YEAR(datum)=:jahr AND MONTH(datum)=:monat");
+      $stmtCount->execute(['userid' => $userid, 'kassennummer' => $kassennummer, 'jahr' => $yearFilter, 'monat' => $monatNumFilter]);
+      $anzahl = (int) $stmtCount->fetchColumn();
+    } else {
+      $stmtCount = $pdo->prepare("SELECT COUNT(*) FROM buchungen WHERE userid=:userid AND kassennummer=:kassennummer AND barkasse=1");
+      $stmtCount->execute(['userid' => $userid, 'kassennummer' => $kassennummer]);
+      $anzahl = (int) $stmtCount->fetchColumn();
+    }
+
+    // Summen Einlagen/Ausgaben
+    if ($monatFilter !== '') {
+      $stmtSum = $pdo->prepare("SELECT SUM(CASE WHEN typ='Einlage' THEN betrag ELSE 0 END) AS einlagen, SUM(CASE WHEN typ='Ausgabe' THEN betrag ELSE 0 END) AS ausgaben FROM buchungen WHERE YEAR(datum)=:jahr AND MONTH(datum)=:monat AND userid=:userid AND kassennummer=:kassennummer AND barkasse=1");
+      $stmtSum->execute(['jahr' => $yearFilter, 'monat' => $monatNumFilter, 'userid' => $userid, 'kassennummer' => $kassennummer]);
+      $res = $stmtSum->fetch(PDO::FETCH_ASSOC);
+    } else {
+      $stmtSum = $pdo->prepare("SELECT SUM(CASE WHEN typ='Einlage' THEN betrag ELSE 0 END) AS einlagen, SUM(CASE WHEN typ='Ausgabe' THEN betrag ELSE 0 END) AS ausgaben FROM buchungen WHERE userid=:userid AND kassennummer=:kassennummer AND barkasse=1");
+      $stmtSum->execute(['userid' => $userid, 'kassennummer' => $kassennummer]);
+      $res = $stmtSum->fetch(PDO::FETCH_ASSOC);
+    }
+
+    $einlagen = (float) ($res['einlagen'] ?? 0);
+    $ausgaben = (float) ($res['ausgaben'] ?? 0);
+    $saldo = $anfangsbestand + $einlagen - $ausgaben;
+    ?>
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-primary text-white fw-bold"><i class="fa-solid fa-coins me-2"></i> Finanzübersicht
+      </div>
+      <div class="card-body">
+        <div class="row mb-2">
+          <div class="col-6 col-md-4">Anfangsbestand:</div>
+          <div class="col-6 col-md-4 text-end"><?= fmtMoney($anfangsbestand) ?></div>
+        </div>
+        <div class="row mb-2">
+          <div class="col-6 col-md-4">Einlagen:</div>
+          <div class="col-6 col-md-4 text-end text-success fw-bold"><?= fmtMoney($einlagen) ?></div>
+        </div>
+        <div class="row mb-2">
+          <div class="col-6 col-md-4">Ausgaben:</div>
+          <div class="col-6 col-md-4 text-end text-danger fw-bold"><?= fmtMoney($ausgaben) ?></div>
+        </div>
+        <hr>
+        <div class="row">
+          <div class="col-6 col-md-4 fw-bold">Neuer Bestand:</div>
+          <div class="col-6 col-md-4 text-end fw-bold <?= ($saldo >= 0) ? 'text-success' : 'text-danger' ?>">
+            <?= fmtMoney($saldo) ?>
+          </div>
+        </div>
+        <div class="mt-3">Anzahl Buchungen: <strong><?= $anzahl ?></strong></div>
+      </div>
+    </div>
+
+    <!-- Accordion Jahres-/Monatsübersicht (Jahr = $yearFilter) -->
+    <div class="accordion mb-4" id="accordionFinanzuebersicht">
+      <?php
+      $saldoVormonat = $anfangsbestand;
+      $monatsnamen = [1 => 'Januar', 2 => 'Februar', 3 => 'März', 4 => 'April', 5 => 'Mai', 6 => 'Juni', 7 => 'Juli', 8 => 'August', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Dezember'];
+
+      for ($monat = 1; $monat <= 12; $monat++):
+        // Monatssummen
+        $stmt = $pdo->prepare("SELECT SUM(CASE WHEN typ='Einlage' THEN betrag ELSE 0 END) AS einlagen, SUM(CASE WHEN typ='Ausgabe' THEN betrag ELSE 0 END) AS ausgaben FROM buchungen WHERE YEAR(datum)=:jahr AND MONTH(datum)=:monat AND userid=:userid AND kassennummer=:kassennummer AND barkasse=1");
+        $stmt->execute(['jahr' => $yearFilter, 'monat' => $monat, 'userid' => $userid, 'kassennummer' => $kassennummer]);
+        $res = $stmt->fetch(PDO::FETCH_ASSOC);
+        $einl = (float) ($res['einlagen'] ?? 0);
+        $ausg = (float) ($res['ausgaben'] ?? 0);
+        $saldoMonat = $saldoVormonat + $einl - $ausg;
+        $saldoClass = ($saldoMonat >= 0) ? 'text-success' : 'text-danger';
+        ?>
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="heading<?= $monat ?>">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+              data-bs-target="#collapse<?= $monat ?>" aria-expanded="false" aria-controls="collapse<?= $monat ?>">
+              <?= $monatsnamen[$monat] . ' ' . $yearFilter ?>
+            </button>
+          </h2>
+          <div id="collapse<?= $monat ?>" class="accordion-collapse collapse" aria-labelledby="heading<?= $monat ?>"
+            data-bs-parent="#accordionFinanzuebersicht">
+            <div class="accordion-body">
+              <div class="row mb-2">
+                <div class="col-6 col-md-4">Einlagen:</div>
+                <div class="col-6 col-md-4 text-end text-success fw-bold"><?= fmtMoney($einl) ?></div>
+              </div>
+              <div class="row mb-2">
+                <div class="col-6 col-md-4">Ausgaben:</div>
+                <div class="col-6 col-md-4 text-end text-danger fw-bold"><?= fmtMoney($ausg) ?></div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-12 col-md-8 text-end fw-bold <?= $saldoClass ?>">Saldo: <?= fmtMoney($saldoMonat) ?></div>
+              </div>
+
+              <!-- Einzeltabelle für Monat -->
+              <?php
+              $stmtB = $pdo->prepare("SELECT * FROM buchungen WHERE YEAR(datum)=:jahr AND MONTH(datum)=:monat AND userid=:userid AND barkasse=1 AND kassennummer=:kassennummer ORDER BY datum ASC");
+              $stmtB->execute(['jahr' => $yearFilter, 'monat' => $monat, 'userid' => $userid, 'kassennummer' => $kassennummer]);
+              ?>
+              <div class="table-responsive">
+                <table class="table table-sm table-striped">
+                  <thead>
+                    <tr>
+                      <th>Datum</th>
+                      <th>Typ</th>
+                      <th>Belegnr.</th>
+                      <th class="text-end">Betrag</th>
+                      <th>Von/An</th>
+                      <th class="text-end">MwSt</th>
+                      <th>Beschreibung</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <?php while ($r = $stmtB->fetch(PDO::FETCH_ASSOC)):
+                      $date = (new DateTime($r['datum']))->format('d.m.Y');
+                      $b = (float) $r['betrag'];
+                      $c = calcVatAndNet($b, $r['typ'], $buchungsartenMwst, $r['buchungsart'] ?? '');
+                      $mwstB = $c['mwst'];
+                      $farbe = ($r['typ'] === 'Einlage') ? 'green' : 'red';
+                      $betragFmt = "<span style='color:{$farbe}; font-weight:bold;'>" . fmtMoney($b) . "</span>";
+                      $mwstFmt = "<span style='color:{$farbe}; font-weight:bold;'>" . fmtMoney($mwstB) . "</span>";
+                      ?>
+                      <tr>
+                        <td><?= $date ?></td>
+                        <td><?= htmlspecialchars($r['typ']) ?></td>
+                        <td><?= htmlspecialchars($r['belegnr']) ?></td>
+                        <td class="text-end"><?= $betragFmt ?></td>
+                        <td><?= htmlspecialchars($r['vonan']) ?></td>
+                        <td class="text-end"><?= $mwstFmt ?></td>
+                        <td><?= htmlspecialchars($r['beschreibung']) ?></td>
+                      </tr>
+                    <?php endwhile; ?>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <?php
+        $saldoVormonat = $saldoMonat;
+      endfor;
+      ?>
+    </div>
+  </div>
+
+  <!-- JS -->
+  <script src="js/jquery.min.js"></script>
+  <script src="js/bootstrap.bundle.min.js"></script>
+  <script src="js/jquery.dataTables.min.js"></script>
+  <script src="js/dataTables.responsive.min.js"></script>
+  <script src="js/date-eu.js"></script>
+
+  <script>
+    $(document).ready(function () {
       $('#TableBuchungen').DataTable({
         language: { url: "https://cdn.datatables.net/plug-ins/1.13.4/i18n/de-DE.json" },
         responsive: {
@@ -847,24 +537,45 @@ $kassennummer = $_SESSION['kassennummer'] ?? null;
             display: $.fn.dataTable.Responsive.display.modal({
               header: function (row) {
                 var data = row.data();
-                return 'Details zu ' + data[1];
+                return 'Details zu ' + (data[1] || '');
               }
             }),
-            renderer: $.fn.dataTable.Responsive.renderer.tableAll({
-              tableClass: 'table'
-            })
+            renderer: $.fn.dataTable.Responsive.renderer.tableAll({ tableClass: 'table' })
           }
         },
-        scrollX: false,
-        pageLength: 50,
+        pageLength: 10,
         autoWidth: false,
-        columnDefs: [
-          { type: 'date-eu', targets: 0 } // 0 = Spalte mit Datum
-        ],
-        order: [[0, 'desc']] // Sortiere standardmäßig nach Datum absteigend
+        columnDefs: [{ type: 'date-eu', targets: 0 }],
+        order: [[0, 'desc']]
       });
-    </script>
+    });
+    $(function () {
 
+
+      // Lösch-Workflow
+      let deleteId = null;
+      $('.delete-button').on('click', function (e) {
+        e.preventDefault();
+        deleteId = $(this).data('id');
+        $('#confirmDeleteModal').modal('show');
+      });
+
+      $('#confirmDeleteBtn').on('click', function () {
+        if (!deleteId) return;
+        // dynamisches Formular mit CSRF
+        const form = $('<form>', { action: 'DeleteBuchung.php', method: 'POST' })
+          .append($('<input>', { type: 'hidden', name: 'id', value: deleteId }))
+          .append($('<input>', { type: 'hidden', name: 'csrf_token', value: '<?= $_SESSION['csrf_token'] ?>' }));
+        $('body').append(form);
+        form.submit();
+        $('#confirmDeleteModal').modal('hide');
+
+        // optionaler Toast
+        const toastEl = $('#deleteToast')[0];
+        if (toastEl) new bootstrap.Toast(toastEl).show();
+      });
+    });
+  </script>
 </body>
 
 </html>

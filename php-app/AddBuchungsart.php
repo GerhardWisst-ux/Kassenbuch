@@ -34,9 +34,12 @@ $buchungsarten = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Datensicherung für das Kassenbuch – einfache Verwaltung und sichere Backups.">
+  <meta name="author" content="Dein Name oder Firma">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>CashControl - Buchungsart hinzufügen</title>
-
+  <link rel="icon" type="image/png" href="images/favicon.png" />
   <!-- CSS -->
   <link href="css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -46,10 +49,29 @@ $buchungsarten = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </head>
 
 <body>
-
+  <?php
+  // Erfolgsmeldung anzeigen
+  if (isset($_SESSION['success_message'])) {
+    echo '<div class="alert alert-success alert-dismissible fade show" role="alert">'
+      . htmlspecialchars($_SESSION['success_message']) .
+      '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+         </div>';
+    // Meldung nach einmaligem Anzeigen löschen        
+    unset($_SESSION['success_message']);
+  }
+  if (!empty($_SESSION['error_message'])): ?>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+      <?= htmlspecialchars($_SESSION['error_message']) ?>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></button>
+    </div>
+    <?php
+    // Meldung nach Anzeige löschen        
+    unset($_SESSION['error_message']);
+  endif;
+  ?>
   <header class="custom-header text-center">
     <h2 class="h4 mb-0">CashControl - Buchungsart hinzufügen</h2>
-    <div class="text-end me-3">      
+    <div class="text-end me-3">
       <?php
       require_once 'includes/benutzerversion.php';
       ?>
@@ -104,8 +126,6 @@ $buchungsarten = $stmt->fetchAll(PDO::FETCH_ASSOC);
   <!-- JS -->
   <script src="js/jquery.min.js"></script>
   <script src="js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-  <script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
 
 </body>
 

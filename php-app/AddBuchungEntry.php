@@ -137,7 +137,7 @@ try {
 
     $pdo->commit();
 
-    header('Location: Index.php', true, 303);
+    header('Location: Buchungen.php', true, 303);
     exit();
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) {

@@ -14,16 +14,19 @@ if (empty($_SESSION['userid'])) {
 
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Datensicherung für das Kassenbuch – einfache Verwaltung und sichere Backups.">
+    <meta name="author" content="Dein Name oder Firma">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>CashControl Bestände Chart</title>
-
+    <link rel="icon" type="image/png" href="images/favicon.png" />
     <!-- CSS -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="css/jquery.dataTables.min.css" rel="stylesheet">
     <link href="css/responsive.dataTables.min" rel="stylesheet">
     <link href="css/style.css" rel="stylesheet">
-  
+
 </head>
 
 <?php
@@ -95,18 +98,9 @@ $ausgabenWerte = array_values($ausgaben);
                     <h2 class="h4 mb-0">CashControl - Bestände - Chart</h2>
                 </div>
 
-                <!-- Benutzerinfo + Logout -->
-                <div class="col-12 col-md-auto ms-md-auto text-center text-md-end">
-                    <!-- Auf kleinen Bildschirmen: eigene Zeile für E-Mail -->
-                    <div class="d-block d-md-inline mb-1 mb-md-0">
-                        <span class="me-2">Angemeldet als:
-                            <?= htmlspecialchars($_SESSION['email']) ?></span>
-                    </div>
-                    <!-- Logout-Button -->
-                    <a class="btn btn-darkgreen btn-sm" title="Abmelden vom Webshop" href="logout.php">
-                        <i class="fa fa-sign-out" aria-hidden="true"></i> Ausloggen
-                    </a>
-                </div>
+                <?php
+                require_once 'includes/benutzerversion.php';
+                ?>
             </div>
         </div>
     </header>

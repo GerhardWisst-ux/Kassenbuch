@@ -85,7 +85,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Erfolgsmeldung setzen
         $_SESSION['success_message'] = "Der Bestand wurde erfolgreich gespeichert.";
 
-
         if (isset($_SERVER['HTTP_REFERER'])) {
             header('Location: ' . $_SERVER['HTTP_REFERER']);
             exit;

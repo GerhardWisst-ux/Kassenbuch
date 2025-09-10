@@ -1,13 +1,42 @@
 <?php
-// includes/bestaende_berechnen.php
-
-function berechneBestaende(PDO $pdo, int $userid, int $kassennummer, int $jahr): array
+/**
+ * berechneBestaende.php
+ * Berechnet die Monatsbestände für eine Kasse und trägt sie in die Tabelle 'bestaende' ein.
+ * 
+ * @param PDO $pdo
+ * @param int $userid
+ * @param int $kassennummer
+ * @param int $jahr
+ * @return array ['eingefuegt'=>int, 'aktualisiert'=>int, 'saldo'=>float]
+ */
+function berechneBestaende(PDO $pdo, int $userid, int $kassennummer, int $jahr, bool $kasseneu): array
 {
     $eingefuegt = 0;
     $aktualisiert = 0;
     $gesamtSaldo = 0;
 
-    // Anfangsbestand ermitteln (Saldo bis Ende Vorjahr)
+    // 1️⃣ Daten der Kasse abrufen
+    $stmtKasse = $pdo->prepare("
+        SELECT anfangsbestand, datumab 
+        FROM kasse 
+        WHERE id = :kassennummer
+    ");
+    $stmtKasse->execute([':kassennummer' => $kassennummer]);
+    $kasseData = $stmtKasse->fetch(PDO::FETCH_ASSOC);
+
+    if (!$kasseData) {
+        throw new Exception("Kasse mit ID $kassennummer nicht gefunden!");
+    }
+
+    $anfangsbestand = (float) $kasseData['anfangsbestand'];
+
+    if ($kasseneu  == true) 
+        $startmonat = (int) date('m', strtotime($kasseData['datumab']));
+    else
+        $startmonat = 1;    
+    
+
+    // 2️⃣ Anfangsbestand aus Vorjahr ermitteln
     $erstesDatum = "$jahr-01-01";
     $stmtVor = $pdo->prepare("
         SELECT bestand 
@@ -23,12 +52,11 @@ function berechneBestaende(PDO $pdo, int $userid, int $kassennummer, int $jahr):
         'erstesDatum' => $erstesDatum,
         'kassennummer' => $kassennummer
     ]);
-    $anfangsbestand = (float) $stmtVor->fetchColumn() ?: 0;
+    $saldoVormonat = (float) $stmtVor->fetchColumn() ?: $anfangsbestand;
 
-    $saldoVormonat = $anfangsbestand;
-
+    // 3️⃣ Monatsweise Berechnung ab Startmonat
     for ($monat = 1; $monat <= 12; $monat++) {
-        // Monats-Summen berechnen
+        // Einlagen/Ausgaben für den Monat berechnen
         $stmt = $pdo->prepare("
             SELECT 
                 SUM(CASE WHEN typ='Einlage' THEN betrag ELSE 0 END) AS einlagen,
@@ -42,20 +70,19 @@ function berechneBestaende(PDO $pdo, int $userid, int $kassennummer, int $jahr):
         ");
         $stmt->execute([
             'userid' => $userid,
+            'kassennummer' => $kassennummer,
             'jahr' => $jahr,
-            'monat' => $monat,
-            'kassennummer' => $kassennummer
+            'monat' => $monat
         ]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
         $einlagen = (float) ($result['einlagen'] ?? 0);
         $ausgaben = (float) ($result['ausgaben'] ?? 0);
 
-        // Neuer Saldo
         $saldo = $saldoVormonat + $einlagen - $ausgaben;
         $datum = date("$jahr-$monat-01");
 
-        // Prüfen ob Eintrag existiert
+        // Prüfen ob Eintrag für den Monat existiert
         $checkStmt = $pdo->prepare("
             SELECT id FROM bestaende
             WHERE userid = :userid 
@@ -65,9 +92,9 @@ function berechneBestaende(PDO $pdo, int $userid, int $kassennummer, int $jahr):
         ");
         $checkStmt->execute([
             'userid' => $userid,
+            'kassennummer' => $kassennummer,
             'jahr' => $jahr,
-            'monat' => $monat,
-            'kassennummer' => $kassennummer
+            'monat' => $monat
         ]);
         $id = $checkStmt->fetchColumn();
 

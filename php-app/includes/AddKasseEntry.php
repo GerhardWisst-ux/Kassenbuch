@@ -81,7 +81,7 @@ try {
     }
 
     // Jetzt erst Bestaende berechnen
-    $result = berechneBestaende($pdo, $userid, $lastkasseid, $jahr, true);
+    $result = $kassennummer = $_SESSION['kassennummer'] ?? null($pdo, $userid, $lastkasseid, $jahr, true);
 
     $pdo->commit();
 
