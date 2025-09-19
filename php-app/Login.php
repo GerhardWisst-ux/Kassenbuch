@@ -22,98 +22,97 @@ session_start();
         body {
             height: 100%;
             margin: 0;
-            background-color: #f8f9fa;
+            /* Hellerer, wärmerer Blauverlauf */
+            background: linear-gradient(135deg, #4da8da, #a0d8f1);
             font-family: 'Segoe UI', Tahoma, sans-serif;
+            color: #000;
+            /* optional für Text auf hellblau */
         }
 
-        /* Wrapper für Flex */
-        .wrapper {
-            min-height: 100vh;
+        /* Zentrierung */
+        .container {
             display: flex;
-            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 90vh;
         }
 
-        /* === Navbar & Header === */
+        /* === Karte (Login-Box) === */
+        .card {
+            border-radius: 20px;
+            overflow: hidden;
+            border: none;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            background: #fff;
+            color: #000;
+        }
+
+        /* Header */
         .custom-header {
             background: linear-gradient(90deg, #1e3c72, #2a5298);
             color: #fff;
-            height: 40px;
-            border-bottom: 2px solid #1b3a6d;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-            border-radius: 1px 1px 1px 1px;
+            padding: 1rem;
         }
 
-        .custom-header h2 {
+        .custom-header h4 {
+            margin: 0;
             font-weight: 600;
             letter-spacing: 0.5px;
         }
 
-        /* === Buttons === */
-        .btn-custom {
-            background-color: #1e3c72 !important;
-            border-radius: 30px;
-            font-size: 0.85rem;
-            padding: 0.45rem 0.9rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary-custom {
-            color: linear-gradient(90deg, #1e3c72, #2a5298) !important;
-            background-color: #1e3c72 !important;
-            border-color: #1e3c72 !important;
-        }
-
-        .btn-primary-custom:hover {
-            background-color: #1e3c72 !important;
-        }
-
-
-        /* === Karten & Tabellen === */
-        .custom-container {
-            background-color: #fff;
+        /* Formularfelder */
+        .form-control {
             border-radius: 12px;
-            /* padding: 20px; */
-            margin-top: 0px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+            padding: 0.65rem 1rem;
+            border: 1px solid #d1d9e6;
+            transition: border 0.3s ease, box-shadow 0.3s ease;
         }
 
-        /* === Navbar Design === */
-        .navbar-custom {
-            background: linear-gradient(to right, #cce5f6, #e6f2fb);
-            border-bottom: 1px solid #b3d7f2;
+        .form-control:focus {
+            border-color: #1e3c72;
+            box-shadow: 0 0 0 0.2rem rgba(30, 60, 114, 0.2);
         }
 
-        .navbar-custom .navbar-brand,
-        .navbar-custom .nav-link {
-            color: #0c2c4a;
+        /* Buttons */
+        .btn-custom {
+            background: linear-gradient(90deg, #1e3c72, #2a5298);
+            border: none;
+            border-radius: 30px;
+            font-size: 1rem;
+            padding: 0.6rem;
             font-weight: 500;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
-        .navbar-custom .nav-link:hover,
-        .navbar-custom .nav-link:focus {
-            color: #04588c;
+        .btn-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(30, 60, 114, 0.3);
+        }
+
+        /* Links */
+        .text-center a {
+            color: #1e3c72;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .text-center a:hover {
+            color: #2a5298;
             text-decoration: underline;
         }
 
-        /* === Modal === */
-        .modal-content {
+        /* Fehlermeldung */
+        .alert {
             border-radius: 12px;
         }
-
-        .modal-header {
-            background-color: #0946c9ff;
-            color: #fff;
-            border-radius: 12px 12px 0 0;
-        }
     </style>
+
+
 </head>
 
 <body>
     <?php
-    
     $_SESSION['userid'] = "";
-
     $errorMessage = '';
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -124,7 +123,8 @@ session_start();
             $errorMessage = "Ungültige E-Mail-Adresse.";
         } else {
             try {
-                $stmt = $pdo->prepare("SELECT id, email, passwort, freigeschaltet FROM users WHERE email = :email");
+
+                $stmt = $pdo->prepare("SELECT id, email, vorname, nachname, passwort, freigeschaltet, is_admin, gesperrt, mandantennummer FROM users WHERE email = :email");
                 $stmt->execute(['email' => $email]);
                 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -132,17 +132,17 @@ session_start();
                     $errorMessage = "Benutzer existiert nicht.";
                 } elseif (!password_verify($password, $user['passwort'])) {
                     $errorMessage = "Passwort ist falsch.";
+                } elseif ((int) $user['gesperrt'] === 1) {
+                    $errorMessage = "Es liegt eine Sperre vor. Bitte kontaktieren Sie den Administrator.";
                 } else {
                     if ((int) $user['freigeschaltet'] === 1) {
-                        // Direkt einloggen
                         $_SESSION['userid'] = $user['id'];
                         $_SESSION['email'] = $user['email'];
+                        $_SESSION['vorname'] = $user['vorname'];
+                        $_SESSION['nachname'] = $user['nachname'];
+                        $_SESSION['is_admin'] = $user['is_admin'];
+                        $_SESSION['mandantennummer'] = $user['mandantennummer'];
                         header("Location: Index.php");
-                        exit;
-                    } else {
-                        // 2FA erforderlich
-                        $_SESSION['2fa_user'] = $user['id'];
-                        header("Location: twofactor.php");
                         exit;
                     }
                 }
@@ -151,58 +151,47 @@ session_start();
             }
         }
     }
-    ?>    
+    ?>
 
-    <!-- Inhalt mit Login-Form -->
-
-    <body>     
-        <div class="container mt-5">
-            <div class="row justify-content-center">
-                <div class="col-md-6">
-                    <div class="card shadow-lg border-0">
-                        <div class="custom-header bg-primary text-white text-center">
-                            <h4 class="mb-0">CashControl Login</h4>
+    <div class="container">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-lg">
+                <div class="custom-header text-center">
+                    <h4>CashControl Login</h4>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" action="" novalidate>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Benutzer:</label>
+                            <input type="email" name="email" id="email" class="form-control" required
+                                value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" placeholder="Benutzer eingeben">
+                        </div>
+                        <div class="mb-3">
+                            <label for="passwort" class="form-label">Passwort:</label>
+                            <input type="password" name="passwort" id="passwort" class="form-control" required
+                                value="<?= htmlspecialchars($_POST['passwort'] ?? '') ?>"
+                                placeholder="Passwort eingeben">
                         </div>
 
-                        <div class="card-body">
-                            <form method="post" action="" class="needs-validation" novalidate>
+                        <?php if (!empty($errorMessage)): ?>
+                            <div class="alert alert-danger"><?= htmlspecialchars($errorMessage) ?></div>
+                        <?php endif; ?>
 
-                                <div class="mb-3">
-                                    <label for="email" class="form-label">Benutzer:</label>
-                                    <input type="text" name="email" id="email" required class="form-control"
-                                        placeholder="Benutzer eingeben">
-                                </div>
-
-                                <div class="mb-3">
-                                    <label for="passwort" class="form-label">Passwort:</label>
-                                    <input type="password" name="passwort" id="passwort" required class="form-control"
-                                        placeholder="Passwort eingeben">
-                                </div>
-
-                                <?php if (!empty($errorMessage)): ?>
-                                    <div class="alert alert-danger">
-                                        <?= htmlspecialchars($errorMessage) ?>
-                                    </div>
-                                <?php endif; ?>
-
-                                <div class="d-grid">
-                                    <button type="submit" class="btn-custom text-white rounded-pill">Anmelden</button>
-                                </div>
-
-                                <div class="text-center mt-3">
-                                    <a href="register.php" class="text-decoration-none">Noch kein Konto? Jetzt
-                                        registrieren</a>
-                                </div>
-                            </form>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-custom text-white">Anmelden</button>
                         </div>
-                    </div>
+
+                        <div class="text-center mt-3">
+                            <a href="register.php">Noch kein Konto? Jetzt registrieren</a>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Optional: Bootstrap JS -->
-        <script src="../assets/js/bootstrap.bundle.min.js"></script>
-    </body>
+    <script src="../assets/js/bootstrap.bundle.min.js"></script>
+</body>
 
 </html>
 <?php ob_end_flush(); ?>

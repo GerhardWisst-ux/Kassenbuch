@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CashControl - Buchungsarten Hilfe</title>
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .flowchart {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px 0;
+        }
+
+        .step {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            width: 300px;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .step:hover {
+            background-color: #0056b3;
+        }
+
+        .arrow {
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 20px solid #333;
+            margin: 0 auto;
+        }
+
+        .details {
+            display: none;
+            background: #f1f5ff;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            width: 80%;
+            max-width: 600px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>CashControl - Buchungsarten Hilfe</h1>
+    <p>Klicken Sie auf einen Schritt im Flowchart, um Details zu sehen.</p>
+
+    <div class="flowchart">
+        <div class="step" data-detail="login">1. Seite laden und Benutzer prüfen. Nur angemeldete Benutzer dürfen
+            fortfahren.</div>
+        <div class="arrow"></div>
+        <div class="step" data-detail="daten">2. Daten aus der Tabelle <code>buchungsarten</code> laden.</div>
+        <div class="arrow"></div>
+        <div class="step" data-detail="datatable">3. DataTables initialisieren (Sortierung, Suche, Paging, responsive).
+        </div>
+        <div class="arrow"></div>
+        <div class="step" data-detail="buttons">4. Benutzer klickt "Bearbeiten" oder "Löschen".</div>
+        <div class="arrow"></div>
+        <div class="step" data-detail="modal">5. Bei "Löschen": Modal öffnen → Formular absenden mit CSRF-Token.</div>
+        <div class="arrow"></div>
+        <div class="step" data-detail="toast">6. Buchungsart gelöscht → Toast-Benachrichtigung erscheint.</div>
+    </div>
+
+    <div id="login" class="details">
+        <strong>Anmeldung:</strong> Die Seite prüft <code>$_SESSION['userid']</code>. Nicht angemeldete Benutzer werden
+        zu Login.php weitergeleitet.
+    </div>
+    <div id="daten" class="details">
+        <strong>Datenbank:</strong> Buchungsarten werden anhand von <code>userid</code> geladen und in der Tabelle
+        angezeigt.
+    </div>
+    <div id="datatable" class="details">
+        <strong>DataTables:</strong> Ermöglicht Paging, Suche, Sortierung und responsive Anzeige. Die ID-Spalte wird
+        verborgen.
+    </div>
+    <div id="buttons" class="details">
+        <strong>Buttons:</strong> "Bearbeiten" → EditBuchungsart.php, "Löschen" → öffnet Modal zur Bestätigung.
+    </div>
+    <div id="modal" class="details">
+        <strong>Modal:</strong> Zeigt Löschbestätigung. Formular wird mit CSRF-Token an DeleteBuchungsart.php gesendet.
+    </div>
+    <div id="toast" class="details">
+        <strong>Toast:</strong> Bestätigung für den Benutzer, dass die Buchungsart gelöscht wurde.
+    </div>
+
+    <script>
+        document.querySelectorAll('.step').forEach(step => {
+            step.addEventListener('click', () => {
+                const id = step.getAttribute('data-detail');
+                const detailDiv = document.getElementById(id);
+                detailDiv.style.display = (detailDiv.style.display === 'block') ? 'none' : 'block';
+            });
+        });
+    </script>
+
+</body>
+
+</html>

@@ -14,12 +14,13 @@ if (!$userid) {
   exit;
 }
 
-// Kassennummer aus Session oder GET
-if (empty($_SESSION['kassennummer'])) {
-  $_SESSION['kassennummer'] = isset($_GET['kassennummer']) ? (int) $_GET['kassennummer'] : 0;
-}
-$kassennummer = (int) ($_SESSION['kassennummer'] ?? 0);
+// // Kassennummer aus Session oder GET
+if (empty($_SESSION['kassennummer']))
+  $kassennummer = (int) ($_GET['kassennummer'] ?? 1);
+else
+  $kassennummer = $_SESSION['kassennummer'];
 
+$_SESSION['kassennummer'] = $kassennummer;
 // CSRF-Token
 if (empty($_SESSION['csrf_token'])) {
   $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -75,22 +76,24 @@ function calcVatAndNet(float $brutto, string $typ, array $buchungsartenMwst, str
 $yearFilter = date('Y');
 $currentMonth = date('Y-m');
 
+$mandantennummer = $_SESSION['mandantennummer'];
+
 // Lade Kassenname
-$stmt = $pdo->prepare("SELECT kasse FROM kasse WHERE userid = :userid AND id = :kassennummer LIMIT 1");
-$stmt->execute(['userid' => $userid, 'kassennummer' => $kassennummer]);
+$stmt = $pdo->prepare("SELECT kasse FROM kasse WHERE userid = :userid AND mandantennummer = :mandantennummer AND id = :kassennummer LIMIT 1");
+$stmt->execute(['userid' => $userid, 'kassennummer' => $kassennummer, 'mandantennummer' => $mandantennummer]);
 $kasse = $stmt->fetchColumn() ?: 'Unbekannte Kasse';
 
 // Lade alle Buchungsarten/Ermäßigungen (einmalig)
 $buchungsartenMwst = [];
-$stmtBA = $pdo->prepare("SELECT buchungsart, mwst_ermaessigt FROM buchungsarten WHERE userid = :userid AND kassennummer = :kassennummer");
-$stmtBA->execute(['userid' => $userid, 'kassennummer' => $kassennummer]);
+$stmtBA = $pdo->prepare("SELECT buchungsart, mwst_ermaessigt FROM buchungsarten WHERE userid = :userid AND mandantennummer = :mandantennummer AND kassennummer = :kassennummer");
+$stmtBA->execute(['userid' => $userid, 'kassennummer' => $kassennummer, 'mandantennummer' => $mandantennummer]);
 while ($r = $stmtBA->fetch(PDO::FETCH_ASSOC)) {
   $buchungsartenMwst[$r['buchungsart']] = $r['mwst_ermaessigt'];
 }
 
 // Verfügbare Monate für Filter
-$stmtMonths = $pdo->prepare("SELECT DISTINCT DATE_FORMAT(datum, '%Y-%m') AS monat FROM buchungen WHERE userid = :userid AND kassennummer = :kassennummer AND barkasse = 1 ORDER BY monat DESC");
-$stmtMonths->execute(['userid' => $userid, 'kassennummer' => $kassennummer]);
+$stmtMonths = $pdo->prepare("SELECT DISTINCT DATE_FORMAT(datum, '%Y-%m') AS monat FROM buchungen WHERE userid = :userid AND mandantennummer = :mandantennummer AND kassennummer = :kassennummer AND barkasse = 1 ORDER BY monat DESC");
+$stmtMonths->execute(['userid' => $userid, 'kassennummer' => $kassennummer, 'mandantennummer' => $mandantennummer]);
 
 // Bestimme ausgewählten Monat (GET oder default currentMonth)
 $selectedMonth = isset($_GET['monat']) ? trim($_GET['monat']) : $currentMonth;
@@ -112,22 +115,42 @@ if ($monatFilter !== '') {
   $sql = "SELECT * FROM buchungen 
             WHERE datum BETWEEN :startDatum AND :endDatum
               AND userid = :userid
+              AND mandantennummer = :mandantennummer
               AND kassennummer = :kassennummer
               AND barkasse = 1
             ORDER BY datum DESC, id DESC";
   $stmt = $pdo->prepare($sql);
-  $stmt->execute(['startDatum' => $startDatum, 'endDatum' => $endDatum, 'userid' => $userid, 'kassennummer' => $kassennummer]);
+  $stmt->execute(['startDatum' => $startDatum, 'endDatum' => $endDatum, 'userid' => $userid, 'kassennummer' => $kassennummer, 'mandantennummer' => $mandantennummer]);
 
-  // Vormonat-Endbestand
-  $vorMonat = date('Y-m', strtotime('-1 month', strtotime($startDatum)));
-  $stmtVB = $pdo->prepare("SELECT bestand FROM bestaende WHERE DATE_FORMAT(datum, '%Y-%m') = :vormonat AND userid = :userid AND kassennummer = :kassennummer ORDER BY datum DESC LIMIT 1");
-  $stmtVB->execute(['vormonat' => $vorMonat, 'userid' => $userid, 'kassennummer' => $kassennummer]);
-  $anfangsbestand = (float) ($stmtVB->fetchColumn() ?: 0);
+  // Anfangsmonat und -jahr der Kasse
+  $startDatumObj = new DateTime($monatFilter . '-01');
+  $startMonat = (int) $startDatumObj->format('m') - 1;
+  $startJahr = (int) $startDatumObj->format('Y');
+
+  $stmtAB = $pdo->prepare("
+        SELECT bestand
+        FROM bestaende
+        WHERE userid = :userid
+          AND kassennummer = :kassennummer
+          AND mandantennummer = :mandantennummer
+          AND YEAR(datum) = :jahr
+          AND MONTH(datum) = :monat
+        LIMIT 1
+    ");
+  $stmtAB->execute([
+    ':userid' => $userid,
+    ':kassennummer' => $kassennummer,
+    ':mandantennummer' => $mandantennummer,
+    ':jahr' => $startJahr,
+    ':monat' => $startMonat
+  ]);
+  $anfangsbestand = (float) ($stmtAB->fetchColumn() ?: 0);
+
 } else {
   // Alle Buchungen
-  $sql = "SELECT * FROM buchungen WHERE userid = :userid AND kassennummer = :kassennummer AND barkasse = 1 ORDER BY YEAR(datum) DESC, MONTH(datum) DESC, datum DESC, id DESC";
+  $sql = "SELECT * FROM buchungen WHERE userid = :userid AND kassennummer = :kassennummer AND mandantennummer = :mandantennummer AND barkasse = 1 ORDER BY YEAR(datum) DESC, MONTH(datum) DESC, datum DESC, id DESC";
   $stmt = $pdo->prepare($sql);
-  $stmt->execute(['userid' => $userid, 'kassennummer' => $kassennummer]);
+  $stmt->execute(['userid' => $userid, 'kassennummer' => $kassennummer, 'mandantennummer' => $mandantennummer]);
   $anfangsbestand = 0;
 }
 
@@ -140,7 +163,7 @@ if ($monatFilter !== '') {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Datensicherung für das Kassenbuch – einfache Verwaltung und sichere Backups.">
-  <meta name="author" content="Dein Name oder Firma">
+  <meta name="author" content="Gerhard Wißt">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>CashControl - Buchungen</title>
   <link rel="icon" type="image/png" href="images/favicon.png" />
@@ -178,9 +201,6 @@ if ($monatFilter !== '') {
   </header>
   <div class="container-fluid mt-3">
     <?php renderFlash(); ?>
-
-
-
     <!-- Toolbar -->
     <div class="btn-toolbar mb-3" role="toolbar" aria-label="Toolbar">
       <div class="btn-group me-2" role="group">
@@ -198,8 +218,11 @@ if ($monatFilter !== '') {
       </div>
 
       <div class="ms-auto">
+        <a href="help/Buchungen.php" class="btn btn-primary btn-sm" title="Hilfe">
+          <i class="fa fa-question-circle"></i>
+        </a>
         <?php if (!empty($monatFilter)): ?>
-          <a href="CreatePDF.php?monat=<?= urlencode($monatFilter) ?>" class="btn btn-outline-secondary btn-sm"
+          <a href="CreatePDF.php?monat=<?= urlencode($monatFilter) ?>" class="btn btn-primary btn-sm"
             title="PDF erzeugen"><i class="fa-solid fa-file-pdf"></i></a>
         <?php endif; ?>
       </div>
@@ -264,7 +287,20 @@ if ($monatFilter !== '') {
           $mwstsumme = 0.0;
 
           while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $formattedDate = (new DateTime($row['datum']))->format('d.m.Y');
+            $datum = new DateTime($row['datum']);
+
+            // Deutsche Kurz-Wochentage
+            $wochentageKurz = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+            $tagKurz = $wochentageKurz[(int) $datum->format('w')];
+
+            $kalenderwoche = $datum->format('W');
+
+            // Samstags und Sonntags fett darstellen
+            if ($tagKurz === 'Sa' || $tagKurz === 'So') {
+              $tagKurz = "<strong>$tagKurz</strong>";
+            }
+
+            $formattedDate = "$tagKurz, " . $datum->format('d.m.Y') . " (KW $kalenderwoche)";
             $brutto = (float) $row['betrag'];
             $typ = $row['typ'];
             $buchungsart = $row['buchungsart'] ?? '';
@@ -435,18 +471,68 @@ if ($monatFilter !== '') {
     <!-- Accordion Jahres-/Monatsübersicht (Jahr = $yearFilter) -->
     <div class="accordion mb-4" id="accordionFinanzuebersicht">
       <?php
+
+
+      // 1. Startdatum der Kasse
+      $startDatumKasse = !empty($kasseData['datumab']) ? new DateTime($kasseData['datumab']) : new DateTime($yearFilter . '-01-01');
+
+      // 2. Anfangsbestand ermitteln: letzter Bestand vor Startmonat oder Anfangsbestand Default
+      $stmtAnfangs = $pdo->prepare("
+    SELECT bestand 
+    FROM bestaende
+    WHERE userid = :userid
+      AND kassennummer = :kassennummer
+      AND mandantennummer = :mandantennummer
+      AND datum <= :startDatum
+    ORDER BY datum DESC
+    LIMIT 1
+");
+      $stmtAnfangs->execute([
+        'userid' => $userid,
+        'kassennummer' => $kassennummer,
+        'mandantennummer' => $mandantennummer,
+        'startDatum' => $startDatumKasse->format('Y-m-d')
+      ]);
+      $anfangsbestand = (float) ($stmtAnfangs->fetchColumn() ?: 0);
+
+      // 3. Schleife über alle Monate ab Startmonat
+      $startmonat = (int) $startDatumKasse->format('m');
+      $startJahr = (int) $startDatumKasse->format('Y');
+
       $saldoVormonat = $anfangsbestand;
+
+      // Monatsnamen
       $monatsnamen = [1 => 'Januar', 2 => 'Februar', 3 => 'März', 4 => 'April', 5 => 'Mai', 6 => 'Juni', 7 => 'Juli', 8 => 'August', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Dezember'];
 
-      for ($monat = 1; $monat <= 12; $monat++):
-        // Monatssummen
-        $stmt = $pdo->prepare("SELECT SUM(CASE WHEN typ='Einlage' THEN betrag ELSE 0 END) AS einlagen, SUM(CASE WHEN typ='Ausgabe' THEN betrag ELSE 0 END) AS ausgaben FROM buchungen WHERE YEAR(datum)=:jahr AND MONTH(datum)=:monat AND userid=:userid AND kassennummer=:kassennummer AND barkasse=1");
-        $stmt->execute(['jahr' => $yearFilter, 'monat' => $monat, 'userid' => $userid, 'kassennummer' => $kassennummer]);
+      // Schleife ab Startmonat
+      for ($monat = $startmonat; $monat <= 12; $monat++):
+        // Einlagen und Ausgaben ermitteln
+        $stmt = $pdo->prepare("
+        SELECT 
+            SUM(CASE WHEN typ='Einlage' THEN betrag ELSE 0 END) AS einlagen,
+            SUM(CASE WHEN typ='Ausgabe' THEN betrag ELSE 0 END) AS ausgaben
+        FROM buchungen
+        WHERE YEAR(datum) = :jahr
+          AND MONTH(datum) = :monat
+          AND userid = :userid
+          AND kassennummer = :kassennummer
+          AND barkasse = 1
+    ");
+        $stmt->execute([
+          'jahr' => $startJahr,
+          'monat' => $monat,
+          'userid' => $userid,
+          'kassennummer' => $kassennummer
+        ]);
         $res = $stmt->fetch(PDO::FETCH_ASSOC);
         $einl = (float) ($res['einlagen'] ?? 0);
         $ausg = (float) ($res['ausgaben'] ?? 0);
+
+        // Saldo berechnen
         $saldoMonat = $saldoVormonat + $einl - $ausg;
-        $saldoClass = ($saldoMonat >= 0) ? 'text-success' : 'text-danger';
+
+        // Datum für Tabellen/DB
+        $monatDatum = sprintf('%04d-%02d-01', $yearFilter, $monat);
         ?>
         <div class="accordion-item">
           <h2 class="accordion-header" id="heading<?= $monat ?>">
@@ -472,8 +558,22 @@ if ($monatFilter !== '') {
 
               <!-- Einzeltabelle für Monat -->
               <?php
-              $stmtB = $pdo->prepare("SELECT * FROM buchungen WHERE YEAR(datum)=:jahr AND MONTH(datum)=:monat AND userid=:userid AND barkasse=1 AND kassennummer=:kassennummer ORDER BY datum ASC");
-              $stmtB->execute(['jahr' => $yearFilter, 'monat' => $monat, 'userid' => $userid, 'kassennummer' => $kassennummer]);
+              $stmtB = $pdo->prepare("
+                    SELECT * 
+                    FROM buchungen
+                    WHERE YEAR(datum) = :jahr
+                      AND MONTH(datum) = :monat
+                      AND userid = :userid
+                      AND kassennummer = :kassennummer
+                      AND barkasse = 1
+                    ORDER BY datum ASC
+                ");
+              $stmtB->execute([
+                'jahr' => $yearFilter,
+                'monat' => $monat,
+                'userid' => $userid,
+                'kassennummer' => $kassennummer
+              ]);
               ?>
               <div class="table-responsive">
                 <table class="table table-sm table-striped">
@@ -515,6 +615,7 @@ if ($monatFilter !== '') {
           </div>
         </div>
         <?php
+        // Vormonats-Saldo für nächsten Monat setzen
         $saldoVormonat = $saldoMonat;
       endfor;
       ?>

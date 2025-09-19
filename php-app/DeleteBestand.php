@@ -69,7 +69,7 @@ try {
     $stmt->execute();
 
     /* Logging der Löschung */
-    $log = sprintf("[%s] User %d deleted id %d\n", date('c'), $userid, $id);
+    $log = sprintf("[%s] User %d gelöscht id %d\n", date('c'), $userid, $id);
     file_put_contents(__DIR__ . '/delete.log', $log, FILE_APPEND);
 
     /* Ausgabe für Benutzer (escaped) */

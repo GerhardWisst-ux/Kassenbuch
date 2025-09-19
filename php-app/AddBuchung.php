@@ -1,14 +1,17 @@
 <?php
-ob_start();
 session_set_cookie_params([
     'httponly' => true,
     'secure' => true,  // Nur bei HTTPS
     'samesite' => 'Strict'
 ]);
 session_start();
+
 if ($_SESSION['userid'] == "") {
     header('Location: Login.php'); // zum Loginformular
 }
+
+$formData = $_SESSION['form_data'] ?? [];
+unset($_SESSION['form_data']); // nur einmal anzeigen
 
 ?>
 
@@ -16,12 +19,12 @@ if ($_SESSION['userid'] == "") {
 <html>
 
 <head>
+    <title>CashControl - Buchung hinzufügen</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Datensicherung für das Kassenbuch – einfache Verwaltung und sichere Backups.">
-    <meta name="author" content="Dein Name oder Firma">
+    <meta name="author" content="Gerhard Wißt">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>CashControl Buchungsart hinzufügen</title>
     <link rel="icon" type="image/png" href="images/favicon.png" />
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -52,15 +55,34 @@ if ($_SESSION['userid'] == "") {
     $stmt = $pdo->prepare($sql);
     $stmt->execute(['userid' => $userid]);
     $buchungsarten = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    ?>
+
+    if (isset($_SESSION['success_message'])) {
+        echo '<div class="alert alert-success alert-dismissible fade show" role="alert">'
+            . htmlspecialchars($_SESSION['success_message']) .
+            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+         </div>';
+        // Meldung nach einmaligem Anzeigen löschen        
+        unset($_SESSION['success_message']);
+    }
+    if (!empty($_SESSION['error_message'])): ?>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <?= htmlspecialchars($_SESSION['error_message']) ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></button>
+        </div>
+        <?php
+        // Meldung nach Anzeige löschen        
+        unset($_SESSION['error_message']);
+    endif; ?>
+
 
     <header class="custom-header py-2 text-white">
         <div class="container-fluid">
             <?php
-            $sql = "SELECT * FROM kasse WHERE userid = :userid AND id = :kassennummer";
+            $sql = "SELECT * FROM kasse WHERE userid = :userid  AND mandantennummer = :mandantennummer AND id = :kassennummer";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([
                 'userid' => $userid,
+                'mandantennummer' => $_SESSION['mandantennummer'],
                 'kassennummer' => $kassennummer
             ]);
 
@@ -80,29 +102,50 @@ if ($_SESSION['userid'] == "") {
             </div>
     </header>
 
+
     <div id="addbuchung" class="container-fluid mt-4">
-        <form action="AddBuchungEntry.php" method="post" class="p-3 border rounded bg-light shadow-sm">
+        <form action="AddBuchungEntry.php" method="post" class="p-1 border rounded bg-light shadow-sm">
+            <div class="d-flex justify-content-between align-items-center m-2">
+                <!-- Linke Buttons -->
+                <div>
+                    <button class="btn btn-primary btn-sm rounded-circle me-2 circle-btn" type="submit"><i
+                            class="fas fa-save"></i></button>
+
+                    <a href="Buchungen.php" title="Zurück zur Kassenübersicht"
+                        class="btn btn-primary btn-sm rounded-circle me-2 circle-btn">
+                        <i class="fa fa-arrow-left"></i>
+                    </a>
+                </div>
+
+                <!-- Rechte Buttons -->
+                <div>
+                    <a href="help/Buchungen.php" title="Hilfe" class="btn btn-primary btn-sm rounded-circle circle-btn">
+                        <i class="fa fa-question-circle"></i>
+                    </a>
+                </div>
+            </div>
             <input type="hidden" name="csrf_token"
                 value="<?= htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8') ?>">
-
             <?php
 
             $stmtBestand = $pdo->prepare("
             SELECT bestand 
             FROM bestaende 
-            WHERE kassennummer = :kassennummer 
+            WHERE kassennummer = :kassennummer
+              AND mandantennummer = :mandantennummer
               AND userid = :userid
             ORDER BY datum DESC
             LIMIT 1
         ");
             $stmtBestand->execute([
                 ':kassennummer' => $kassennummer,
+                ':mandantennummer' => $_SESSION['mandantennummer'],
                 ':userid' => $userid
             ]);
             $aktuellerBestand = $stmtBestand->fetchColumn();
 
             ?>
-            <div class="form-group row me-4">
+            <div class="mb-1 row">
                 <label class="col-sm-2 col-form-label text-dark">Aktueller Bestand:</label>
                 <div class="col-sm-1">
                     <div class="input-group">
@@ -133,7 +176,8 @@ if ($_SESSION['userid'] == "") {
                 <label for="betrag" class="col-sm-2 col-form-label text-dark">Betrag:</label>
                 <div class="col-sm-1">
                     <div class="input-group">
-                        <input class="form-control" type="number" step="0.01" id="betrag" name="betrag" required
+                        <input class="form-control" type="number" step="0.01" id="betrag" name="betrag"
+                            value="<?= htmlspecialchars($formData['betrag'] ?? '') ?>"
                             data-bestand="<?= $aktuellerBestand ?>">
                         <span class="input-group-text">€</span>
                     </div>
@@ -163,14 +207,12 @@ if ($_SESSION['userid'] == "") {
             <div class="mb-3 row">
                 <label class="col-sm-2 col-form-label">Verwendungszweck:</label>
                 <div class="col-sm-10">
-                    <input class="form-control" type="text" name="beschreibung" required>
+                    <input class="form-control" type="text" name="beschreibung"
+                        value="<?= htmlspecialchars($formData['beschreibung'] ?? '') ?>">
                 </div>
             </div>
 
-            <div class="mb-3">
-                <button class="btn btn-primary" type="submit"><i class="fas fa-save"></i></button>
-                <a href="Buchungen.php" class="btn btn-primary"><i class="fa fa-arrow-left"></i></a>
-            </div>
+
         </form>
     </div>
 </body>
@@ -197,6 +239,7 @@ if ($_SESSION['userid'] == "") {
                 betragInput.classList.remove("is-invalid");
             }
         });
+        betragInput.focus();
     });
 
     // Heutiges Datum automatisch setzen

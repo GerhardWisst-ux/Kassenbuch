@@ -1,11 +1,11 @@
 <?php
-ob_start();
 session_set_cookie_params([
   'httponly' => true,
   'secure' => true,  // Nur bei HTTPS
   'samesite' => 'Strict'
 ]);
 session_start();
+ob_start();
 if ($_SESSION['userid'] == "") {
   header('Location: Login.php'); // zum Loginformular
 }
@@ -16,7 +16,7 @@ if ($_SESSION['userid'] == "") {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>CashControl Bestand bearbeiten</title>
+  <title>CashControl - Bestand bearbeiten</title>
 
   <!-- CSS -->
   <link href="css/bootstrap.min.css" rel="stylesheet">

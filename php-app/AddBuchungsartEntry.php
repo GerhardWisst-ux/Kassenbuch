@@ -1,6 +1,14 @@
 <?php
 declare(strict_types=1);
 
+/* Sichere Session-Cookies (vor session_start) */
+session_set_cookie_params([
+    'httponly' => true,
+    'secure' => true,     // nur unter HTTPS aktivieren
+    'samesite' => 'Strict'
+]);
+session_start();
+
 /*
  * Sicherheits-Header (früh senden)
  * Hinweis: Passe die CSP an, falls du externe Skripte/Styles brauchst.
@@ -11,13 +19,6 @@ header('X-Frame-Options: DENY');
 header("Referrer-Policy: no-referrer-when-downgrade");
 header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; form-action 'self'; base-uri 'self';");
 
-/* Sichere Session-Cookies (vor session_start) */
-session_set_cookie_params([
-    'httponly' => true,
-    'secure'   => true,     // nur unter HTTPS aktivieren
-    'samesite' => 'Strict'
-]);
-session_start();
 
 /* DB laden (PDO im Exception-Modus empfohlen) */
 require 'db.php';
@@ -44,31 +45,43 @@ if (
 
 /* Nutzerprüfung */
 $userid = $_SESSION['userid'] ?? null;
-if (empty($userid) || !ctype_digit((string)$userid)) {
+if (empty($userid) || !ctype_digit((string) $userid)) {
     http_response_code(401);
     exit('Nicht angemeldet.');
 }
 
 /* Eingaben einlesen & normalisieren */
-$buchungsart   = isset($_POST['buchungsart']) ? trim((string)$_POST['buchungsart']) : '';
-$mwst   = isset($_POST['mwst']) ? trim((string)$_POST['mwst']) : '';
-$dauerbuchung  = !empty($_POST['dauerbuchung']) ? 1 : 0;
-$mwst_ermaessigt  = !empty($_POST['mwst_ermaessigt']) ? 1 : 0;
-$kassennummer   = $_SESSION['kassennummer'] ?? 1;
+$buchungsart = isset($_POST['buchungsart']) ? trim((string) $_POST['buchungsart']) : '';
+$mwst = isset($_POST['mwst']) ? trim((string) $_POST['mwst']) : '';
+$dauerbuchung = !empty($_POST['dauerbuchung']) ? 1 : 0;
+$mwst_ermaessigt = !empty($_POST['mwst_ermaessigt']) ? 1 : 0;
+$kassennummer = $_SESSION['kassennummer'] ?? 1;
+
+// Eingaben sichern, damit sie nach Redirect (POST-Redirect-GET) wieder da sind
+$_SESSION['form_data'] = [
+    'buchungsart' => $buchungsart,
+    'dauerbuchung' => $dauerbuchung,
+    'mwst' => $mwst,
+    'mwst_ermaessigt' => $mwst_ermaessigt
+];
 
 /* Validierung: Buchungsart
    - Länge 1..64
    - Erlaubt: Buchstaben (inkl. Umlaute), Ziffern, Leerzeichen, - _ . /
    - Unicode-fähig
 */
-if ($buchungsart === '') {
-    http_response_code(422);
-    exit('Buchungsart darf nicht leer sein.');
-}
-
-if (mb_strlen($buchungsart, 'UTF-8') > 64) {
-    http_response_code(422);
-    exit('Buchungsart ist zu lang (max. 64 Zeichen).');
+if (strlen($buchungsart) == 0) {
+    $_SESSION['error_message'] = "Buchungsart muß angegeben werden!";
+    RedirectToAddBuchungsArt();
+    exit;
+} elseif (strlen($buchungsart) < 4) {
+    $_SESSION['error_message'] = "Buchungsart zu kurz!";
+    RedirectToAddBuchungsArt();
+    exit;
+} elseif (strlen($buchungsart) > 64) {
+    $_SESSION['error_message'] = "Buchungsart zu lang (max. 64 Zeichen)!";
+    RedirectToAddBuchungsArt();
+    exit;
 }
 
 if (!preg_match('/^[\p{L}\p{N}\s\-\._\/]{1,64}$/u', $buchungsart)) {
@@ -90,10 +103,10 @@ try {
           WHERE buchungsart = :ba AND userid = :uid"
     );
     $check->execute([
-        ':ba'  => $buchungsart,
-        ':uid' => (int)$userid
+        ':ba' => $buchungsart,
+        ':uid' => (int) $userid
     ]);
-    $exists = (int)$check->fetchColumn() > 0;
+    $exists = (int) $check->fetchColumn() > 0;
 
     if ($exists) {
         // Kein Echo mit Details – saubere UX per Redirect mit Status
@@ -102,18 +115,22 @@ try {
         exit;
     }
 
-    // Insert – Timestamps aus DB (UTC)
+    $mwst_ermaessigt = $mwst_ermaessigt ? 1 : 0;   // Boolean als 1/0
+    $mwst = (float) $mwst;                          // sicherstellen, dass DECIMAL/Float
+
     $stmt = $pdo->prepare("
-        INSERT INTO buchungsarten (buchungsart, Dauerbuchung, mwst_ermaessigt, mwst, created_at, updated_at, userid, kassennummer)
-        VALUES (:ba, :dauer, :mwst, :mwst_ermaessigt, UTC_DATE(), UTC_DATE(), :uid, :kassennummer)
-    ");
+    INSERT INTO buchungsarten 
+    (buchungsart, Dauerbuchung, mwst, mwst_ermaessigt, created_at, updated_at, userid, kassennummer, mandantennummer)
+    VALUES (:ba, :dauer, :mwst, :mwst_ermaessigt, UTC_DATE(), UTC_DATE(), :uid, :kassennummer, :mandantennummer)");
     $stmt->execute([
-        ':ba'    => $buchungsart,
-        ':mwst'  => $mwst,
-        ':mwst_ermaessigt'  => $mwst_ermaessigt,
+        ':ba' => $buchungsart,
         ':dauer' => $dauerbuchung,
-        ':uid'   => (int)$userid,
-        ':kassennummer'   => (int)$kassennummer
+        ':mwst' => $mwst,
+        ':mwst_ermaessigt' => $mwst_ermaessigt,
+        ':uid' => (int) $userid,
+        ':kassennummer' => (int) $kassennummer,
+        ':mandantennummer' => (int) $_SESSION['mandantennummer']
+
     ]);
 
     $pdo->commit();
@@ -140,4 +157,13 @@ try {
     error_log('Buchungsart-Insert-Fehler: ' . $e->getMessage());
     http_response_code(500);
     exit('Ein Fehler ist aufgetreten. Bitte später erneut versuchen.');
+}
+function RedirectToAddBuchungsArt()
+{
+    if (isset($_SERVER['HTTP_REFERER'])) {
+        header('Location: ' . $_SERVER['HTTP_REFERER']);
+    } else {
+        header('Location: AddBuchungsart.php'); // Fallback, falls kein Referrer vorhanden
+    }
+    exit;
 }

@@ -9,6 +9,10 @@ session_start();
 if ($_SESSION['userid'] == "") {
   header('Location: Login.php'); // zum Loginformular
 }
+
+$formData = $_SESSION['form_data'] ?? [];
+unset($_SESSION['form_data']); // nur einmal anzeigen
+
 ?>
 
 <!DOCTYPE html>
@@ -16,13 +20,12 @@ if ($_SESSION['userid'] == "") {
 
 <head>
   <meta charset="utf-8">
+  <title>CashControl - Kasse bearbeiten</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Datensicherung für das Kassenbuch – einfache Verwaltung und sichere Backups.">
-  <meta name="author" content="Dein Name oder Firma">
+  <meta name="author" content="Gerhard Wißt">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>CashControl - Kasse bearbeiten</title>
   <link rel="icon" type="image/png" href="images/favicon.png" />
-
   <link href="css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <link href="css/style.css" rel="stylesheet">
@@ -87,122 +90,211 @@ if ($_SESSION['userid'] == "") {
   endif;
   ?>
 
-  <div id="editbuchung">
-    <form action="EditKasseEntry.php" method="post">
-      <input type="hidden" name="csrf_token"
-        value="<?= htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8') ?>">
-      <header class="custom-header py-2 text-white">
-        <div class="container-fluid">
-          <div class="row align-items-center">
+  <header class="custom-header py-2 text-white">
+    <div class="container-fluid">
+      <div class="row align-items-center">
+        <!-- Titel zentriert -->
+        <div class="col-12 text-center mb-2 mb-md-0">
+          <h2 class="h4 mb-0">CashControl - Kasse bearbeiten</h2>
+        </div>
+        <?php
+        require_once 'includes/benutzerversion.php';
+        ?>
+      </div>
+    </div>
+  </header>
 
-            <!-- Titel zentriert -->
-            <div class="col-12 text-center mb-2 mb-md-0">
-              <h2 class="h4 mb-0">CashControl - Kasse bearbeiten</h2>
-            </div>
+  <div id="editkasse" class="container-fluid mt-4">
+    <form action="EditKasseEntry.php" method="post" class="p-1 border rounded bg-light shadow-sm">
+      <div class="d-flex justify-content-between align-items-center m-2">
+        <!-- Linke Buttons -->
+        <div>
+          <button class="btn btn-primary btn-sm rounded-circle me-2 circle-btn" type="submit"><i
+              class="fas fa-save"></i></button>
 
-            <?php
-            require_once 'includes/benutzerversion.php';
-            ?>
-          </div>
-      </header>
-      <br>
-      <div class="mt-2 mx-2">
-        <div class="form-group row me-4">
-          <label class="col-sm-2 col-form-label text-dark">Kasse:</label>
-          <div class="col-sm-2">
-            <input class="form-control" type="text" id="kasse" name="kasse"
-              value="<?= htmlspecialchars($result['kasse']) ?>">
-          </div>
+          <a href="Index.php" title="Zurück zur Kassenübersicht"
+            class="btn btn-primary btn-sm rounded-circle me-2 circle-btn">
+            <i class="fa fa-arrow-left"></i>
+          </a>
         </div>
-        <div class="form-group row me-4">
-          <label class="col-sm-2 col-form-label text-dark">Kontonummer:</label>
-          <div class="col-sm-2">
-            <input class="form-control" type="text" id="kontonummer" name="kontonummer" required pattern="\d{1,6}"
-              title="Maximal 6 Ziffern" value="<?= htmlspecialchars($result['kontonummer']) ?>" maxlength="6">
-          </div>
-        </div>
-        <div class="form-group row me-4">
-          <label class="col-sm-2 col-form-label text-dark">Anfangsbestand:</label>
-          <div class="col-sm-2">
-            <div class="input-group">
-              <input id="anfangsbestand" class="form-control" type="number" name="anfangsbestand" step="0.01"
-                value="<?= number_format((float) $result['anfangsbestand'], 2, '.', '') ?>" required>
-              <span class="input-group-text">€</span>
-            </div>
-          </div>
-        </div>
-        <div class="form-group row me-4">
-          <label class="col-sm-2 col-form-label text-dark">Datum ab:</label>
-          <div class="col-sm-1">
-            <input id="datumab" class="form-control" type="date" name="datumab"
-              value="<?= htmlspecialchars($result['datumab']) ?>" required>
-          </div>
-        </div>
-        <div class="form-group row me-4">
-          <label for="checkminus" class="col-sm-2 col-form-label text-dark">Minusbestand:</label>
-          <div class="col-sm-10 d-flex align-items-center">
-            <div class="form-check">
-              <input class="form-check-input checkbox-lg" type="checkbox" id="dauerbuchung" name="checkminus" value="1"
-                <?= isset($result['checkminus']) && $result['checkminus'] == 1 ? 'checked' : '' ?>>
-              <label class="form-check-label" for="dauerbuchung"></label>
-            </div>
-          </div>
-        </div>
-        <div class="form-group row me-4">
-          <div class="col-sm-offset-2 col-sm-10">
-            <button class="btn btn-primary" type="submit"><i class="fas fa-save"></i></button>
-            <a href="Index.php" title="Zurück zur Kassenübersicht" class="btn btn-primary"><span> <i
-                  class="fa fa-arrow-left" aria-hidden="true"></i></span></a>'
-          </div>
+
+        <!-- Rechte Buttons -->
+        <div>
+          <a href="help/Kasse.php" title="Hilfe" class="btn btn-primary btn-sm rounded-circle circle-btn">
+            <i class="fa fa-question-circle"></i>
+          </a>
         </div>
       </div>
-    </form>
-  </div>
+      <input type="hidden" name="csrf_token"
+        value="<?= htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8') ?>">
 
-  <!-- JS -->
-  <script src="js/jquery.min.js"></script>
-  <script src="js/bootstrap.bundle.min.js"></script>
+      <?php $kontonummer_val = $formData['kontonummer'] ?? $result['kontonummer'] ?? ''; ?>
+      <div id="editkasse" class="container-fluid mt-4">
+        <form action="EditKasseEntry.php" method="post" class="p-3 border rounded bg-light shadow-sm">
+          <input type="hidden" name="csrf_token"
+            value="<?= htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8') ?>">
 
-  <script>
+          <div class="mb-3 row">
+            <label for="kasse" class="col-sm-2 col-form-label">Kasse:</label>
+            <div class="col-sm-4">
+              <input class="form-control" type="text" id="kasse" name="kasse"
+                value="<?= htmlspecialchars($formData['kasse'] ?? $result['kasse'] ?? '') ?>">
+            </div>
+          </div>
 
-    function NavBarClick() {
-      const topnav = document.getElementById("myTopnav");
-      if (topnav.className === "topnav") {
-        topnav.className += " responsive";
-      } else {
-        topnav.className = "topnav";
-      }
-    }
+          <div class="mb-3 row">
+            <label for="kunde_typ" class="col-sm-2 col-form-label">Kundentyp:</label>
+            <div class="col-sm-4">
+              <select class="form-select" id="kunde_typ" name="kunde_typ" onchange="toggleKundeFields(this)">
+                <option value="privat" <?= (($formData['kunde_typ'] ?? $result['typ'] ?? '') === 'privat') ? 'selected' : '' ?>>Privat</option>
+                <option value="gewerblich" <?= (($formData['kunde_typ'] ?? $result['typ'] ?? '') === 'gewerblich') ? 'selected' : '' ?>>Gewerblich</option>
+              </select>
+            </div>
+          </div>
 
-    function toggleCustomInput(select) {
+          <!-- Privat: Vorname / Nachname -->
+          <div id="privat-fields"
+            class="<?= (($formData['kunde_typ'] ?? $result['typ'] ?? '') === 'gewerblich') ? 'd-none' : '' ?>">
 
-      const customInput = document.getElementById('custom-input');
-      if (select.value === 'custom') {
-        customInput.classList.remove('d-none');
-        customInput.removeAttribute('disabled');
-        customInput.setAttribute('required', 'required');
-      } else {
-        customInput.classList.add('d-none');
-        customInput.setAttribute('disabled', 'disabled');
-        customInput.removeAttribute('required');
-        customInput.value = '';
-      }
+            <div class="mb-3 row">
+              <label class="col-sm-2 col-form-label">Vorname:</label>
+              <div class="col-sm-4">
+                <input type="text" name="vorname" class="form-control"
+                  value="<?= htmlspecialchars($formData['vorname'] ?? $result['vorname'] ?? '') ?>">
+              </div>
+            </div>
 
-      const customLabel = document.getElementById('custom-label');
-      if (select.value === 'custom') {
-        customLabel.classList.remove('d-none');
-      } else {
-        customLabel.classList.add('d-none');
-      }
+            <div class="mb-3 row">
+              <label class="col-sm-2 col-form-label">Nachname:</label>
+              <div class="col-sm-4">
+                <input type="text" name="nachname" class="form-control"
+                  value="<?= htmlspecialchars($formData['nachname'] ?? $result['nachname'] ?? '') ?>">
+              </div>
+            </div>
 
-      const Label = document.getElementById('label');
-      if (select.value === 'custom') {
-        Label.classList.add('d-none');
-      } else {
-        Label.classList.remove('d-none');
-      }
+          </div>
 
-      // Debug-Ausgabe
-      console.log("Aktueller Wert:", select.value || "Keiner ausgewählt");
-    }
-  </script>
+          <!-- Gewerblich: Firmenname -->
+          <div id="gewerblich-fields"
+            class="mb-3 row <?= (($formData['kunde_typ'] ?? $result['typ'] ?? '') === 'gewerblich') ? '' : 'd-none' ?>">
+            <label for="firma" class="col-sm-2 col-form-label">Firmenname:</label>
+            <div class="col-sm-10">
+              <input type="text" name="firma" id="firma" class="form-control"
+                value="<?= htmlspecialchars($formData['firma'] ?? $result['firma'] ?? '') ?>">
+            </div>
+          </div>
+
+          <div class="mb-3 row">
+            <label for="kontenrahmen" class="col-sm-2 col-form-label">Kontenrahmen:</label>
+            <div class="col-sm-4">
+              <select class="form-select" id="kontenrahmen" name="kontenrahmen">
+                <option value="">-- Bitte wählen --</option>
+                <option value="SKR03">SKR03</option>
+                <option value="SKR04">SKR04</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="mb-3 row">
+            <label for="kontonummer" class="col-sm-2 col-form-label">Kontonummer:</label>
+            <div class="col-sm-4">
+              <input readonly class="form-control bg-light" type="text" id="kontonummer" name="kontonummer" required
+                pattern="\d{1,6}" title="Maximal 6 Ziffern" maxlength="6"
+                value="<?= htmlspecialchars($formData['kontonummer'] ?? $result['kontonummer'] ?? '') ?>">
+            </div>
+          </div>
+
+          <div class="mb-3 row">
+            <label for="anfangsbestand" class="col-sm-2 col-form-label">Anfangsbestand:</label>
+            <div class="col-sm-2">
+              <div class="input-group">
+                <input id="anfangsbestand" class="form-control" type="number" name="anfangsbestand" step="0.01"
+                  value="<?= htmlspecialchars($formData['anfangsbestand'] ?? number_format((float) ($result['anfangsbestand'] ?? 0), 2, '.', '')) ?>">
+                <span class="input-group-text">€</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3 row">
+            <label for="datumab" class="col-sm-2 col-form-label">Anfangsbestand Datum:</label>
+            <div class="col-sm-4">
+              <input id="datumab" class="form-control" type="date" name="datumab"
+                value="<?= htmlspecialchars($formData['datumab'] ?? $result['datumab'] ?? '') ?>">
+            </div>
+          </div>
+
+          <div class="mb-3 row">
+            <label for="checkminus" class="col-sm-2 col-form-label">Kasse minus:</label>
+            <div class="col-sm-10">
+              <input class="form-check-input" id="checkminus" type="checkbox" name="checkminus" value="1"
+                <?= !empty($formData['checkminus'] ?? $result['checkminus'] ?? null) ? 'checked' : '' ?>>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- JS -->
+      <script src="js/jquery.min.js"></script>
+      <script src="js/bootstrap.bundle.min.js"></script>
+
+      <!-- JavaScript: Toggle-Logik + Kontenrahmen <-> Kontonummer Abgleich -->
+      <script>
+        function toggleKundeFields(selectElement) {
+          const privatFields = document.getElementById("privat-fields");
+          const gewerblichFields = document.getElementById("gewerblich-fields");
+          if (!privatFields || !gewerblichFields) return;
+
+          if (selectElement.value === "privat") {
+            privatFields.classList.remove("d-none");
+            gewerblichFields.classList.add("d-none");
+          } else {
+            privatFields.classList.add("d-none");
+            gewerblichFields.classList.remove("d-none");
+          }
+        }
+
+        function setKontonummer() {
+          const kontenrahmen = document.getElementById("kontenrahmen");
+          const kontonummer = document.getElementById("kontonummer");
+          if (!kontenrahmen || !kontonummer) return;
+
+          if (kontenrahmen.value === "SKR03") {
+            kontonummer.value = "1000";
+          } else if (kontenrahmen.value === "SKR04") {
+            kontonummer.value = "1600";
+          } else {
+            kontonummer.value = "";
+          }
+        }
+
+        function initKontenrahmenFromKontonummer() {
+          const kontenrahmen = document.getElementById("kontenrahmen");
+          const kontonummer = document.getElementById("kontonummer");
+          if (!kontenrahmen || !kontonummer) return;
+
+          const kn = parseInt(kontonummer.value, 10);
+          if (kn === 1000) {
+            kontenrahmen.value = "SKR03";
+          } else if (kn === 1600) {
+            kontenrahmen.value = "SKR04";
+          } else {
+            kontenrahmen.value = "";
+          }
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+          // Kundentyp initialisieren (falls vorbefüllt)
+          const kundeTypSelect = document.getElementById("kunde_typ");
+          if (kundeTypSelect) toggleKundeFields(kundeTypSelect);
+
+          // Kontenrahmen -> Kontonummer Listener
+          const kontenrahmenSelect = document.getElementById("kontenrahmen");
+          if (kontenrahmenSelect) {
+            // initial: falls kontonummer bereits aus DB gesetzt ist, wähle passenden Rahmen
+            initKontenrahmenFromKontonummer();
+
+            // wenn der Benutzer den Rahmen ändert, setze die Kontonummer
+            kontenrahmenSelect.addEventListener("change", setKontonummer);
+          }
+        });
+      </script>

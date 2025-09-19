@@ -9,6 +9,7 @@ if (empty($_SESSION['userid'])) {
 require 'db.php';
 $userid = $_SESSION['userid'];
 $email = $_SESSION['email'];
+$mandantennummer = $_SESSION['mandantennummer'];
 $kassennummer = $_SESSION['kassennummer'] ?? null;
 //echo $kassennummer;
 
@@ -36,20 +37,23 @@ $stmtMonate = $pdo->prepare("
     SELECT DISTINCT DATE_FORMAT(datum,'%Y-%m') AS monat
     FROM buchungen
     WHERE userid=:userid
+    AND mandantennummer = :mandantennummer
     AND kassennummer = :kassennummer
     ORDER BY datum DESC
 ");
 $stmtMonate->execute([
     'userid' => $userid,
-    'kassennummer' => $kassennummer
+    'kassennummer' => $kassennummer,
+    'mandantennummer' => $mandantennummer
 ]);
 $monate = $stmtMonate->fetchAll(PDO::FETCH_COLUMN);
 
 // Bedingungen für SQL (jetzt eindeutig mit Tabellennamen)
-$where = "b.barkasse=1 AND b.typ='Ausgabe' AND b.kassennummer = :kassennummer AND b.userid=:userid";
+$where = "b.barkasse=1 AND b.typ='Ausgabe' AND b.kassennummer = :kassennummer AND b.mandantennummer = :mandantennummer AND b.userid=:userid";
 $params = [
     'userid' => $userid,
-    'kassennummer' => $kassennummer
+    'kassennummer' => $kassennummer,
+    'mandantennummer' => $mandantennummer
 ];
 
 if ($selectedMonat !== '') {
@@ -142,11 +146,12 @@ $sumAnteil = array_sum(array_column($rows, 'anteil'));
         <div class="container-fluid">
             <div class="row align-items-center">
                 <?php
-                $sql = "SELECT * FROM kasse WHERE userid = :userid AND id = :kassennummer";
+                $sql = "SELECT * FROM kasse WHERE userid = :userid AND mandantennummer = :mandantennummer AND id = :kassennummer";
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute([
                     'userid' => $userid,
-                    'kassennummer' => $kassennummer
+                    'kassennummer' => $kassennummer,
+                    'mandantennummer' => $mandantennummer
                 ]);
 
                 $kasse = "Unbekannte Kasse";
@@ -165,10 +170,18 @@ $sumAnteil = array_sum(array_column($rows, 'anteil'));
         </div>
     </header>
     <div class="custom-container mt-3 mx-2">
-        <a href="Index.php" class="btn btn-primary btn-sm mb-3"><i class="fa fa-arrow-left"></i></a>
-        <button id="btnPieChart" class="btn btn-primary btn-sm mb-3">
-            <i class="fa fa-chart-pie"></i> Chart
-        </button>
+
+        <!-- Toolbar -->
+        <div class="btn-toolbar" role="toolbar" aria-label="Toolbar">
+            <a href="Index.php" class="btn btn-primary btn-sm mb-3 me-2"><i class="fa fa-arrow-left"></i></a>
+            <button id="btnPieChart" class="btn btn-primary btn-sm mb-3">
+                <i class="fa fa-chart-pie"></i>
+            </button>
+            <div class="ms-auto">
+                <a href="help/Auswertungen.php" class="btn btn-primary btn-sm" title="Hilfe"><i
+                        class="fa fa-question-circle"></i></a>
+            </div>
+        </div>
 
         <form method="get" class="mb-3">
             <label for="monat" class="form-label">Filter nach Monat:</label>

@@ -9,6 +9,8 @@ if (empty($_SESSION['userid'])) {
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
+
+$mandantennummer = $_SESSION['mandantennummer'];
 ?>
 
 <!DOCTYPE html>
@@ -49,14 +51,17 @@ error_reporting(E_ALL);
     $email = $_SESSION['email'];
     $userid = $_SESSION['userid'];
     $kassennummer = $_SESSION['kassennummer'] ?? null;
+    $mandantennummer =$_SESSION['mandantennummer'];  
+    
     //echo $kassennummer;
     
     // Verfügbare Jahre aus der Datenbank holen
-    $sqlYears = "SELECT DISTINCT YEAR(datum) AS Jahr FROM bestaende WHERE userid = :userid AND kassennummer = :kassennummer ORDER BY Jahr DESC";
+    $sqlYears = "SELECT DISTINCT YEAR(datum) AS Jahr FROM bestaende WHERE userid = :userid AND mandantennummer = :mandantennummer AND kassennummer = :kassennummer ORDER BY Jahr DESC";
     $stmtYears = $pdo->prepare($sqlYears);
     $stmtYears->execute([
         'userid' => $userid,
-        'kassennummer' => $kassennummer
+        'kassennummer' => $kassennummer,
+        'mandantennummer' => $mandantennummer
     ]);
     $jahre = $stmtYears->fetchAll(PDO::FETCH_COLUMN);
 
@@ -77,7 +82,7 @@ error_reporting(E_ALL);
     if (isset($_POST['berechne_bestaende'])) {
         $jahr = $jahrFilter ?: date('Y');
 
-        $result = berechneBestaende($pdo, $userid, $kassennummer, $jahr, false);
+        $result = berechneBestaende($pdo, $userid, $kassennummer, $jahr, true);
 
         header("Location: Bestaende.php?jahr=$jahr&berechnet=1&eingefuegt={$result['eingefuegt']}&aktualisiert={$result['aktualisiert']}&saldo={$result['saldo']}");
         exit;
@@ -88,11 +93,12 @@ error_reporting(E_ALL);
         <div class="container-fluid">
             <div class="row align-items-center">
                 <?php
-                $sql = "SELECT * FROM kasse WHERE userid = :userid AND id = :kassennummer";
+                $sql = "SELECT * FROM kasse WHERE userid = :userid AND mandantennummer = :mandantennummer AND id = :kassennummer";
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute([
                     'userid' => $userid,
-                    'kassennummer' => $kassennummer
+                    'kassennummer' => $kassennummer,
+                    'mandantennummer' => $mandantennummer
                 ]);
 
                 $kasse = "Unbekannte Kasse";
@@ -115,7 +121,9 @@ error_reporting(E_ALL);
         <!-- Formular: Jahr + Berechnen -->
         <form method="POST" id="bestaendeForm" class="mb-3">
             <!-- Buttons in einer Zeile -->
-            <div class="d-flex align-items-center mb-2">
+
+            <!-- Toolbar -->
+            <div class="btn-toolbar mb-3" role="toolbar" aria-label="Toolbar">
                 <button type="submit" name="berechne_bestaende" class="btn btn-primary btn-sm me-2">
                     <i class="fas fa-calculator"></i>
                 </button>
@@ -125,6 +133,10 @@ error_reporting(E_ALL);
                 <a href="Index.php" class="btn btn-primary btn-sm">
                     <i class="fa fa-arrow-left"></i>
                 </a>
+                <div class="ms-auto">
+                    <a href="help/Bestaende.php" class="btn btn-primary btn-sm" title="Hilfe"><i
+                            class="fa fa-question-circle"></i></a>
+                </div>
             </div>
 
             <!-- Label + Select in der nächsten Zeile -->
@@ -174,21 +186,23 @@ error_reporting(E_ALL);
                 <thead>
                     <tr>
                         <th>Datum</th>
+                        <th style="text-align:right;">Anfangsbestand</th>
                         <th style="text-align:right;">Einlagen</th>
                         <th style="text-align:right;">Ausgaben</th>
                         <th style="text-align:right;">Bestand</th>
-                        <th style="text-align:center;">Aktionen</th>
+                                                
                     </tr>
                 </thead>
                 <tbody>
                     <?php
                     $sql = ($jahrFilter == 0)
-                        ? "SELECT * FROM bestaende WHERE userid=:userid  AND kassennummer = :kassennummer ORDER BY datum DESC"
-                        : "SELECT * FROM bestaende WHERE userid=:userid AND kassennummer = :kassennummer AND YEAR(datum)=:jahr ORDER BY datum DESC";
+                        ? "SELECT * FROM bestaende WHERE userid=:userid  AND mandantennummer = :mandantennummer AND kassennummer = :kassennummer ORDER BY datum DESC"
+                        : "SELECT * FROM bestaende WHERE userid=:userid AND mandantennummer = :mandantennummer AND kassennummer = :kassennummer AND YEAR(datum)=:jahr ORDER BY datum DESC";
                     $stmt = $pdo->prepare($sql);
                     $params = [
                         'userid' => $userid,
-                        'kassennummer' => $kassennummer
+                        'kassennummer' => $kassennummer,
+                        'mandantennummer' => $mandantennummer
                     ];
                     if ($jahrFilter != 0)
                         $params['jahr'] = $jahrFilter;
@@ -196,23 +210,17 @@ error_reporting(E_ALL);
 
                     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                         $formattedDate = (new DateTime($row['datum']))->format('d.m.Y');
+                        $anfangsbestand = number_format((float) $row['anfangsbestand'], 2, ',', '.') . ' €';
                         $einlagen = number_format((float) $row['einlagen'], 2, ',', '.') . ' €';
                         $ausgaben = number_format((float) $row['ausgaben'], 2, ',', '.') . ' €';
                         $bestand = number_format((float) $row['bestand'], 2, ',', '.') . ' €';
 
                         echo "<tr>
                         <td>$formattedDate</td>
+                        <td style='text-align:right;'>$anfangsbestand</td>
                         <td style='text-align:right;'>$einlagen</td>
                         <td style='text-align:right;'>$ausgaben</td>
-                        <td style='text-align:right;'>$bestand</td>
-                        <td style='text-align:center; white-space: nowrap;'>
-                            <a href='EditBestand.php?id={$row['id']}' class='btn btn-primary btn-sm me-1'>
-                                <i class='fa-solid fa-pen-to-square'></i>
-                            </a>
-                            <a href='#' data-id='{$row['id']}' class='btn btn-danger btn-sm delete-button'>
-                                <i class='fa-solid fa-trash'></i>
-                            </a>
-                        </td>
+                        <td style='text-align:right;'>$bestand</td>                        
                     </tr>";
                     }
                     ?>

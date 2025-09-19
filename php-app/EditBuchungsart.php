@@ -26,7 +26,7 @@ if (empty($_SESSION['csrf_token'])) {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Datensicherung für das Kassenbuch – einfache Verwaltung und sichere Backups.">
-  <meta name="author" content="Dein Name oder Firma">
+  <meta name="author" content="Gerhard Wißt">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>CashControl Buchungsart bearbeiten</title>
   <link rel="icon" type="image/png" href="images/favicon.png" />
@@ -115,8 +115,28 @@ if (empty($_SESSION['csrf_token'])) {
         ?>
       </div>
   </header>
+
   <div id="editbuchungsart" class="container-fluid mt-4">
     <form action="EditBuchungsartEntry.php" method="post">
+      <div class="d-flex justify-content-between align-items-center m-2">
+        <!-- Linke Buttons -->
+        <div>
+          <button type="submit" class="btn btn-primary btn-sm rounded-circle me-2 circle-btn">
+            <i class="fa fa-save"></i>
+          </button>
+          <a href="Buchungsarten.php" title="Zurück zu den Buchungsarten"
+            class="btn btn-primary btn-sm rounded-circle me-2 circle-btn">
+            <i class="fa fa-arrow-left"></i>
+          </a>
+        </div>
+
+        <!-- Rechte Buttons -->
+        <div>
+          <a href="help/Buchungsarten.php" title="Hilfe" class="btn btn-primary btn-sm rounded-circle circle-btn">
+            <i class="fa fa-question-circle"></i>
+          </a>
+        </div>
+      </div>
       <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
       <div class="custom-container">
         <div class="container-fluid mt-3">
@@ -169,18 +189,6 @@ if (empty($_SESSION['csrf_token'])) {
             <div class="col-sm-10">
               <input type="date" id="updated_at" name="updated_at" class="form-control"
                 value="<?= htmlspecialchars($result['updated_at']) ?>">
-            </div>
-          </div>
-
-          <!-- Buttons -->
-          <div class="mb-3 row">
-            <div class="col-sm-12 d-flex gap-2">
-              <button type="submit" class="btn btn-primary">
-                <i class="fa fa-save"></i>
-              </button>
-              <a href="Buchungsarten.php" title="Zurück zu den Buchungsarten" class="btn btn-primary"><span> <i
-                    class="fa fa-arrow-left" aria-hidden="true"></i></span></a>'
-              </a>
             </div>
           </div>
         </div>

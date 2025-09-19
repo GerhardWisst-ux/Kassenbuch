@@ -18,18 +18,20 @@ error_reporting(E_ALL);
 if (empty($_SESSION['csrf_token'])) {
   $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
+$mandantennummer = $_SESSION['mandantennummer'];
+//echo $mandantennummer . " " . $_SESSION['userid'] . " " . $_SESSION['kassennummer'] ;
 ?>
 
 <!DOCTYPE html>
 <html>
 
 <head>
+  <title>CashControl - Buchungsarten</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Datensicherung für das Kassenbuch – einfache Verwaltung und sichere Backups.">
-  <meta name="author" content="Dein Name oder Firma">
+  <meta name="author" content="Gerhard Wißt">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>CashControl Buchungsarten</title>
   <link rel="icon" type="image/png" href="images/favicon.png" />
 
   <!-- CSS -->
@@ -47,6 +49,7 @@ if (empty($_SESSION['csrf_token'])) {
     #TableBuchungsarten tbody tr:hover {
       background-color: #f1f5ff;
     }
+    
   </style>
 </head>
 
@@ -63,51 +66,62 @@ if (empty($_SESSION['csrf_token'])) {
 
   ?>
 
-  <div id="buchungsarten">
+  <header class="custom-header py-2 mb-3 text-white">
+    <div class="container-fluid">
+      <div class="row align-items-center">
+        <?php
+        $sql = "SELECT * FROM kasse WHERE userid = :userid AND mandantennummer = :mandantennummer AND id = :kassennummer";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([
+          'userid' => $userid,
+          'kassennummer' => $kassennummer,
+          'mandantennummer' => $mandantennummer
+        ]);
+
+        $kasse = "Unbekannte Kasse";
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+          $kasse = $row['kasse'];
+        }
+        ?>
+        <!-- Titel zentriert -->
+        <div class="col-12 text-center mb-2 mb-md-0">
+          <h4 class="h4 mb-0"><?php echo htmlspecialchars($kasse); ?> - Buchungungsarten</h2>
+        </div>
+
+        <?php
+        require_once 'includes/benutzerversion.php';
+        ?>
+  </header>
+
+  <div id="buchungsarten" class="mx-2">
     <form id="buchungsartenform">
       <input type="hidden" id="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
       <div class="custom-container">
-        <header class="custom-header py-2 text-white">
-          <div class="container-fluid">
-            <div class="row align-items-center">
-              <?php
-              $sql = "SELECT * FROM kasse WHERE userid = :userid AND id = :kassennummer";
-              $stmt = $pdo->prepare($sql);
-              $stmt->execute([
-                'userid' => $userid,
-                'kassennummer' => $kassennummer
-              ]);
 
-              $kasse = "Unbekannte Kasse";
-              while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                $kasse = $row['kasse'];
-              }
-              ?>
-              <!-- Titel zentriert -->
-              <div class="col-12 text-center mb-2 mb-md-0">
-                <h4 class="h4 mb-0"><?php echo htmlspecialchars($kasse); ?> - Buchungungsarten</h2>
-              </div>
+        <div class="d-flex justify-content-between align-items-center">
+          <!-- Linke Buttons -->
+          <div>
+            <a href="AddBuchungsart.php" title="Position hinzufügen"
+              class="btn btn-primary btn-sm rounded-circle me-2 circle-btn">
+              <i class="fa fa-plus"></i>
+            </a>
 
-              <?php
-              require_once 'includes/benutzerversion.php';
-              ?>
-        </header>
-        <?php
+            <a href="Index.php" title="Zurück zur Kassenübersicht"
+              class="btn btn-primary btn-sm rounded-circle me-2 circle-btn">
+              <i class="fa fa-arrow-left"></i>
+            </a>
+          </div>
 
-        echo '<div class="btn-toolbar mt-2 mx-2" role="toolbar" aria-label="Toolbar with button groups">';
-        echo '<div class="btn-group" role="group" aria-label="First group">';
-        echo '<a href="AddBuchungsart.php" title="Position hinzufügen" class="btn btn-primary btn-sm me-4"><span><i class="fa fa-plus" aria-hidden="true"></i></span></a>';
-        echo '</div>';
+          <!-- Rechte Buttons -->
+          <div>
+            <a href="help/Buchungsarten.php" title="Hilfe"
+              class="btn btn-primary btn-sm rounded-circle circle-btn">
+              <i class="fa fa-question-circle"></i>
+            </a>
+          </div>
+        </div>
 
-        echo '<div class="btn-group me-0" role="group" aria-label="First group">';
-        echo '<a href="Index.php" title="Zurück zur Hauptübersicht" class="btn btn-primary btn-sm"><span><i class="fa fa-arrow-left" aria-hidden="true"></i></span></a>';
-        echo '</div>';
-        echo '</div>';
-        echo '</div><br>';
-
-        ?>
-        <br>
-        <div class="table-responsive mx-2" style="width: 100%;">
+        <div class="table-responsive mx-2 mt-3" style="width: 100%;">
           <table id="TableBuchungsarten" class="display nowrap table table-striped w-100">
             <thead>
               <tr>
@@ -121,9 +135,9 @@ if (empty($_SESSION['csrf_token'])) {
             </thead>
             <tbody>
               <?php
-              $sql = "SELECT * FROM buchungsarten WHERE userid = :userid ORDER BY Buchungsart DESC";
+              $sql = "SELECT * FROM buchungsarten WHERE userid = :userid  AND mandantennummer = :mandantennummer ORDER BY Buchungsart DESC";
               $stmt = $pdo->prepare($sql);
-              $stmt->execute(['userid' => $userid]);
+              $stmt->execute(['userid' => $userid, 'mandantennummer' => $mandantennummer]);
               while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $dauerbuchung = $row['Dauerbuchung'] == 1 ? 'Ja' : 'Nein';
                 $mwst_ermaessigt = $row['mwst_ermaessigt'] == 1 ? 'Ja' : 'Nein';
@@ -132,7 +146,6 @@ if (empty($_SESSION['csrf_token'])) {
                 if ($row['buchungsart'] == "Einlage") {
                   $mwst = " 0 %";
                 }
-
                 echo "<tr>
                             <td>{$row['id']}</td>
                             <td>{$row['buchungsart']}</td>      

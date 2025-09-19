@@ -36,54 +36,63 @@ if (empty($userid) || !ctype_digit((string) $userid)) {
 require 'db.php';
 
 if (isset($_POST['delete'])) {
-    $kassennummer = intval($_POST['kassennummer']); // Ticket-ID absichern
-    $filePath = $_POST['FilePath'];
+    
+    $buchungsid = (int) ($_POST['buchungsid'] ?? 0);
+    $filePath = $_POST['FilePath'] ?? '';
 
-    // Basis-Upload-Ordner
-    $uploadDir = getcwd() . '/uploads/cashfiles';
+    // Basis-Upload-Ordner absolut
+    $uploadDir = __DIR__ . '/uploads/cashfiles';
 
-    // Datei-Name extrahieren und finalen Pfad bestimmen
+    // Datei-Name extrahieren
     $fileName = basename($filePath);
     $fullPath = $uploadDir . '/' . $fileName;
 
-    // DB und Pfad prüfen
-    if ($kassennummer > 0 && !empty($fileName)) {
+    if ($buchungsid > 0 && !empty($fileName)) {
 
-        // DB-Eintrag löschen mit TicketID UND FilePath (Sicherheitsfilter)
-        $deletepath = 'uploads/cashfiles/' . $fileName; // Pfad muss zum Upload-Skript passen!
+        // DB-Pfad muss exakt dem gespeicherten Pfad entsprechen
+        $deletepath = 'uploads/cashfiles/' . $fileName;
 
+        // DB-Eintrag löschen
         $stmt = $pdo->prepare("
-                    DELETE FROM cash_files 
-                    WHERE filepath = :FilePath 
-                    AND userid = :userid 
-                    AND kassennummer = :kassennummer
-                ");
-        $stmt->bindValue(':FilePath', $deletepath, PDO::PARAM_STR);
-        $stmt->bindValue(':kassennummer', $kassennummer, PDO::PARAM_INT);
-        $stmt->bindValue(':userid', $userid, PDO::PARAM_INT);
+            DELETE FROM cash_files             
+              WHERE buchungsid = :buchungsid              
+        ");
+        $stmt->execute([            
+            ':buchungsid' => $buchungsid            
+        ]);
+        
+        $rowsDeleted = $stmt->rowCount();
 
-        $stmt->execute();
-        $rowsDeleted = $stmt->rowCount(); // wichtig!
-
-        if ($rowsDeleted > 0 && file_exists($fullPath) && strpos(realpath($fullPath), realpath($uploadDir)) === 0) {
-            if (unlink($fullPath)) {
-                $_SESSION['error_message'] = ['type' => 'success', 'text' => 'Datei und Datenbankeintrag wurden gelöscht.'];
+        // Datei löschen, nur wenn sie existiert und im Upload-Ordner liegt
+        if ($rowsDeleted > 0) {
+            if (file_exists($fullPath) && strpos(realpath($fullPath), realpath($uploadDir)) === 0) {
+                if (unlink($fullPath)) {
+                    $_SESSION['error_message'] = [
+                        'type' => 'success',
+                        'text' => 'Datei und Datenbankeintrag wurden gelöscht.'
+                    ];
+                } else {
+                    $_SESSION['error_message'] = [
+                        'type' => 'warning',
+                        'text' => 'Datenbankeintrag gelöscht, aber Datei konnte nicht entfernt werden.'
+                    ];
+                }
             } else {
-                $_SESSION['error_message'] = ['type' => 'warning', 'text' => 'Datenbankeintrag gelöscht, aber Datei konnte nicht entfernt werden.'];
+                $_SESSION['error_message'] = [
+                    'type' => 'success',
+                    'text' => 'Datenbankeintrag gelöscht. Datei war nicht vorhanden.'
+                ];
             }
-        } elseif ($rowsDeleted > 0) {
-            $_SESSION['error_message'] = ['type' => 'success', 'text' => 'Datenbankeintrag gelöscht. Datei war nicht vorhanden.'];
         } else {
-            $_SESSION['error_message'] = ['type' => 'danger', 'text' => 'Datei oder Datenbankeintrag nicht gefunden.'];
+            $_SESSION['error_message'] = [
+                'type' => 'danger',
+                'text' => 'Datei oder Datenbankeintrag nicht gefunden.'
+            ];
         }
     }
 
-    // Weiterleitung zurück zur Ticketseite
-    if (!empty($_SERVER['HTTP_REFERER'])) {
-        header('Location: ' . $_SERVER['HTTP_REFERER']);
-    } else {
-        header("Location: Buchungen.php");
-    }
+    // Weiterleitung zurück
+    $redirect = !empty($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : 'Buchungen.php';
+    header('Location: ' . $redirect);
     exit;
 }
-?>

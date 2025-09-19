@@ -53,7 +53,7 @@ if (empty($_SESSION['userid'])) {
           <button class="btn btn-primary btn-sm" title="Csv-Datei importieren" type="submit"><i
               class="fa-solid fa-file-import"></i></button>
 
-          <a href="Index.php" title="Zurück zur Hauptübersicht" class="btn btn-primary btn-sm"><i
+          <a href="Index.php" title="Zurück zur Kassenübersicht" class="btn btn-primary btn-sm"><i
               class="fa fa-arrow-left" aria-hidden="true"></i></a>
         </div>
       </div>

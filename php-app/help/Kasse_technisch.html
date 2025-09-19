@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CashControl - Kassenübersicht Hilfe</title>
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .flowchart {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px 0;
+        }
+
+        .step {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            width: 300px;
+            text-align: center;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .step:hover {
+            background-color: #0056b3;
+        }
+
+        .arrow {
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 20px solid #333;
+            margin: 0 auto;
+        }
+
+        .details {
+            display: none;
+            background: #f1f5ff;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            width: 80%;
+            max-width: 600px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>CashControl - Kassenübersicht Hilfe</h1>
+    <p>Klicken Sie auf einen Schritt im Flowchart, um Details zu sehen.</p>
+
+    <div class="flowchart">
+        <div class="step" data-detail="login">1. Anmeldung prüfen</div>
+        <div class="arrow"></div>
+        <div class="step" data-detail="csrf">2. CSRF-Token erzeugen</div>
+        <div class="arrow"></div>
+        <div class="step" data-detail="toolbar">3. Toolbar: Kasse hinzufügen</div>
+        <div class="arrow"></div>
+        <div class="step" data-detail="tabs">4. Tab-Navigation: Aktive vs. archivierte Kassen</div>
+        <div class="arrow"></div>
+        <div class="step" data-detail="cards">5. Kassen-Cards laden und Bestände berechnen</div>
+        <div class="arrow"></div>
+        <div class="step" data-detail="modal">6. Löschbestätigung über Modal</div>
+        <div class="arrow"></div>
+        <div class="step" data-detail="toast">7. Bestätigung via Toast anzeigen</div>
+    </div>
+
+    <div id="login" class="details">
+        <strong>Anmeldung:</strong> Überprüft <code>$_SESSION['userid']</code>. Nicht angemeldete Benutzer werden
+        automatisch zu <code>Login.php</code> weitergeleitet.
+    </div>
+    <div id="csrf" class="details">
+        <strong>CSRF-Schutz:</strong> Wenn noch kein Token vorhanden, wird ein 32-Byte CSRF-Token in
+        <code>$_SESSION['csrf_token']</code> erzeugt und als Hidden Input ins Formular gesetzt.
+    </div>
+    <div id="toolbar" class="details">
+        <strong>Toolbar:</strong> Enthält Buttons zum Hinzufügen neuer Kassen (<code>Addkasse.php</code>).
+        Bootstrap-Buttongruppe sorgt für sauberes Layout.
+    </div>
+    <div id="tabs" class="details">
+        <strong>Tabs:</strong> Zeigt "Aktive Kassen" und "Archivierte Kassen". Jede Registerkarte zeigt Anzahl der
+        Kassen und Summe der aktuellen Bestände.
+    </div>
+    <div id="cards" class="details">
+        <strong>Kassen-Cards:</strong> Jede Kasse wird als Card angezeigt. Aktive Kassen berechnen Bestände über
+        <code>berechneBestaende()</code>. Archivierte Kassen zeigen nur gespeicherte Daten.
+    </div>
+    <div id="modal" class="details">
+        <strong>Lösch-Modal:</strong> Bei Klick auf "Löschen" öffnet sich ein Bootstrap-Modal. Formular wird mit
+        CSRF-Token an <code>Deletekasse.php</code> gesendet.
+    </div>
+    <div id="toast" class="details">
+        <strong>Toast-Benachrichtigung:</strong> Zeigt dem Benutzer, dass die Kasse erfolgreich gelöscht wurde.
+    </div>
+
+    <script>
+        document.querySelectorAll('.step').forEach(step => {
+            step.addEventListener('click', () => {
+                const id = step.getAttribute('data-detail');
+                const detailDiv = document.getElementById(id);
+                detailDiv.style.display = (detailDiv.style.display === 'block') ? 'none' : 'block';
+            });
+        });
+    </script>
+
+</body>
+
+</html>

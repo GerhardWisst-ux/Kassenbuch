@@ -37,6 +37,8 @@ require 'db.php';
 
 $errors = [];
 $kassennummer = (int) ($_POST['kassennummer'] ?? 0);
+$buchungsid = (int) ($_POST['buchungsid'] ?? 0);
+$mandantennummer = $_SESSION['mandantennummer'];
 $uploadDir = __DIR__ . '/uploads/cashfiles/';
 
 if (!is_dir($uploadDir)) {
@@ -50,46 +52,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $fileSize = $_FILES['ticketfile']['size'];
         $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
 
-        // Erlaubte Extensions
         $allowedExtensions = ["pdf"];
         if (!in_array($fileExt, $allowedExtensions, true)) {
             $_SESSION['error_message'] = "Nur PDF-Dateien erlaubt.";
+            header('Location: ' . $_SERVER['HTTP_REFERER']);
             exit;
         }
 
-        // Dateigröße prüfen (2 MB)
         if ($fileSize > 2 * 1024 * 1024) {
             $_SESSION['error_message'] = "Dateigröße muss unter 2 MB liegen.";
+            header('Location: ' . $_SERVER['HTTP_REFERER']);
             exit;
         }
 
         $newFileName = 'CashFile_' . $kassennummer . '_' . $fileName;
-        $destPath = $uploadDir . $newFileName;
+        $destPath = $uploadDir . '/' . $newFileName; // ✅ Slash hinzugefügt
 
         if (move_uploaded_file($fileTmpPath, $destPath)) {
-            // Pfad in DB speichern
-            $sql = "INSERT INTO cash_files (kassennummer, userid, FilePath, UploadedAt) 
-                        VALUES (:kassennummer, :userid, :path, NOW())";
+            $sql = "INSERT INTO cash_files (kassennummer, mandantennummer, buchungsid, userid, FilePath, UploadedAt) 
+                    VALUES (:kassennummer, :mandantennummer, :buchungsid, :userid, :path, NOW())";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([
                 'kassennummer' => $kassennummer,
+                'mandantennummer' => $mandantennummer,
+                'buchungsid' => $buchungsid,
                 'userid' => $userid,
                 'path' => 'uploads/cashfiles/' . $newFileName
             ]);
 
-            if (!empty($_SERVER['HTTP_REFERER'])) {
-                header('Location: ' . $_SERVER['HTTP_REFERER']);
-            } else {
-                header("Location: Buchungen.php?TicketID=" . $kassennummer);
-            }
+            $_SESSION['error_message'] = ['type'=>'success','text'=>'Datei erfolgreich hochgeladen.'];
+            header('Location: ' . $_SERVER['HTTP_REFERER']);
             exit;
         } else {
-            $_SESSION['error_message'] = "Fehler beim Verschieben der Datei.";
+            $_SESSION['error_message'] = ['type'=>'danger','text'=>'Fehler beim Verschieben der Datei.'];
+            header('Location: ' . $_SERVER['HTTP_REFERER']);
+            exit;
         }
 
     } else {
-        $_SESSION['error_message'] = "Fehler beim Upload. Bitte erneut versuchen.";
+        $_SESSION['error_message'] = ['type'=>'danger','text'=>'Fehler beim Upload. Bitte erneut versuchen.'];
+        header('Location: ' . $_SERVER['HTTP_REFERER']);
+        exit;
     }
 }
-
-

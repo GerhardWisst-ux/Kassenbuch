@@ -1,26 +1,33 @@
 <?php
-ob_start();
+
 session_set_cookie_params([
   'httponly' => true,
   'secure' => true,  // Nur bei HTTPS
   'samesite' => 'Strict'
 ]);
 session_start();
+ob_start();
+
 if ($_SESSION['userid'] == "") {
   header('Location: Login.php'); // zum Loginformular
 }
+$mandantennummer = $_SESSION['mandantennummer'];
+
+$formData = $_SESSION['form_data'] ?? [];
+unset($_SESSION['form_data']); // nur einmal anzeigen
+
 ?>
 
 <!DOCTYPE html>
 <html>
 
 <head>
+  <title>CashControl - Buchung bearbeiten</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Datensicherung für das Kassenbuch – einfache Verwaltung und sichere Backups.">
-  <meta name="author" content="Dein Name oder Firma">
+  <meta name="author" content="Gerhard Wißt">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>CashControl - Position bearbeiten</title>
   <link rel="icon" type="image/png" href="images/favicon.png" />
   <link href="css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -77,14 +84,11 @@ if ($_SESSION['userid'] == "") {
   }
 
   if (!empty($_SESSION['error_message'])): ?>
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-      <?= htmlspecialchars($_SESSION['error_message']) ?>
-      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Schließen"></button>
+    <div class="alert alert-<?= htmlspecialchars($_SESSION['error_message']['type']) ?>">
+      <?= htmlspecialchars($_SESSION['error_message']['text']) ?>
     </div>
-    <?php
-    // Meldung nach Anzeige löschen
-    unset($_SESSION['error_message']);
-  endif; ?>
+    <?php unset($_SESSION['error_message']); // Meldung nach Anzeige löschen ?>
+  <?php endif; ?>
 
 
   <div id="editbuchung">
@@ -96,11 +100,12 @@ if ($_SESSION['userid'] == "") {
           <div class="row align-items-center">
 
             <?php
-            $sql = "SELECT * FROM kasse WHERE userid = :userid AND id = :kassennummer";
+            $sql = "SELECT * FROM kasse WHERE userid = :userid AND id = :kassennummer AND mandantennummer = :mandantennummer ";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([
               'userid' => $userid,
-              'kassennummer' => $kassennummer
+              'kassennummer' => $kassennummer,
+              'mandantennummer' => $mandantennummer
             ]);
 
             $kasse = null;
@@ -129,18 +134,41 @@ if ($_SESSION['userid'] == "") {
             FROM bestaende 
             WHERE kassennummer = :kassennummer 
               AND userid = :userid
+              AND mandantennummer = :mandantennummer
             ORDER BY datum DESC
             LIMIT 1
         ");
       $stmtBestand->execute([
         ':kassennummer' => $kassennummer,
-        ':userid' => $userid
+        ':userid' => $userid,
+        ':mandantennummer' => $mandantennummer
+
       ]);
       $aktuellerBestand = $stmtBestand->fetchColumn();
-
       ?>
+
+      <div class="d-flex justify-content-between align-items-center mx-2">
+        <!-- Linke Buttons -->
+        <div>
+          <button class="btn btn-primary btn-sm rounded-circle me-2 circle-btn" type="submit"><i
+              class="fas fa-save"></i></button>
+
+          <a href="Index.php" title="Zurück zur Kassenübersicht"
+            class="btn btn-primary btn-sm rounded-circle me-2 circle-btn">
+            <i class="fa fa-arrow-left"></i>
+          </a>
+        </div>
+
+        <!-- Rechte Buttons -->
+        <div>
+          <a href="help/Buchungen.php" title="Hilfe" class="btn btn-primary btn-sm rounded-circle circle-btn">
+            <i class="fa fa-question-circle"></i>
+          </a>
+        </div>
+      </div>
+
       <div class="mt-2 mx-2">
-        <div class="form-group row me-4">
+        <div class="form-group row me-4 mb-3">
           <label class="col-sm-2 col-form-label text-dark">Aktueller Bestand:</label>
           <div class="col-sm-1">
             <div class="input-group">
@@ -149,14 +177,14 @@ if ($_SESSION['userid'] == "") {
             </div>
           </div>
         </div>
-        <div class="form-group row me-4">
+        <div class="form-group row me-4 mb-3">
           <label class="col-sm-2 col-form-label text-dark">Beleg-Nr:</label>
           <div class="col-sm-2">
-            <input class="form-control" type="text" name="belegnr" value="<?= htmlspecialchars($result['belegnr']) ?>"
+            <input class="form-control" type="text" name="belegnr" value="<?= htmlspecialchars($belegnr ?? '') ?>"
               disabled>
           </div>
         </div>
-        <div class="form-group row me-4">
+        <div class="form-group row me-4 mb-3">
           <label class="col-sm-2 col-form-label text-dark">Datum:</label>
           <?php
           $datumValue = '';
@@ -170,7 +198,7 @@ if ($_SESSION['userid'] == "") {
               required>
           </div>
         </div>
-        <div class="form-group row me-4">
+        <div class="form-group row me-4 mb-3">
           <label class="col-sm-2 col-form-label text-dark">Typ:</label>
           <div class="col-sm-1">
             <select class="form-control" name="typ">
@@ -179,13 +207,13 @@ if ($_SESSION['userid'] == "") {
             </select>
           </div>
         </div>
-        <div class="form-group row me-4">
+        <div class="form-group row me-4 mb-3">
           <label for="betrag" class="col-sm-2 col-form-label text-dark">Betrag:</label>
           <div class="col-sm-1">
             <div class="input-group">
-              <input class="form-control" type="number" step="0.01" id="betrag" name="betrag" required
+              <input class="form-control" type="number" step="0.01" id="betrag" name="betrag"
                 data-bestand="<?= $aktuellerBestand ?>"
-                value="<?= isset($result['betrag']) ? number_format((float) $result['betrag'], 2, '.', '') : '' ?>">
+                value="<?= isset($formData['betrag']) ? $formData['betrag'] : number_format((float) $result['betrag'], 2, '.', '') ?>">
               <span class="input-group-text">€</span>
             </div>
             <small id="betragWarnung" class="text-danger fw-bold" style="display:none;">
@@ -193,15 +221,15 @@ if ($_SESSION['userid'] == "") {
             </small>
           </div>
         </div>
-        <div class="form-group row me-4">
+        <div class="form-group row me-4 mb-3">
           <label id="labelvonan" class="col-sm-2 col-form-label text-dark">Buchungsart:</label>
           <div class="col-sm-10">
             <select class="form-control" id="buchungsarten-dropdown" name="buchungart_id"
               onchange="toggleCustomInput(this)">
               <?php
-              $sql = "SELECT ID, buchungsart FROM buchungsarten WHERE userid = :userid ORDER BY buchungsart";
+              $sql = "SELECT ID, buchungsart FROM buchungsarten WHERE userid = :userid AND mandantennummer = :mandantennummer ORDER BY buchungsart";
               $stmt = $pdo->prepare($sql);
-              $stmt->execute(['userid' => $userid]);
+              $stmt->execute(['userid' => $userid, 'mandantennummer' => $mandantennummer]);
 
               while ($baRow = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $selected = ($baRow['buchungsart'] === $result['buchungsart']) ? "selected" : "";
@@ -216,26 +244,21 @@ if ($_SESSION['userid'] == "") {
               value="<?= htmlspecialchars($result['buchungsart'] === 'custom' ? $result['custom_buchungsart'] : '') ?>">
           </div>
         </div>
-        <div class="form-group row me-4">
+        <div class="form-group row me-4 mb-3">
           <label class="col-sm-2 col-form-label text-dark">Verwendungszweck:</label>
           <div class="col-sm-10">
             <input class="form-control" type="text" name="beschreibung"
-              value="<?= htmlspecialchars($result['beschreibung']) ?>" required>
+              value="<?= isset($formData['beschreibung']) ? $formData['beschreibung'] : $result['beschreibung'] ?>">
           </div>
         </div>
-        <div class="form-group row me-4">
-          <div class="col-sm-offset-2 col-sm-10">
-            <button class="btn btn-primary" type="submit"><i class="fas fa-save"></i></button>
-            <a href="Buchungen.php" title="Zurück zur Hauptübersicht" class="btn btn-primary"><span> <i
-                  class="fa fa-arrow-left" aria-hidden="true"></i></span></a>'
-          </div>
-        </div>
+
       </div>
     </form>
   </div>
   <label for="TicketFile" class="col-sm-3 col-form-label text-dark mx-2">Dateien</label>
   <div class="col-sm-9">
     <form action="uploadcashfile.php" method="POST" enctype="multipart/form-data">
+      <input type="hidden" name="buchungsid" value="<?= $id ?>">
       <input type="hidden" name="kassennummer" value="<?= htmlspecialchars((string) $kassennummer) ?>">
       <input type="file" name="ticketfile" accept="application/pdf" class="form-control mb-2">
       <button type="submit" class="btn btn-primary btn-sm mx-2">
@@ -245,12 +268,12 @@ if ($_SESSION['userid'] == "") {
   </div>
   <?php
 
-  $sqlFiles = "SELECT id, kassennummer, FilePath, UploadedAt 
+  $sqlFiles = "SELECT id, kassennummer,mandantennummer, FilePath, UploadedAt 
              FROM cash_files 
-             WHERE kassennummer = :kassennummer 
+             WHERE buchungsid = :buchungsid              
              ORDER BY UploadedAt DESC";
   $stmtFiles = $pdo->prepare($sqlFiles);
-  $stmtFiles->execute(['kassennummer' => $kassennummer]);
+  $stmtFiles->execute(['buchungsid' => $id]);
   $files = $stmtFiles->fetchAll(PDO::FETCH_ASSOC);
 
   if ($files): ?>
@@ -275,8 +298,8 @@ if ($_SESSION['userid'] == "") {
               <td>
                 <form action="DeleteCashFile.php" method="POST" style="display:inline;">
                   <input type="hidden" name="FilePath" value="<?= htmlspecialchars($file['FilePath']) ?>">
-                  <input type="hidden" name="kassennummer" value="<?= (int) $kassennummer ?>">
-                  <button type="submit" name="delete" class="btn btn-danger btn-sm"
+                  <input type="hidden" name="buchungsid" value="<?= $id ?>">
+                  <button type="submit" name="delete" title="Löschen Datei" class="btn btn-danger btn-sm"
                     onclick="return confirm('Soll diese Datei wirklich gelöscht werden?');">
                     <i class="fa-solid fa-trash"></i>
                   </button>

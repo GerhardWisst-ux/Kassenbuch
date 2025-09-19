@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Datensicherung für das Kassenbuch – einfache Verwaltung und sichere Backups.">
-    <meta name="author" content="Dein Name oder Firma">
+    <meta name="author" content="Gerhard Wißt">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>CashControl - DATEV-Export</title>
     <link rel="icon" type="image/png" href="images/favicon.png" />
@@ -133,6 +133,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         /* rot */
         .expense {
             background-color: #f8d7da;
+        }
+
+        .circle-btn {
+            width: 36px;
+            height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            font-size: 14px;
+            /* Icon-Größe */
         }
     </style>
 </head>
@@ -159,6 +170,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <form method="post" class="card p-4 shadow-sm">
             <div class="mb-3">
+
+                <!-- Toolbar -->
+                <div class="btn-toolbar mb-3" role="toolbar" aria-label="Toolbar">
+                    <a href="Index.php" class="btn btn-primary rounded-circle me-2 circle-btn"><i
+                            class="fa fa-arrow-left"></i></a>
+
+                    <div class="ms-auto">
+                        <a href="help/ExportDatev.php" class="btn btn-primary btn-sm" title="Hilfe"><i
+                                class="fa fa-question-circle"></i></a>
+                    </div>
+                </div>
+
                 <label for="kontenrahmen" class="form-label">Kontenrahmen wählen</label>
                 <select id="kontenrahmen" name="kontenrahmen" class="form-select">
                     <option value="SKR03">SKR03 (Deutschland)</option>

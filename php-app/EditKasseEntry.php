@@ -1,32 +1,24 @@
 <?php
 declare(strict_types=1);
 
-/*
- * Sicherheits-Header (früh senden)
- * Hinweis: Passe die CSP an, falls du externe Skripte/Styles brauchst.
- */
 header('Content-Type: text/html; charset=UTF-8');
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: DENY');
 header("Referrer-Policy: no-referrer-when-downgrade");
 header("Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; form-action 'self'; base-uri 'self';");
 
-/* Sichere Session-Cookies (vor session_start) */
 session_set_cookie_params([
     'httponly' => true,
-    'secure' => true,     // nur unter HTTPS aktivieren
+    'secure'   => true, // nur unter HTTPS aktivieren!
     'samesite' => 'Strict'
 ]);
 session_start();
 
-/* DB laden (PDO im Exception-Modus empfohlen) */
 require 'db.php';
-// Optional, falls noch nicht global gesetzt:
 if (method_exists($pdo, 'setAttribute')) {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 }
 
-/* Nur POST zulassen */
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     exit('Nur POST erlaubt.');
@@ -44,57 +36,71 @@ if (
 
 /* Nutzerprüfung */
 $userid = $_SESSION['userid'] ?? null;
-if (empty($userid) || !ctype_digit((string) $userid)) {
+if (empty($userid) || !ctype_digit((string)$userid)) {
     http_response_code(401);
     exit('Nicht angemeldet.');
 }
 
-$id = $_SESSION['id'];
-
-print_r($_POST);
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $userid = $_SESSION['userid'];
-    $kasse = htmlspecialchars($_POST['kasse'], ENT_QUOTES, 'UTF-8');
-    $kontonummer = htmlspecialchars($_POST['kontonummer'], ENT_QUOTES, 'UTF-8');
-    $anfangsbestand = htmlspecialchars($_POST['anfangsbestand'], ENT_QUOTES, 'UTF-8');    
-    $checkminus = filter_var($_POST['checkminus'], FILTER_VALIDATE_BOOLEAN);
-    $datumab = htmlspecialchars($_POST['datumab'], ENT_QUOTES, 'UTF-8');
-
-    try {
-        // Update-Statement
-        $sql = "UPDATE kasse 
-                SET kasse = :kasse, 
-                    anfangsbestand = :anfangsbestand, 
-                    checkminus = :checkminus, 
-                    kontonummer = :kontonummer, 
-                    datumab = :datumab,                 
-                    userid = :userid 
-                WHERE id = :id";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([
-            'id' => $id,
-            'kasse' => $kasse,
-            'anfangsbestand' => $anfangsbestand,
-            'checkminus' => $checkminus,
-            'kontonummer' => $kontonummer,
-            'datumab' => $datumab,
-            'userid' => $userid,
-        ]);
-        
-        // Erfolgsmeldung setzen
-        $_SESSION['success_message'] = "Die Kasse wurde erfolgreich gespeichert.";
-
-        if (isset($_SERVER['HTTP_REFERER'])) {
-            header('Location: ' . $_SERVER['HTTP_REFERER']);
-            exit;
-        } else {
-            header('Location: Index.php'); // Fallback, falls kein Referrer vorhanden
-            exit;
-        }
-    } catch (PDOException $e) {
-        echo "Fehler beim Aktualisieren: " . $e->getMessage();
-        exit();
-    }
+$id = $_SESSION['id'] ?? null;
+if (empty($id) || !ctype_digit((string)$id)) {
+    http_response_code(400);
+    exit('Ungültige ID.');
 }
-?>
+
+// Hilfsfunktion für sichere Filterung
+function cleanString(?string $val): ?string {
+    $val = trim((string)$val);
+    return $val === '' ? null : $val;
+}
+
+try {
+    $kasse          = cleanString($_POST['kasse'] ?? '');
+    $kontonummer    = cleanString($_POST['kontonummer'] ?? '');
+    $anfangsbestand = (float)($_POST['anfangsbestand'] ?? 0);
+    $checkminus     = !empty($_POST['checkminus']) ? 1 : 0;
+    $datumab        = cleanString($_POST['datumab'] ?? '');
+
+    $kunde_typ = in_array($_POST['kunde_typ'] ?? '', ['privat', 'gewerblich'], true)
+        ? $_POST['kunde_typ']
+        : 'privat';
+
+    $vorname = $kunde_typ === 'privat' ? cleanString($_POST['vorname'] ?? '') : null;
+    $nachname = $kunde_typ === 'privat' ? cleanString($_POST['nachname'] ?? '') : null;
+    $firma = $kunde_typ === 'gewerblich' ? cleanString($_POST['firma'] ?? '') : null;
+
+    $sql = "UPDATE kasse
+            SET kasse = :kasse,
+                anfangsbestand = :anfangsbestand,
+                checkminus = :checkminus,
+                kontonummer = :kontonummer,
+                datumab = :datumab,
+                typ = :kunde_typ,
+                vorname = :vorname,
+                nachname = :nachname,
+                firma = :firma
+            WHERE id = :id
+              AND userid = :userid";
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([
+        'id'              => $id,
+        'userid'          => $userid,
+        'kasse'           => $kasse,
+        'anfangsbestand'  => $anfangsbestand,
+        'checkminus'      => $checkminus,
+        'kontonummer'     => $kontonummer,
+        'datumab'         => $datumab,
+        'kunde_typ'       => $kunde_typ,
+        'vorname'         => $vorname,
+        'nachname'        => $nachname,
+        'firma'           => $firma
+    ]);
+
+    $_SESSION['success_message'] = "Die Kasse wurde erfolgreich gespeichert.";
+
+    header('Location: ' . ($_SERVER['HTTP_REFERER'] ?? 'EditKasse.php'));
+    exit;
+} catch (PDOException $e) {
+    $_SESSION['error_message'] = "Fehler beim Bearbeiten der Kasse: " . $e->getMessage();
+    exit("Fehler beim Aktualisieren: " . $e->getMessage());
+}

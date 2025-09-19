@@ -17,12 +17,42 @@ if (!file_exists('Images/Cash.png')) {
     echo 'Fehler: Logo-Datei nicht gefunden.';
 }
 
-
 $CashControl_header = '
 <img src="Images/Cash.png">
 ';
 
-$CashControl_empfaenger = 'Firma: Testfirma GmbH, Im Neuen Berg 32, 70327 Stuttgart';
+$CashControl_empfaenger = ''; // Default leer
+
+// Nutzer-ID aus Session holen
+$userid = $_SESSION['userid'] ?? null;
+
+if ($userid) {
+    $stmt = $pdo->prepare("
+        SELECT vorname, nachname,strasse, plz, ort 
+        FROM users 
+        WHERE id = :id
+    ");
+    $stmt->execute([':id' => $userid]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($user) {
+        $vorname = $user['vorname'] ?? '';
+        $nachname = $user['nachname'] ?? '';
+        $strasse = $user['strasse'] ?? '';
+        $plz    = $user['plz'] ?? '';
+        $ort    = $user['ort'] ?? '';
+
+        $CashControl_empfaenger = "Kunde: $vorname, $nachname, $strasse, $plz $ort";
+
+        $pdfName = "pdf/CashControl_Auszug_" . $vorname . ' '. $nachname . $monatFilter. ' ' . ".pdf";
+    }
+    else {
+       
+        $pdfName = "pdf/CashControl_Auszug_".$kassen_nummer.".pdf";
+
+    }
+   
+}
 $CashControl_empfaenger = "<b>" . htmlspecialchars($CashControl_empfaenger, ENT_QUOTES, 'UTF-8') . "</b>";
 
 // $CashControl_footer = "Dieses PDF Dokument wurde mit dem CashControl erstellt";
@@ -30,13 +60,15 @@ $CashControl_empfaenger = "<b>" . htmlspecialchars($CashControl_empfaenger, ENT_
 // Wenn kein Monat ausgewählt wurde, alle Buchungen anzeigen
 $startDatum = $monatFilter . "-01";
 $endDatum = date("Y-m-t", strtotime($startDatum)); // Letzter Tag des Monats
+$kassennummer = $_SESSION['kassennummer'] ?? null;
 $sql = "SELECT * FROM buchungen 
      WHERE datum BETWEEN :startDatum AND :endDatum 
      AND userid = :userid 
+     AND kassennummer = :kassennummer 
      AND barkasse = 1 
      ORDER BY datum";
 $stmt = $pdo->prepare($sql);
-$stmt->execute(['startDatum' => $startDatum, 'endDatum' => $endDatum, 'userid' => $userid]);
+$stmt->execute(['startDatum' => $startDatum, 'endDatum' => $endDatum, 'userid' => $userid, 'kassennummer' => $kassennummer]);
 
 $umsatzsteuer = 0.0; 
 
@@ -127,10 +159,10 @@ $monatName = strftime('%B', mktime(0, 0, 0, $monatNummer, 10)); // Übersetzung 
 
 // SQL-Abfrage zur Bestandsabfrage
 $sql = "SELECT * FROM bestaende 
-WHERE MONTH(datum) = :monat AND YEAR(datum) = :year AND userid = :userid 
+WHERE MONTH(datum) = :monat AND YEAR(datum) = :year AND userid = :userid AND kassennummer = :kassennummer
 ORDER BY datum DESC";
 $stmtAB = $pdo->prepare($sql);
-$stmtAB->execute(['year' => $jahr, 'monat' => $monatNummer - 1, 'userid' => $userid]);
+$stmtAB->execute(['year' => $jahr, 'monat' => $monatNummer - 1, 'userid' => $userid, 'kassennummer' => $kassennummer]);
 
 while ($row = $stmtAB->fetch(PDO::FETCH_ASSOC)) {
     // Anfangsbestand auslesen und formatieren
@@ -185,6 +217,7 @@ $html = "
     <thead>
         <tr>
             <th style='width: 10%;'><b>Datum</b></th>
+            <th style='width: 10%;'><b>Beleg-Nr</b></th>
             <th style='width: 10%;'><b>Typ</b></th>
             <th style='width: 50%;'><b>Beschreibung</b></th>
             <th style='width: 30%;'><b>Verwendungszweck</b></th>            
@@ -201,7 +234,8 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
     $html .= "
         <tr>
             <td>{$formattedDate}</td>
-            <td>{$row['typ']}</td>            
+            <td>{$row['belegnr']}</td>
+            <td>{$row['typ']}</td>
             <td>{$row['vonan']}</td>
             <td>{$row['beschreibung']}</td>            
             <td style=\"text-align: right;\">{$betragFormatted}</td>
@@ -218,9 +252,9 @@ $pdf->writeHTML($html, true, false, true, false, '');
 $sql = "SELECT SUM(CASE WHEN typ = 'Einlage' THEN betrag ELSE 0 END) AS einlagen,
 SUM(CASE WHEN typ = 'Ausgabe' THEN betrag ELSE 0 END) AS ausgaben
 FROM buchungen
-WHERE Year(datum) = :year AND MONTH(datum) = :monat and userid = :userid and barkasse =1 ";
+WHERE Year(datum) = :year AND MONTH(datum) = :monat and userid = :userid and barkasse =1 and kassennummer = :kassennummer;";
 $stmt = $pdo->prepare($sql);
-$stmt->execute(['year' => $jahr, 'monat' => intval($monatNummer), 'userid' => $userid]);
+$stmt->execute(['year' => $jahr, 'monat' => intval($monatNummer), 'userid' => $userid, 'kassennummer' => $kassennummer]);
 $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
 // Anfangsbestand berechnen und formatieren

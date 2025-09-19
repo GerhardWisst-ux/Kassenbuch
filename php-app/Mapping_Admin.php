@@ -73,7 +73,7 @@ $mappings = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Datensicherung für das Kassenbuch – einfache Verwaltung und sichere Backups.">
-    <meta name="author" content="Dein Name oder Firma">
+    <meta name="author" content="Gerhard Wißt">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>Buchungsarten-Mapping</title>
     <link rel="icon" type="image/png" href="images/favicon.png" />
@@ -83,6 +83,19 @@ $mappings = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <link href="css/jquery.dataTables.min.css" rel="stylesheet">
     <link href="css/responsive.dataTables.min.css" rel="stylesheet">
     <link href="css/style.css" rel="stylesheet">
+
+    <style>
+        .circle-btn {
+            width: 36px;
+            height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            font-size: 14px;
+            /* Icon-Größe */
+        }
+    </style>
 </head>
 
 <body>
@@ -102,11 +115,30 @@ $mappings = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </header>
     <div class="container-fluid mb-3 mt-3">
 
-        <a href="Index.php" class="btn btn-primary btn-sm"><i class="fa fa-arrow-left"></i></a>
-        <!-- Add Button -->
-        <br>
-        <button class="btn btn-success mt-3" data-bs-toggle="modal" data-bs-target="#addModal">➕ Neue
-            Zuordnung</button>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+
+            <!-- Linke Buttons -->
+            <div>
+                <button class="btn btn-primary rounded-circle me-2 circle-btn me-4" title="Neues Mapping anlegen" data-bs-toggle="modal"
+                    data-bs-target="#addModal"><i class="fa fa-plus" aria-hidden="true"></i></button>
+
+                <!-- Zurück -->
+                <a href="Index.php" title="Zurück zur Kassenübersicht"
+                    class="btn btn-primary btn-sm rounded-circle me-2 circle-btn">
+                    <i class="fa fa-arrow-left" aria-hidden="true"></i>
+                </a>
+            </div>
+
+            <!-- Hilfe rechts -->
+            <div>
+                <div class="ms-auto">
+                    <a href="help/Mapping_Admin.php" class="btn btn-primary btn-sm" title="Hilfe"><i
+                            class="fa fa-question-circle"></i></a>
+                </div>
+                </a>
+            </div>
+        </div>
+
         <!-- Tabelle -->
         <form method="GET" class="d-flex gap-3 mb-3 align-items-center flex-wrap">
             <label for="filterKontenrahmen" class="form-label mb-0">Kontenrahmen:</label>
@@ -140,13 +172,13 @@ $mappings = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <td><?= htmlspecialchars($m['bu_schluessel']) ?></td>
                         <td>
                             <!-- Bearbeiten -->
-                            <button class="btn btn-sm btn-primary" data-bs-toggle="modal"
-                                data-bs-target="#editModal<?= $m['id'] ?>">✏️</button>
+                            <button class="btn btn-sm btn-primary edit-btn" data-bs-toggle="modal"
+                                data-bs-target="#editModal<?= $m['id'] ?>"><i class="fas fa-edit"></i></button>
                             <!-- Löschen -->
                             <form method="post" action="" class="d-inline">
                                 <input type="hidden" name="id" value="<?= $m['id'] ?>">
                                 <button type="submit" name="delete" class="btn btn-sm btn-danger"
-                                    onclick="return confirm('Wirklich löschen?')">🗑️</button>
+                                    onclick="return confirm('Wirklich löschen?')"><i class="fas fa-trash"></i></button>
                             </form>
                         </td>
                     </tr>
@@ -203,14 +235,13 @@ $mappings = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </tbody>
         </table>
 
-
         <!-- Add Modal -->
         <div class="modal fade" id="addModal" tabindex="-1">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <form method="post">
                         <div class="modal-header">
-                            <h5 class="modal-title">Neue Buchungsart anlegen</h5>
+                            <h5 class="modal-title">Neues Mapping anlegen</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
@@ -239,6 +270,7 @@ $mappings = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             </div>
                         </div>
                         <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
                             <button type="submit" name="add" class="btn btn-primary">Speichern</button>
                         </div>
                     </form>
